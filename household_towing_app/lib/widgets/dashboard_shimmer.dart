@@ -25,16 +25,19 @@ class DashboardShimmer extends StatelessWidget {
 
           // Stats Row Shimmer
           Row(
-            children: List.generate(4, (index) => Expanded(
-              child: Container(
-                height: 100,
-                margin: EdgeInsets.only(right: index == 3 ? 0 : 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+            children: List.generate(
+              4,
+              (index) => Expanded(
+                child: Container(
+                  height: 100,
+                  margin: EdgeInsets.only(right: index == 3 ? 0 : 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
               ),
-            )),
+            ),
           ),
           const SizedBox(height: 24),
 

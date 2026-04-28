@@ -11,7 +11,8 @@ class AssetsPage extends StatefulWidget {
   State<AssetsPage> createState() => _AssetsPageState();
 }
 
-class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateMixin {
+class _AssetsPageState extends State<AssetsPage>
+    with SingleTickerProviderStateMixin {
   final AssetService _assetService = AssetService();
   late TabController _tabController;
   String _searchQuery = '';
@@ -59,23 +60,38 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // Real-time Stats
           StreamBuilder<List<AssetModel>>(
             stream: _assetService.getAssets(),
             builder: (context, snapshot) {
               final assets = snapshot.data ?? [];
-              final activeCount = assets.where((a) => a.status == AssetStatus.active || a.status == AssetStatus.inUse).length;
-              final maintenanceCount = assets.where((a) => a.status == AssetStatus.maintenance).length;
-              final equipmentCount = assets.where((a) => a.type != AssetType.vehicle).length;
-              
+              final activeCount = assets
+                  .where(
+                    (a) =>
+                        a.status == AssetStatus.active ||
+                        a.status == AssetStatus.inUse,
+                  )
+                  .length;
+              final maintenanceCount = assets
+                  .where((a) => a.status == AssetStatus.maintenance)
+                  .length;
+              final equipmentCount = assets
+                  .where((a) => a.type != AssetType.vehicle)
+                  .length;
+
               return Row(
                 children: [
                   Expanded(
@@ -125,7 +141,10 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
-                BoxShadow(color: Colors.grey.withValues(alpha: 0.1), blurRadius: 10),
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                ),
               ],
             ),
             child: Column(
@@ -156,7 +175,9 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
                             hintText: 'Search by name or plate...',
                             prefixIcon: const Icon(Icons.search, size: 20),
                             isDense: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),
@@ -188,9 +209,9 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         var list = snapshot.data ?? [];
-        
+
         // Filter by tab type
         if (filterType == AssetType.vehicle) {
           list = list.where((a) => a.type == AssetType.vehicle).toList();
@@ -200,10 +221,16 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
 
         // Filter by search
         if (_searchQuery.isNotEmpty) {
-          list = list.where((a) => 
-            a.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
-            (a.plateNumber?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
-          ).toList();
+          list = list
+              .where(
+                (a) =>
+                    a.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                    (a.plateNumber?.toLowerCase().contains(
+                          _searchQuery.toLowerCase(),
+                        ) ??
+                        false),
+              )
+              .toList();
         }
 
         if (list.isEmpty) {
@@ -213,7 +240,10 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
               children: [
                 Icon(Icons.inventory, size: 64, color: Colors.grey[300]),
                 const SizedBox(height: 16),
-                Text('No assets found in this category', style: TextStyle(color: Colors.grey[600])),
+                Text(
+                  'No assets found in this category',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
               ],
             ),
           );
@@ -232,64 +262,120 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
               DataColumn(label: Text('Last Maint.')),
               DataColumn(label: Text('Actions')),
             ],
-            rows: list.map((asset) => DataRow(
-              cells: [
-                DataCell(
-                  Row(
-                    children: [
-                      Icon(
-                        asset.type == AssetType.vehicle ? Icons.local_shipping : Icons.handyman,
-                        size: 20,
-                        color: Colors.grey[600],
+            rows: list
+                .map(
+                  (asset) => DataRow(
+                    cells: [
+                      DataCell(
+                        Row(
+                          children: [
+                            Icon(
+                              asset.type == AssetType.vehicle
+                                  ? Icons.local_shipping
+                                  : Icons.handyman,
+                              size: 20,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  asset.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (asset.plateNumber != null)
+                                  Text(
+                                    asset.plateNumber!,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(asset.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          if (asset.plateNumber != null)
-                            Text(asset.plateNumber!, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                        ],
+                      DataCell(Text(asset.category)),
+                      DataCell(_buildStatusBadge(asset.status)),
+                      DataCell(
+                        asset.assignedTo != null
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'In Use By:',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    asset.providerName ?? 'Unknown',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const Text(
+                                'Available',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                      ),
+                      DataCell(
+                        Text(
+                          asset.lastMaintenance != null
+                              ? DateFormat(
+                                  'MMM dd, yyyy',
+                                ).format(asset.lastMaintenance!)
+                              : 'N/A',
+                        ),
+                      ),
+                      DataCell(
+                        PopupMenuButton(
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Text('Edit Details'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'maintenance',
+                              child: Text('Log Maintenance'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'utilization',
+                              child: Text('View History'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text(
+                                'Remove Asset',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'delete') _showDeleteConfirm(asset);
+                            if (value == 'maintenance')
+                              _showMaintenanceDialog(asset);
+                          },
+                        ),
                       ),
                     ],
                   ),
-                ),
-                DataCell(Text(asset.category)),
-                DataCell(_buildStatusBadge(asset.status)),
-                DataCell(
-                  asset.assignedTo != null 
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('In Use By:', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text(asset.providerName ?? 'Unknown', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                        ],
-                      )
-                    : const Text('Available', style: TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.w500)),
-                ),
-                DataCell(Text(
-                  asset.lastMaintenance != null 
-                    ? DateFormat('MMM dd, yyyy').format(asset.lastMaintenance!)
-                    : 'N/A'
-                )),
-                DataCell(
-                  PopupMenuButton(
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'edit', child: Text('Edit Details')),
-                      const PopupMenuItem(value: 'maintenance', child: Text('Log Maintenance')),
-                      const PopupMenuItem(value: 'utilization', child: Text('View History')),
-                      const PopupMenuItem(value: 'delete', child: Text('Remove Asset', style: TextStyle(color: Colors.red))),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'delete') _showDeleteConfirm(asset);
-                      if (value == 'maintenance') _showMaintenanceDialog(asset);
-                    },
-                  ),
-                ),
-              ],
-            )).toList(),
+                )
+                .toList(),
           ),
         );
       },
@@ -299,7 +385,7 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
   Widget _buildStatusBadge(AssetStatus status) {
     Color color;
     String label;
-    
+
     switch (status) {
       case AssetStatus.active:
         color = Colors.green;
@@ -328,7 +414,11 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -338,7 +428,7 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
     final categoryController = TextEditingController();
     final plateController = TextEditingController();
     AssetType selectedType = AssetType.vehicle;
-    
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -351,35 +441,56 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
               children: [
                 DropdownButtonFormField<AssetType>(
                   initialValue: selectedType,
-                  decoration: const InputDecoration(labelText: 'Asset Type', border: OutlineInputBorder()),
-                  items: AssetType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name.toUpperCase()))).toList(),
+                  decoration: const InputDecoration(
+                    labelText: 'Asset Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: AssetType.values
+                      .map(
+                        (t) => DropdownMenuItem(
+                          value: t,
+                          child: Text(t.name.toUpperCase()),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (v) => setDialogState(() => selectedType = v!),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Name / Model', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'Name / Model',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: categoryController,
                   decoration: InputDecoration(
-                    labelText: selectedType == AssetType.vehicle ? 'Vehicle Type (e.g. Flatbed)' : 'Category (e.g. Power Tool)',
-                    border: const OutlineInputBorder()
+                    labelText: selectedType == AssetType.vehicle
+                        ? 'Vehicle Type (e.g. Flatbed)'
+                        : 'Category (e.g. Power Tool)',
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 if (selectedType == AssetType.vehicle) ...[
                   const SizedBox(height: 16),
                   TextField(
                     controller: plateController,
-                    decoration: const InputDecoration(labelText: 'Plate Number', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      labelText: 'Plate Number',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ],
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final asset = AssetModel(
@@ -388,7 +499,9 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
                   category: categoryController.text,
                   type: selectedType,
                   status: AssetStatus.active,
-                  plateNumber: selectedType == AssetType.vehicle ? plateController.text : null,
+                  plateNumber: selectedType == AssetType.vehicle
+                      ? plateController.text
+                      : null,
                 );
                 await _assetService.addAsset(asset);
                 if (context.mounted) Navigator.pop(context);
@@ -406,9 +519,14 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Log Maintenance: ${asset.name}'),
-        content: const Text('Has the maintenance for this asset been completed today? This will reset the maintenance status to Active.'),
+        content: const Text(
+          'Has the maintenance for this asset been completed today? This will reset the maintenance status to Active.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('No')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No'),
+          ),
           ElevatedButton(
             onPressed: () async {
               await _assetService.updateMaintenance(asset.id, DateTime.now());
@@ -426,9 +544,14 @@ class _AssetsPageState extends State<AssetsPage> with SingleTickerProviderStateM
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Asset?'),
-        content: Text('Are you sure you want to remove ${asset.name} from the inventory? This cannot be undone.'),
+        content: Text(
+          'Are you sure you want to remove ${asset.name} from the inventory? This cannot be undone.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               await _assetService.deleteAsset(asset.id);

@@ -37,9 +37,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validatePassword(String password) {
     if (password.isEmpty) return 'Password is required';
     if (password.length < 8) return 'Password must be at least 8 characters';
-    if (!RegExp(r'[A-Z]').hasMatch(password)) return 'Password must contain an uppercase letter';
-    if (!RegExp(r'[0-9]').hasMatch(password)) return 'Password must contain a number';
-    if (!RegExp(r'[!@#\$%\^&\*\-_\.=\+]').hasMatch(password)) return r'Password must contain a special character (!@#$%^&*-_.=+)';
+    if (!RegExp(r'[A-Z]').hasMatch(password))
+      return 'Password must contain an uppercase letter';
+    if (!RegExp(r'[0-9]').hasMatch(password))
+      return 'Password must contain a number';
+    if (!RegExp(r'[!@#\$%\^&\*\-_\.=\+]').hasMatch(password))
+      return r'Password must contain a special character (!@#$%^&*-_.=+)';
     return null;
   }
 
@@ -48,8 +51,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (phone.isEmpty) return 'Phone number is required';
     // Remove all non-digit and non-plus/minus characters for validation
     final cleanPhone = phone.replaceAll(RegExp(r'[^\d\+\-]'), '');
-    if (cleanPhone.length < 10) return 'Phone number must be at least 10 digits';
-    if (!RegExp(r'^\+?[\d\-]{9,}$').hasMatch(phone)) return 'Please enter a valid phone number';
+    if (cleanPhone.length < 10)
+      return 'Phone number must be at least 10 digits';
+    if (!RegExp(r'^\+?[\d\-]{9,}$').hasMatch(phone))
+      return 'Please enter a valid phone number';
     return null;
   }
 
@@ -97,7 +102,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: InputDecoration(
                   labelText: 'Full Name',
                   prefixIcon: const Icon(Icons.person_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -107,7 +114,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: InputDecoration(
                   labelText: 'Email',
                   prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -117,7 +126,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: InputDecoration(
                   labelText: 'Phone Number',
                   prefixIcon: const Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -128,16 +139,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock_outlined),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
               const Text(
                 'Join as',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -148,13 +170,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: _selectedRole == 'customer' ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-                          border: Border.all(color: _selectedRole == 'customer' ? Colors.blue : Colors.grey[300]!),
+                          color: _selectedRole == 'customer'
+                              ? Colors.blue.withOpacity(0.1)
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: _selectedRole == 'customer'
+                                ? Colors.blue
+                                : Colors.grey[300]!,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.person, color: _selectedRole == 'customer' ? Colors.blue : Colors.grey),
+                            Icon(
+                              Icons.person,
+                              color: _selectedRole == 'customer'
+                                  ? Colors.blue
+                                  : Colors.grey,
+                            ),
                             const SizedBox(height: 4),
                             const Text('Customer'),
                           ],
@@ -169,13 +202,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: _selectedRole == 'provider' ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-                          border: Border.all(color: _selectedRole == 'provider' ? Colors.blue : Colors.grey[300]!),
+                          color: _selectedRole == 'provider'
+                              ? Colors.blue.withOpacity(0.1)
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: _selectedRole == 'provider'
+                                ? Colors.blue
+                                : Colors.grey[300]!,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.build, color: _selectedRole == 'provider' ? Colors.blue : Colors.grey),
+                            Icon(
+                              Icons.build,
+                              color: _selectedRole == 'provider'
+                                  ? Colors.blue
+                                  : Colors.grey,
+                            ),
                             const SizedBox(height: 4),
                             const Text('Provider'),
                           ],
@@ -192,13 +236,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: InputDecoration(
                     labelText: 'Service Category',
                     prefixIcon: const Icon(Icons.category_outlined),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'Household', child: Text('Household Services')),
-                    DropdownMenuItem(value: 'Towing', child: Text('Towing Services')),
+                    DropdownMenuItem(
+                      value: 'Household',
+                      child: Text('Household Services'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Towing',
+                      child: Text('Towing Services'),
+                    ),
                   ],
-                  onChanged: (value) => setState(() => _selectedServiceType = value ?? 'Household'),
+                  onChanged: (value) => setState(
+                    () => _selectedServiceType = value ?? 'Household',
+                  ),
                 ),
               ],
               const SizedBox(height: 32),
@@ -209,13 +263,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           'Create Account',
-                          style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ),
@@ -251,12 +311,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Please fix the following:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Please fix the following:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
-                ...errors.map((error) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text('• $error'),
-                )),
+                ...errors.map(
+                  (error) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text('• $error'),
+                  ),
+                ),
               ],
             ),
             backgroundColor: Colors.red,
@@ -271,44 +336,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       // 1. Create User
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
 
+      // 2. Send Verification Email
+      await credential.user!.sendEmailVerification();
 
       // 3. Save User Profile to Firestore
-      final String role = _selectedRole == 'customer' ? 'customer' : 'pending_provider';
-      
-      await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set({
-        'uid': credential.user!.uid,
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'role': role,
+      final String role = _selectedRole == 'customer'
+          ? 'customer'
+          : 'pending_provider';
 
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(credential.user!.uid)
+          .set({
+            'uid': credential.user!.uid,
+            'name': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'role': role,
+            'isEmailVerified': false,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
 
       // 4. If Provider, create initial provider profile
       if (_selectedRole == 'provider') {
-        await FirebaseFirestore.instance.collection('providers').doc(credential.user!.uid).set({
-          'uid': credential.user!.uid,
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'serviceType': _selectedServiceType,
-          'status': 'offline',
-          'rating': 5.0,
-          'jobsCompleted': 0,
-          'isApproved': false, // Crucial for security
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        await FirebaseFirestore.instance
+            .collection('providers')
+            .doc(credential.user!.uid)
+            .set({
+              'uid': credential.user!.uid,
+              'name': _nameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'phone': _phoneController.text.trim(),
+              'serviceType': _selectedServiceType,
+              'status': 'offline',
+              'rating': 5.0,
+              'jobsCompleted': 0,
+              'isApproved': false, // Crucial for security
+              'createdAt': FieldValue.serverTimestamp(),
+            });
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account created successfully!')),
+          const SnackBar(
+            content: Text(
+              'Account created! Please check your email for a verification link.',
+            ),
+          ),
         );
         Navigator.pop(context);
       }
@@ -316,7 +396,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       String message = e.message ?? 'An error occurred';
       // Map Firebase error codes to user-friendly messages
       if (e.code == 'email-already-in-use') {
-        message = 'This email is already registered. Please use a different email.';
+        message =
+            'This email is already registered. Please use a different email.';
       } else if (e.code == 'weak-password') {
         message = 'The password is too weak. Please use a stronger password.';
       } else if (e.code == 'invalid-email') {

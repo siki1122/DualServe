@@ -36,7 +36,9 @@ class _ProviderHomeState extends State<ProviderHome> {
           final profile = userProvider.providerProfile!;
 
           return Scaffold(
-            backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+            backgroundColor: isDark
+                ? AppTheme.backgroundDark
+                : AppTheme.background,
             drawer: const ProviderDrawer(),
             appBar: AppBar(
               title: const Text('Dashboard'),
@@ -80,7 +82,9 @@ class _ProviderHomeState extends State<ProviderHome> {
           'Welcome back,',
           style: TextStyle(
             fontSize: 16,
-            color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
+            color: isDark
+                ? AppTheme.textDarkSecondary
+                : AppTheme.textSlateMedium,
           ),
         ),
         Text(
@@ -99,8 +103,10 @@ class _ProviderHomeState extends State<ProviderHome> {
     return StreamBuilder<Map<String, dynamic>>(
       stream: _bookingService.getProviderDashboardStats(providerId),
       builder: (context, snapshot) {
-        final stats = snapshot.data ?? {'pending': 0, 'active': 0, 'todayEarnings': 0.0, 'todayJobs': 0};
-        
+        final stats =
+            snapshot.data ??
+            {'pending': 0, 'active': 0, 'todayEarnings': 0.0, 'todayJobs': 0};
+
         return GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -109,17 +115,47 @@ class _ProviderHomeState extends State<ProviderHome> {
           mainAxisSpacing: 16,
           childAspectRatio: 1.5,
           children: [
-            _buildStatCard('Pending', stats['pending'].toString(), Icons.timer, Colors.orange, isDark),
-            _buildStatCard('Active', stats['active'].toString(), Icons.running_with_errors, Colors.blue, isDark),
-            _buildStatCard('Today', '₱${stats['todayEarnings']}', Icons.payments, Colors.green, isDark),
-            _buildStatCard('Jobs', stats['todayJobs'].toString(), Icons.task_alt, Colors.purple, isDark),
+            _buildStatCard(
+              'Pending',
+              stats['pending'].toString(),
+              Icons.timer,
+              Colors.orange,
+              isDark,
+            ),
+            _buildStatCard(
+              'Active',
+              stats['active'].toString(),
+              Icons.running_with_errors,
+              Colors.blue,
+              isDark,
+            ),
+            _buildStatCard(
+              'Today',
+              '₱${stats['todayEarnings']}',
+              Icons.payments,
+              Colors.green,
+              isDark,
+            ),
+            _buildStatCard(
+              'Jobs',
+              stats['todayJobs'].toString(),
+              Icons.task_alt,
+              Colors.purple,
+              isDark,
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, bool isDark) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: AppTheme.cardDecoration(context),
@@ -136,14 +172,18 @@ class _ProviderHomeState extends State<ProviderHome> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                  color: isDark
+                      ? AppTheme.textDarkPrimary
+                      : AppTheme.textSlateDark,
                 ),
               ),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
+                  color: isDark
+                      ? AppTheme.textDarkSecondary
+                      : AppTheme.textSlateMedium,
                 ),
               ),
             ],
@@ -172,7 +212,10 @@ class _ProviderHomeState extends State<ProviderHome> {
           'Manage your assigned jobs',
           Icons.assignment,
           AppTheme.primaryBlue,
-          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderTasksScreen())),
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProviderTasksScreen()),
+          ),
         ),
         const SizedBox(height: 12),
         _buildActionButton(
@@ -181,13 +224,23 @@ class _ProviderHomeState extends State<ProviderHome> {
           'Find new work near you',
           Icons.search,
           AppTheme.towingOrange,
-          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AvailableTasksScreen())),
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AvailableTasksScreen()),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
@@ -215,20 +268,29 @@ class _ProviderHomeState extends State<ProviderHome> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                      color: isDark
+                          ? AppTheme.textDarkPrimary
+                          : AppTheme.textSlateDark,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
+                      color: isDark
+                          ? AppTheme.textDarkSecondary
+                          : AppTheme.textSlateMedium,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
+            Icon(
+              Icons.chevron_right,
+              color: isDark
+                  ? AppTheme.textDarkSecondary
+                  : AppTheme.textSlateMedium,
+            ),
           ],
         ),
       ),
