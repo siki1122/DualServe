@@ -70,12 +70,13 @@ class _TransactionCompletionScreenState
 
       // Get provider pricing and calculate with multiplier + night differential
       final billingService = BillingService();
-      final costBreakdown = await billingService.calculateCostWithProviderPricing(
-        serviceType: widget.serviceType,
-        distanceTraveled: _distanceTraveled,
-        providerId: widget.providerId,
-        completionTime: _completionTime,
-      );
+      final costBreakdown = await billingService
+          .calculateCostWithProviderPricing(
+            serviceType: widget.serviceType,
+            distanceTraveled: _distanceTraveled,
+            providerId: widget.providerId,
+            completionTime: _completionTime,
+          );
 
       setState(() {
         _basePrice = costBreakdown['basePrice']!;
@@ -118,10 +119,7 @@ class _TransactionCompletionScreenState
 
       // Update task status to completed
       final taskService = TaskService();
-      await taskService.updateTaskStatus(
-        widget.taskId,
-        TaskStatus.completed,
-      );
+      await taskService.updateTaskStatus(widget.taskId, TaskStatus.completed);
 
       if (mounted) {
         // Show success message
@@ -228,8 +226,7 @@ class _TransactionCompletionScreenState
                                     ],
                                   ),
                                   Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.end,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       const Text(
                                         'Distance Traveled',
@@ -364,8 +361,11 @@ class _TransactionCompletionScreenState
                                       children: [
                                         Row(
                                           children: [
-                                            const Icon(Icons.nights_stay,
-                                                size: 14, color: Colors.blue),
+                                            const Icon(
+                                              Icons.nights_stay,
+                                              size: 14,
+                                              color: Colors.blue,
+                                            ),
                                             const SizedBox(width: 4),
                                             const Text(
                                               'Night Differential',
@@ -526,8 +526,7 @@ class _TransactionCompletionScreenState
                                   width: 24,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
                                       Colors.white,
                                     ),
                                   ),
