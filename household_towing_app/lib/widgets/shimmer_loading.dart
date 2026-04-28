@@ -19,7 +19,9 @@ class ShimmerLoading extends StatelessWidget {
 
     return Shimmer.fromColors(
       baseColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[300]!,
-      highlightColor: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[100]!,
+      highlightColor: isDark
+          ? Colors.white.withOpacity(0.1)
+          : Colors.grey[100]!,
       child: Container(
         width: width,
         height: height,

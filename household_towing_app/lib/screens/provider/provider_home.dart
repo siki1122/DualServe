@@ -20,7 +20,8 @@ class _ProviderHomeState extends State<ProviderHome> {
   final BookingService _bookingService = BookingService();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) {git add .
+
     return NewJobOverlay(
       child: Consumer<UserProvider>(
         builder: (context, userProvider, child) {
