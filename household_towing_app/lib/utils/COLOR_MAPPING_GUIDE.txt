@@ -1,0 +1,40 @@
+/// Color mapping guide for replacing hardcoded colors with AppTheme
+/// Use this to understand the replacements being made
+
+// HARDCODED COLOR → APPTHEME REPLACEMENT
+
+// Backgrounds
+// Colors.grey[100] → AppTheme.surfaceLight
+// Colors.grey[50] → AppTheme.surfaceLight
+// Colors.white → Colors.white (keep for contrast) OR AppTheme.surface
+// Colors.black → AppTheme.textSlateDark
+// Colors.blue[50] → AppTheme.primaryBlue.withOpacity(0.1)
+// Colors.green[50] → AppTheme.towingOrange.withOpacity(0.1)
+
+// Borders & Dividers
+// Colors.grey[300] → AppTheme.textSlateLight
+// Colors.grey[200] → AppTheme.textSlateLight.withOpacity(0.5)
+// Colors.grey.withOpacity(0.2) → AppTheme.textSlateMedium.withOpacity(0.2)
+
+// Text Colors
+// Colors.black87 → AppTheme.textSlateDark
+// Colors.grey → AppTheme.textSlateMedium
+// Colors.blue[700] → AppTheme.primaryBlue
+// Colors.green[700] → AppTheme.towingOrange
+// Colors.red[700] → Colors.red.shade700 (keep or use AppTheme equiv)
+
+// Icon Colors
+// Colors.green → AppTheme.primaryBlue or AppTheme.towingOrange
+// Colors.blue → AppTheme.primaryBlue
+// Colors.orange → AppTheme.towingOrange
+// Colors.red → Colors.red (critical/error)
+
+// Status Colors
+// Colors.green[100] → AppTheme.statusCompletedBg
+// Colors.green → AppTheme.statusCompletedText
+
+// Specific replacements by context:
+// Force unwraps like Colors.grey[X]! → Use AppTheme color directly
+// Colors.white → Keep for contrast OR AppTheme.surface
+// Colors.blue[X]! → AppTheme.primaryBlue
+// Colors.orange[X]! → AppTheme.towingOrange

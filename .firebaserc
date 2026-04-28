@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "household-towing-system",
+    "production": "household-towing-system",
+    "staging": "household-towing-system-staging"
+  },
+  "targets": {
+    "household-towing-system": {
+      "hosting": {
+        "web": ["household-towing-web"]
+      }
+    }
+  }
+}

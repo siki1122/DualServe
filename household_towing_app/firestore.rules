@@ -1,0 +1,144 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================================
+    // AUTHENTICATION & AUTHORIZATION HELPER FUNCTIONS
+    // ============================================================================
+
+    // Check if user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Check if user is an admin
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        request.auth.token.email.lower() == 'charleskalvinvalenzuela@gmail.com'
+      );
+    }
+
+    // (Unused validation functions removed to resolve warnings)
+
+
+    // ============================================================================
+    // USERS COLLECTION
+    // ============================================================================
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      
+      // Users can only create their own document with customer or pending_provider role
+      allow create: if isSignedIn() && request.auth.uid == userId && 
+                    request.resource.data.role in ['customer', 'pending_provider'];
+      
+      // Users can update their own data BUT CANNOT change their own role
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && request.resource.data.role == resource.data.role) || 
+        isAdmin()
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // PROVIDERS COLLECTION
+    // ============================================================================
+    match /providers/{providerId} {
+      allow read: if isSignedIn();
+      
+      // Providers can create their own profile BUT MUST be unapproved
+      allow create: if isSignedIn() && request.auth.uid == providerId && 
+                    request.resource.data.isApproved == false;
+      
+      // Only admins can change isApproved from false to true
+      allow update: if isSignedIn() && (
+        (request.auth.uid == providerId && request.resource.data.isApproved == resource.data.isApproved) || 
+        isAdmin()
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // BOOKINGS COLLECTION
+    // ============================================================================
+    match /bookings/{bookingId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.assignedProviderId == request.auth.uid ||
+        isAdmin() ||
+        // Allow providers to accept a pending booking
+        (resource.data.status == 'pending' && request.resource.data.assignedProviderId == request.auth.uid)
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // TASKS COLLECTION
+    // ============================================================================
+    match /tasks/{taskId} {
+      allow read, update: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.assignedProviderId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.assignedProviderId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // ASSETS COLLECTION
+    // ============================================================================
+    match /assets/{assetId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // REVIEWS COLLECTION
+    // ============================================================================
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // TRANSACTIONS COLLECTION
+    // ============================================================================
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.customerId == request.auth.uid ||
+        request.resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow update: if isSignedIn() && (
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // PROVIDER PRICING COLLECTION
+    // ============================================================================
+    match /provider_pricing/{providerId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == providerId);
+    }
+  }
+}

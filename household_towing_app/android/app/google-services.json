@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "318653580866",
+    "project_id": "household-towing-system",
+    "storage_bucket": "household-towing-system.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318653580866:android:65b78a6bf371aa76fe4fdb",
+        "android_client_info": {
+          "package_name": "com.example.household_towing_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnrlk3KzHr5ggI-7jk0SZdqiIU_jdSS38"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

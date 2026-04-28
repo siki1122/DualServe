@@ -1,0 +1,29 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "household-towing-system",
+          "appId": "1:318653580866:android:65b78a6bf371aa76fe4fdb",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "household-towing-system",
+          "configurations": {
+            "android": "1:318653580866:android:65b78a6bf371aa76fe4fdb",
+            "ios": "1:318653580866:ios:2a0ebd333213a938fe4fdb",
+            "macos": "1:318653580866:ios:2a0ebd333213a938fe4fdb",
+            "web": "1:318653580866:web:2e882bc1061cd8d6fe4fdb",
+            "windows": "1:318653580866:web:c33870e17377ecaefe4fdb"
+          }
+        }
+      }
+    }
+  }
+}
