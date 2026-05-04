@@ -16,11 +16,18 @@
     }
   ],
   "hosting": {
-    "public": "build/web",
+    "target": "web",
+    "public": "household_towing_app/build/web",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   }
 }

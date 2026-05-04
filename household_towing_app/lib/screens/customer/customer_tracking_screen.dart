@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import '../../services/location_service.dart';
@@ -20,14 +21,13 @@ class CustomerTrackingScreen extends StatefulWidget {
 }
 
 class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> {
-  GoogleMapController? mapController;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
-  Set<Circle> _circles = {};
+  final MapController _mapController = MapController();
+  List<Marker> _markers = [];
+  List<Polyline> _polylines = [];
   double _distance = 0;
   int _eta = 0;
-  LatLng? _customerLocation;
-  LatLng? _providerLocation;
+  ll.LatLng? _customerLocation;
+  ll.LatLng? _providerLocation;
   double _pulseRadius = 0;
   Timer? _pulseTimer;
   double _bearing = 0;
@@ -53,10 +53,15 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> {
   void _initializeMap() async {
     final customerAddress = widget.bookingData['address'] ?? '';
     if (customerAddress.isNotEmpty) {
-      final locations = await LocationService.getCoordinatesFromAddress(customerAddress);
+      final locations = await LocationService.getCoordinatesFromAddress(
+        customerAddress,
+      );
       if (locations.isNotEmpty) {
         setState(() {
-          _customerLocation = LatLng(locations[0].latitude, locations[0].longitude);
+          _customerLocation = ll.LatLng(
+            locations[0].latitude,
+            locations[0].longitude,
+          );
         });
       }
     }
@@ -69,64 +74,125 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> {
         .doc(widget.bookingId)
         .snapshots()
         .listen((DocumentSnapshot snapshot) {
-      if (snapshot.exists) {
-        final data = snapshot.data() as Map<String, dynamic>;
-        final providerLocation = data['providerLocation'];
-        if (providerLocation != null) {
-          final newLat = (providerLocation['latitude'] as num).toDouble();
-          final newLng = (providerLocation['longitude'] as num).toDouble();
-          final newProviderLocation = LatLng(newLat, newLng);
-          
-          if (_providerLocation != null) {
-            _bearing = LocationService.calculateBearing(
-              _providerLocation!.latitude,
-              _providerLocation!.longitude,
-              newLat,
-              newLng,
-            );
-          }
+          if (snapshot.exists) {
+            final data = snapshot.data() as Map<String, dynamic>;
+            final providerLocation = data['providerLocation'];
+            if (providerLocation != null) {
+              final newLat = (providerLocation['latitude'] as num).toDouble();
+              final newLng = (providerLocation['longitude'] as num).toDouble();
+              final newProviderLocation = ll.LatLng(newLat, newLng);
 
-          setState(() {
-            _providerLocation = newProviderLocation;
-            _updateMap();
-          });
-        }
-      }
-    });
+              if (_providerLocation != null) {
+                _bearing = LocationService.calculateBearing(
+                  _providerLocation!.latitude,
+                  _providerLocation!.longitude,
+                  newLat,
+                  newLng,
+                );
+              }
+
+              setState(() {
+                _providerLocation = newProviderLocation;
+                _updateMap();
+              });
+
+              // Initial fit bounds when both are available
+              if (_customerLocation != null && _mapController != null) {
+                _fitBounds();
+              }
+            }
+
+            final status = data['status'];
+            if (status == 'completed') {
+              _showCompletionDialog();
+            }
+          }
+        });
+  }
+
+  void _fitBounds() {
+    if (_customerLocation == null || _providerLocation == null) return;
+
+    final bounds = LatLngBounds.fromPoints([
+      _customerLocation!,
+      _providerLocation!,
+    ]);
+
+    _mapController.fitCamera(
+      CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(100)),
+    );
+  }
+
+  void _showCompletionDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Service Completed!'),
+        content: const Text(
+          'Your provider has successfully completed the requested service. Thank you for using DualServe!',
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              // Pop the dialog
+              Navigator.pop(context);
+              // Pop the tracking screen back to home
+              Navigator.pop(context);
+            },
+            child: const Text('Finish'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _updateMap() {
     if (_providerLocation == null) return;
-    final Set<Marker> newMarkers = {};
-    newMarkers.add(Marker(
-      markerId: const MarkerId('provider'),
-      position: _providerLocation!,
-      rotation: _bearing,
-      anchor: const Offset(0.5, 0.5),
-      flat: true,
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-    ));
+    final List<Marker> newMarkers = [];
+
+    // Provider Marker
+    newMarkers.add(
+      Marker(
+        point: _providerLocation!,
+        width: 40,
+        height: 40,
+        child: Transform.rotate(
+          angle: _bearing * (3.14159 / 180),
+          child: const Icon(Icons.navigation, color: Colors.blue, size: 30),
+        ),
+      ),
+    );
+
+    // Pulse Marker (Custom)
+    newMarkers.add(
+      Marker(
+        point: _providerLocation!,
+        width: _pulseRadius / 2,
+        height: _pulseRadius / 2,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.15 * (1 - (_pulseRadius / 300))),
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    );
 
     if (_customerLocation != null) {
-      newMarkers.add(Marker(
-        markerId: const MarkerId('customer'),
-        position: _customerLocation!,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-      ));
+      newMarkers.add(
+        Marker(
+          point: _customerLocation!,
+          width: 40,
+          height: 40,
+          child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+        ),
+      );
     }
-
-    final Set<Circle> newCircles = {};
-    newCircles.add(Circle(
-      circleId: const CircleId('pulse'),
-      center: _providerLocation!,
-      radius: _pulseRadius,
-      fillColor: Colors.blue.withOpacity(0.15 * (1 - (_pulseRadius / 300))),
-      strokeWidth: 0,
-    ));
 
     setState(() {
       _markers = newMarkers;
-      _circles = newCircles;
     });
 
     if (_customerLocation != null) {
@@ -140,37 +206,20 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> {
       setState(() {
         _distance = distanceKm;
         _eta = eta;
-        _polylines = {
+        _polylines = [
           Polyline(
-            polylineId: const PolylineId('route'),
             points: [_providerLocation!, _customerLocation!],
             color: Colors.blue,
-            width: 5,
+            strokeWidth: 5,
           ),
-        };
+        ];
       });
     }
-  }
-
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-    if (_customerLocation != null && _providerLocation != null) {
-      mapController?.animateCamera(CameraUpdate.newLatLngBounds(_calculateBounds(), 100));
-    }
-  }
-
-  LatLngBounds _calculateBounds() {
-    double minLat = _customerLocation!.latitude < _providerLocation!.latitude ? _customerLocation!.latitude : _providerLocation!.latitude;
-    double maxLat = _customerLocation!.latitude > _providerLocation!.latitude ? _customerLocation!.latitude : _providerLocation!.latitude;
-    double minLng = _customerLocation!.longitude < _providerLocation!.longitude ? _customerLocation!.longitude : _providerLocation!.longitude;
-    double maxLng = _customerLocation!.longitude > _providerLocation!.longitude ? _customerLocation!.longitude : _providerLocation!.longitude;
-    return LatLngBounds(southwest: LatLng(minLat, minLng), northeast: LatLng(maxLat, maxLng));
   }
 
   @override
   void dispose() {
     _pulseTimer?.cancel();
-    mapController?.dispose();
     super.dispose();
   }
 
@@ -182,21 +231,34 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                GoogleMap(
-                  cloudMapId: 'd80a93f8c224576ddf5af450',
-                  onMapCreated: _onMapCreated,
-                  initialCameraPosition: CameraPosition(target: _providerLocation!, zoom: 15),
-                  markers: _markers,
-                  polylines: _polylines,
-                  circles: _circles,
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _providerLocation!,
+                    initialZoom: 15,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.household_towing_app',
+                    ),
+                    PolylineLayer(polylines: _polylines),
+                    MarkerLayer(markers: _markers),
+                  ],
                 ),
                 Positioned(
-                  bottom: 0, left: 0, right: 0,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -207,15 +269,33 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Distance', style: TextStyle(color: Colors.grey)),
-                                Text('${_distance.toStringAsFixed(1)} km', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                const Text(
+                                  'Distance',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                                Text(
+                                  '${_distance.toStringAsFixed(1)} km',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                const Text('ETA', style: TextStyle(color: Colors.grey)),
-                                Text('$_eta min', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                const Text(
+                                  'ETA',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                                Text(
+                                  '$_eta min',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -225,7 +305,15 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: () {},
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Provider phone number is unavailable',
+                                      ),
+                                    ),
+                                  );
+                                },
                                 icon: const Icon(Icons.call),
                                 label: const Text('Call'),
                               ),
@@ -234,11 +322,19 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> {
                             Expanded(
                               child: ElevatedButton.icon(
                                 onPressed: () {
-                                  Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
-                                    bookingId: widget.bookingId,
-                                    receiverId: widget.bookingData['assignedProviderId'] ?? '',
-                                    receiverName: 'Service Provider',
-                                  )));
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatScreen(
+                                        bookingId: widget.bookingId,
+                                        receiverId:
+                                            widget
+                                                .bookingData['assignedProviderId'] ??
+                                            '',
+                                        receiverName: 'Service Provider',
+                                      ),
+                                    ),
+                                  );
                                 },
                                 icon: const Icon(Icons.message),
                                 label: const Text('Message'),

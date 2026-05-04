@@ -6,7 +6,9 @@ import 'package:household_towing_app/services/provider_service.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
 import 'package:household_towing_app/utils/error_handler.dart';
 import 'package:household_towing_app/services/logging_service.dart';
+import '../chat/chat_screen.dart';
 import 'provider_tracking_screen.dart';
+import 'booking_asset_assignment_screen.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final String bookingId;
@@ -38,7 +40,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
   Future<void> _loadBooking() async {
     if (_cachedBooking == null) {
-      _cachedBooking = await _getBooking();
+      final booking = await _getBooking();
+      if (booking != null) {
+        _cachedBooking = booking;
+        await _loadCustomerData(booking.customerId);
+      }
       if (mounted) {
         setState(() {});
       }
@@ -51,20 +57,37 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
   Future<void> _loadCustomerData(String customerId) async {
     try {
+      if (customerId.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _customerName = 'Unknown Customer';
+            _customerPhone = 'No phone available';
+          });
+        }
+        return;
+      }
+
       final customerDoc = await _firestore
           .collection('users')
           .doc(customerId)
           .get();
 
-      final newName = customerDoc['name'] ?? 'Unknown Customer';
-      final newPhone = customerDoc['phone'] ?? 'No phone provided';
+      if (customerDoc.exists) {
+        final data = customerDoc.data() as Map<String, dynamic>;
+        final newName = data['name'] ?? 'Unknown Customer';
+        final newPhone = data['phone'] ?? 'No phone provided';
 
-      // Only call setState if data actually changed
-      if (_customerName != newName || _customerPhone != newPhone) {
         if (mounted) {
           setState(() {
             _customerName = newName;
             _customerPhone = newPhone;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _customerName = 'Unknown User';
+            _customerPhone = 'Not available';
           });
         }
       }
@@ -72,8 +95,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       Logger.error('Failed to load customer data', e);
       if (mounted) {
         setState(() {
-          _customerName = 'Unable to load customer';
-          _customerPhone = '';
+          _customerName = 'Unknown Customer';
+          _customerPhone = 'Unable to load';
         });
       }
     }
@@ -81,12 +104,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
   Future<void> _acceptBooking(String providerId, Booking booking) async {
     setState(() => _isLoading = true);
-
     try {
       await _bookingService.acceptBooking(widget.bookingId, providerId);
-
       if (mounted) {
-        ErrorHandler.showSuccess(context, '✓ Booking accepted! Task added to "My Tasks"');
+        ErrorHandler.showSuccess(
+            context, '✓ Booking accepted! Task added to "My Tasks"');
         Navigator.pop(context);
       }
     } catch (e) {
@@ -286,16 +308,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       if (slots.isEmpty) {
         return [
-          '08:00',
-          '09:00',
-          '10:00',
-          '11:00',
-          '12:00',
-          '13:00',
-          '14:00',
-          '15:00',
-          '16:00',
-          '17:00',
+          '08:00 AM',
+          '09:00 AM',
+          '10:00 AM',
+          '11:00 AM',
+          '12:00 PM',
+          '01:00 PM',
+          '02:00 PM',
+          '03:00 PM',
+          '04:00 PM',
+          '05:00 PM',
         ];
       }
 
@@ -364,13 +386,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
 
     final booking = _cachedBooking!;
-
-    // Only load customer data once per customer
-    if (_loadedCustomerId != booking.customerId) {
-      _loadedCustomerId = booking.customerId;
-      _loadCustomerData(booking.customerId);
-    }
-
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -813,23 +828,24 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ProviderTrackingScreen(
-                            bookingId: widget.bookingId,
-                            bookingData: booking.toFirestore(),
+                          builder: (context) => ChatScreen(
+                            bookingId: booking.id,
+                            receiverId: booking.customerId,
+                            receiverName: _customerName,
                           ),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.textSlateDark,
+                      backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    icon: const Icon(Icons.location_on),
+                    icon: const Icon(Icons.chat_bubble_outline),
                     label: const Text(
-                      'Start Tracking to Customer',
+                      'Message Customer',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

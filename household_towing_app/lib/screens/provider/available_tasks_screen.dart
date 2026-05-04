@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:household_towing_app/models/task_model.dart';
 import 'package:household_towing_app/services/task_service.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
+import 'package:household_towing_app/providers/user_provider.dart';
 
 class AvailableTasksScreen extends StatefulWidget {
   const AvailableTasksScreen({super.key});
@@ -396,19 +397,21 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
     setState(() => _isAccepting = true);
 
     try {
-      // Assign task to this provider
+      // Assign task to this provider immediately (Instant Claim)
       await _taskService.assignTask(task.id, _providerId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✓ Task accepted! It\'s now in your "My Tasks"'),
+            content: Text('✓ Task claimed! You can assign assets from "My Tasks".'),
             backgroundColor: Colors.green,
           ),
         );
 
         // Close bottom sheet if open
         if (Navigator.of(context).canPop()) {
+          // Check if we are in the bottom sheet (the builder's context)
+          // or the main screen context.
           Navigator.pop(context);
         }
       }
@@ -416,7 +419,7 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error accepting task: $e'),
+            content: Text('Error claiming task: $e'),
             backgroundColor: Colors.red,
           ),
         );

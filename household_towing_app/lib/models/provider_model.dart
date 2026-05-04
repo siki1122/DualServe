@@ -12,6 +12,7 @@ class Provider {
   final double rating;
   final int jobsCompleted;
   final String serviceType;
+  final List<String> serviceTypes;
   final Map<String, List<String>> weeklySchedule; // Day → TimeSlots
   final List<String> blockOutDates; // ISO format: "2026-04-25"
   final int maxTasksPerDay;
@@ -19,6 +20,17 @@ class Provider {
   final DateTime? updatedAt;
   final double? latitude;
   final double? longitude;
+  final String bio;
+  final String licenseNumber;
+  final int yearsOfExperience;
+  final double totalEarnings;
+  final int totalRides;
+  final String? lastLocation;
+  final String profileImageUrl;
+  final bool documentsVerified;
+  final bool backgroundCheckPassed;
+
+  final Map<String, double> offeredServices; // Specific services and their prices: {"Flatbed": 1500.0}
 
   Provider({
     required this.id,
@@ -30,6 +42,8 @@ class Provider {
     this.rating = 0.0,
     this.jobsCompleted = 0,
     required this.serviceType,
+    this.serviceTypes = const [],
+    this.offeredServices = const {},
     this.weeklySchedule = const {},
     this.blockOutDates = const [],
     this.maxTasksPerDay = 10,
@@ -37,6 +51,15 @@ class Provider {
     this.updatedAt,
     this.latitude,
     this.longitude,
+    this.bio = '',
+    this.licenseNumber = '',
+    this.yearsOfExperience = 0,
+    this.totalEarnings = 0.0,
+    this.totalRides = 0,
+    this.lastLocation,
+    this.profileImageUrl = '',
+    this.documentsVerified = false,
+    this.backgroundCheckPassed = false,
   });
 
   // Convert from Firestore document
@@ -47,6 +70,12 @@ class Provider {
     final scheduleData = data['weeklySchedule'] as Map<String, dynamic>? ?? {};
     final weeklySchedule = scheduleData.map(
       (key, value) => MapEntry(key, List<String>.from(value ?? [])),
+    );
+
+    // Parse offered services (Map of name -> price)
+    final servicesData = data['offeredServices'] as Map<String, dynamic>? ?? {};
+    final offeredServices = servicesData.map(
+      (key, value) => MapEntry(key, (value as num).toDouble()),
     );
 
     return Provider(
@@ -61,6 +90,8 @@ class Provider {
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       jobsCompleted: data['jobsCompleted'] as int? ?? 0,
       serviceType: data['serviceType'] ?? '',
+      serviceTypes: List<String>.from(data['serviceTypes'] ?? []),
+      offeredServices: offeredServices,
       weeklySchedule: weeklySchedule,
       blockOutDates: List<String>.from(data['blockOutDates'] ?? []),
       maxTasksPerDay: data['maxTasksPerDay'] as int? ?? 10,
@@ -68,6 +99,10 @@ class Provider {
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
       latitude: (data['latitude'] as num?)?.toDouble(),
       longitude: (data['longitude'] as num?)?.toDouble(),
+      bio: data['bio'] ?? '',
+      licenseNumber: data['licenseNumber'] ?? '',
+      yearsOfExperience: data['yearsOfExperience'] ?? 0,
+      profileImageUrl: data['profileImageUrl'] ?? '',
     );
   }
 
@@ -82,6 +117,8 @@ class Provider {
       'rating': rating,
       'jobsCompleted': jobsCompleted,
       'serviceType': serviceType,
+      'serviceTypes': serviceTypes,
+      'offeredServices': offeredServices,
       'weeklySchedule': weeklySchedule,
       'blockOutDates': blockOutDates,
       'maxTasksPerDay': maxTasksPerDay,
@@ -89,6 +126,10 @@ class Provider {
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'latitude': latitude,
       'longitude': longitude,
+      'bio': bio,
+      'licenseNumber': licenseNumber,
+      'yearsOfExperience': yearsOfExperience,
+      'profileImageUrl': profileImageUrl,
     };
   }
 
@@ -103,6 +144,8 @@ class Provider {
     double? rating,
     int? jobsCompleted,
     String? serviceType,
+    List<String>? serviceTypes,
+    Map<String, double>? offeredServices,
     Map<String, List<String>>? weeklySchedule,
     List<String>? blockOutDates,
     int? maxTasksPerDay,
@@ -119,6 +162,8 @@ class Provider {
       rating: rating ?? this.rating,
       jobsCompleted: jobsCompleted ?? this.jobsCompleted,
       serviceType: serviceType ?? this.serviceType,
+      serviceTypes: serviceTypes ?? this.serviceTypes,
+      offeredServices: offeredServices ?? this.offeredServices,
       weeklySchedule: weeklySchedule ?? this.weeklySchedule,
       blockOutDates: blockOutDates ?? this.blockOutDates,
       maxTasksPerDay: maxTasksPerDay ?? this.maxTasksPerDay,

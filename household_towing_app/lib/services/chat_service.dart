@@ -17,4 +17,21 @@ class ChatService {
   Future<void> sendMessage(Message message) async {
     await _firestore.collection('messages').add(message.toFirestore());
   }
+
+  Future<void> markMessagesAsRead(String bookingId, String currentUserId) async {
+    final unreadMessages = await _firestore
+        .collection('messages')
+        .where('bookingId', isEqualTo: bookingId)
+        .where('receiverId', isEqualTo: currentUserId)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    if (unreadMessages.docs.isEmpty) return;
+
+    final batch = _firestore.batch();
+    for (var doc in unreadMessages.docs) {
+      batch.update(doc.reference, {'isRead': true});
+    }
+    await batch.commit();
+  }
 }

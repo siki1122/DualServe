@@ -179,6 +179,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Force enable network before login attempt
+      await FirebaseFirestore.instance.enableNetwork().catchError((_) {});
+
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -187,9 +190,22 @@ class _LoginScreenState extends State<LoginScreen> {
       final uid = userCredential.user!.uid;
       final usersRef = FirebaseFirestore.instance.collection('users').doc(uid);
 
-      // Check if user document exists
-      final docSnapshot = await usersRef.get();
-      if (!docSnapshot.exists) {
+      // Check if user document exists with retry logic
+      DocumentSnapshot? docSnapshot;
+      int retries = 0;
+      while (retries < 3) {
+        try {
+          docSnapshot = await usersRef.get();
+          break;
+        } catch (e) {
+          retries++;
+          if (retries >= 3) rethrow;
+          await FirebaseFirestore.instance.enableNetwork().catchError((_) {});
+          await Future.delayed(Duration(seconds: retries));
+        }
+      }
+
+      if (docSnapshot != null && !docSnapshot.exists) {
         // Create user document with default role if it doesn't exist
         await usersRef.set({
           'email': userCredential.user!.email,
@@ -203,15 +219,19 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login successful!')),
         );
-        // AuthWrapper will automatically navigate based on auth state
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'An error occurred';
+      String message = 'An error occurred: ${e.code}';
       if (e.code == 'user-not-found') {
         message = 'No user found with this email';
       } else if (e.code == 'wrong-password') {
         message = 'Wrong password';
+      } else if (e.code == 'network-request-failed') {
+        message = 'Network error. Please check your connection.';
+      } else if (e.code == 'too-many-requests') {
+        message = 'Too many attempts. Try again later.';
       }
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message)),
@@ -220,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(content: Text('Connection Error: Try again in a moment. (${e.toString()})')),
         );
       }
     } finally {

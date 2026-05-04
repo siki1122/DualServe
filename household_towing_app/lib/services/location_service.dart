@@ -3,6 +3,7 @@ import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'logging_service.dart';
 
 class LocationService {
   static final LocationService _instance = LocationService._internal();
@@ -143,8 +144,44 @@ class LocationService {
     String address,
   ) async {
     try {
+      if (kIsWeb) {
+        return await _getCoordinatesFromWeb(address);
+      }
       return await geocoding.locationFromAddress(address);
     } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<List<geocoding.Location>> _getCoordinatesFromWeb(String address) async {
+    try {
+      final encodedAddress = Uri.encodeComponent(address);
+      final url = 'https://nominatim.openstreetmap.org/search?q=$encodedAddress&format=json&limit=1';
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Accept-Language': 'en',
+          'User-Agent': 'HouseholdTowingApp/1.0',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        if (data.isNotEmpty) {
+          final first = data[0];
+          return [
+            geocoding.Location(
+              latitude: double.parse(first['lat']),
+              longitude: double.parse(first['lon']),
+              timestamp: DateTime.now(),
+            )
+          ];
+        }
+      }
+      return [];
+    } catch (e) {
+      Logger.error('Web forward geocoding failed', e);
       return [];
     }
   }

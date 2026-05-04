@@ -39,7 +39,13 @@ class CustomerServicesScreen extends StatelessWidget {
                   icon: Icons.cleaning_services,
                   backgroundColor: AppTheme.householdBlue,
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const BookingScreen(serviceType: 'Cleaning')));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const BookingScreen(serviceType: 'Household'),
+                      ),
+                    );
                   },
                 ),
                 ServiceActionCard(
@@ -47,7 +53,13 @@ class CustomerServicesScreen extends StatelessWidget {
                   icon: Icons.car_repair,
                   backgroundColor: AppTheme.towingOrange,
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const BookingScreen(serviceType: 'Towing')));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const BookingScreen(serviceType: 'Towing'),
+                      ),
+                    );
                   },
                 ),
                 // Placeholders for future services
@@ -56,7 +68,11 @@ class CustomerServicesScreen extends StatelessWidget {
                   icon: Icons.plumbing,
                   backgroundColor: const Color(0xFF0EA5E9), // Sky Blue
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plumbing services coming soon!')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Plumbing services coming soon!'),
+                      ),
+                    );
                   },
                 ),
                 ServiceActionCard(
@@ -64,7 +80,11 @@ class CustomerServicesScreen extends StatelessWidget {
                   icon: Icons.electrical_services,
                   backgroundColor: const Color(0xFFEAB308), // Yellow
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Electrical services coming soon!')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Electrical services coming soon!'),
+                      ),
+                    );
                   },
                 ),
               ],

@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/services.dart';
 import '../widgets/stat_card.dart';
 
 class ProvidersPage extends StatefulWidget {
@@ -60,17 +56,22 @@ class _ProvidersPageState extends State<ProvidersPage> {
         }
 
         // 1. FILTER BY APPROVAL STATUS (Handling missing fields)
-        var providers = snapshot.data?.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final bool docApproved = data['isApproved'] ?? true; // Default to true for old docs
-          return docApproved == isApproved;
-        }).toList() ?? [];
+        var providers =
+            snapshot.data?.docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final bool docApproved =
+                  data['isApproved'] ?? true; // Default to true for old docs
+              return docApproved == isApproved;
+            }).toList() ??
+            [];
 
         // 2. CALCULATE STATS
         int total = providers.length;
-        int available = providers.where((doc) => doc['status'] == 'available').length;
+        int available = providers
+            .where((doc) => doc['status'] == 'available')
+            .length;
         int busy = providers.where((doc) => doc['status'] == 'busy').length;
-        
+
         double avgRating = 0;
         if (total > 0) {
           double sum = 0;
@@ -91,11 +92,17 @@ class _ProvidersPageState extends State<ProvidersPage> {
         }
 
         if (_providerTypeFilter != 'All Types') {
-          providers = providers.where((doc) => doc['serviceType'] == _providerTypeFilter).toList();
+          providers = providers
+              .where((doc) => doc['serviceType'] == _providerTypeFilter)
+              .toList();
         }
 
         if (_providerStatusFilter != 'All Status') {
-          providers = providers.where((doc) => doc['status'] == _providerStatusFilter.toLowerCase()).toList();
+          providers = providers
+              .where(
+                (doc) => doc['status'] == _providerStatusFilter.toLowerCase(),
+              )
+              .toList();
         }
 
         return SingleChildScrollView(
@@ -106,24 +113,51 @@ class _ProvidersPageState extends State<ProvidersPage> {
               // Stat Cards
               Row(
                 children: [
-                  Expanded(child: StatCard(title: isApproved ? 'Active' : 'Pending', value: '$total')),
+                  Expanded(
+                    child: StatCard(
+                      title: isApproved ? 'Active' : 'Pending',
+                      value: '$total',
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: StatCard(title: 'Available', value: '$available', color: Colors.green)),
+                  Expanded(
+                    child: StatCard(
+                      title: 'Available',
+                      value: '$available',
+                      color: Colors.green,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: StatCard(title: 'Busy', value: '$busy', color: Colors.orange)),
+                  Expanded(
+                    child: StatCard(
+                      title: 'Busy',
+                      value: '$busy',
+                      color: Colors.orange,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: StatCard(title: 'Avg Rating', value: '${avgRating.toStringAsFixed(1)} ⭐')),
+                  Expanded(
+                    child: StatCard(
+                      title: 'Avg Rating',
+                      value: '${avgRating.toStringAsFixed(1)} ⭐',
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               // Table Container
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,34 +165,60 @@ class _ProvidersPageState extends State<ProvidersPage> {
                     Row(
                       children: [
                         Text(
-                          isApproved ? 'Active Service Providers' : 'Pending Approvals',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          isApproved
+                              ? 'Active Service Providers'
+                              : 'Pending Approvals',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(12)),
-                          child: Text('${providers.length}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${providers.length}',
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Search and Filters
                     Row(
                       children: [
                         Expanded(
                           child: TextField(
-                            onChanged: (v) => setState(() => _providerSearch = v),
+                            onChanged: (v) =>
+                                setState(() => _providerSearch = v),
                             decoration: InputDecoration(
                               hintText: 'Search...',
                               prefixIcon: const Icon(Icons.search),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
-                        _buildFilterDropdown('All Types', ['All Types', 'Household', 'Towing'], _providerTypeFilter, (v) => setState(() => _providerTypeFilter = v!)),
+                        _buildFilterDropdown(
+                          'All Types',
+                          ['All Types', 'Household', 'Towing'],
+                          _providerTypeFilter,
+                          (v) => setState(() => _providerTypeFilter = v!),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -170,9 +230,16 @@ class _ProvidersPageState extends State<ProvidersPage> {
                           padding: const EdgeInsets.all(40.0),
                           child: Column(
                             children: [
-                              Icon(Icons.person_off_outlined, size: 64, color: Colors.grey[300]),
+                              Icon(
+                                Icons.person_off_outlined,
+                                size: 64,
+                                color: Colors.grey[300],
+                              ),
                               const SizedBox(height: 16),
-                              Text('No providers found in this category', style: TextStyle(color: Colors.grey[500])),
+                              Text(
+                                'No providers found in this category',
+                                style: TextStyle(color: Colors.grey[500]),
+                              ),
                             ],
                           ),
                         ),
@@ -189,30 +256,69 @@ class _ProvidersPageState extends State<ProvidersPage> {
                             DataColumn(label: Text('Rating')),
                             DataColumn(label: Text('Actions')),
                           ],
-                          rows: providers.map((p) => DataRow(
-                            cells: [
-                              DataCell(Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(p['name'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  Text(p['email'] ?? 'N/A', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                ],
-                              )),
-                              DataCell(Text(p['serviceType'] ?? 'N/A')),
-                              DataCell(Text(p['status']?.toString().toUpperCase() ?? 'OFFLINE')),
-                              DataCell(Text('⭐ ${p['rating']?.toStringAsFixed(1) ?? '5.0'}')),
-                              DataCell(
-                                isApproved 
-                                  ? const Icon(Icons.check_circle, color: Colors.green)
-                                  : ElevatedButton(
-                                      onPressed: () => _approveProvider(p.id),
-                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                                      child: const Text('Approve', style: TextStyle(color: Colors.white)),
+                          rows: providers
+                              .map(
+                                (p) => DataRow(
+                                  cells: [
+                                    DataCell(
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            p['name'] ?? 'N/A',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            p['email'] ?? 'N/A',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                              ),
-                            ],
-                          )).toList(),
+                                    DataCell(Text(p['serviceType'] ?? 'N/A')),
+                                    DataCell(
+                                      Text(
+                                        p['status']?.toString().toUpperCase() ??
+                                            'OFFLINE',
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        '⭐ ${p['rating']?.toStringAsFixed(1) ?? '5.0'}',
+                                      ),
+                                    ),
+                                    DataCell(
+                                      isApproved
+                                          ? const Icon(
+                                              Icons.check_circle,
+                                              color: Colors.green,
+                                            )
+                                          : ElevatedButton(
+                                              onPressed: () =>
+                                                  _approveProvider(p.id),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                              ),
+                                              child: const Text(
+                                                'Approve',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                              .toList(),
                         ),
                       ),
                   ],
@@ -225,14 +331,24 @@ class _ProvidersPageState extends State<ProvidersPage> {
     );
   }
 
-  Widget _buildFilterDropdown(String label, List<String> items, String value, Function(String?) onChanged) {
+  Widget _buildFilterDropdown(
+    String label,
+    List<String> items,
+    String value,
+    Function(String?) onChanged,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: DropdownButton<String>(
         value: value,
         underline: const SizedBox(),
-        items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
+        items: items
+            .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+            .toList(),
         onChanged: onChanged,
       ),
     );
@@ -244,10 +360,18 @@ class _ProvidersPageState extends State<ProvidersPage> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Approve Provider?'),
-          content: const Text('This will grant them access to the provider dashboard.'),
+          content: const Text(
+            'This will grant them access to the provider dashboard.',
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Approve')),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Approve'),
+            ),
           ],
         ),
       );
@@ -255,14 +379,29 @@ class _ProvidersPageState extends State<ProvidersPage> {
       if (confirm != true) return;
 
       final batch = _firestore.batch();
-      batch.update(_firestore.collection('users').doc(uid), {'role': 'provider'});
-      batch.update(_firestore.collection('providers').doc(uid), {'isApproved': true, 'status': 'available'});
+      batch.update(_firestore.collection('users').doc(uid), {
+        'role': 'provider',
+      });
+      batch.update(_firestore.collection('providers').doc(uid), {
+        'isApproved': true,
+        'status': 'available',
+      });
       await batch.commit();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Provider Approved!')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Provider Approved!')));
       }
     } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to approve provider: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/location_service.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/error_handler.dart';
+import '../../utils/map_utils.dart';
 import '../../services/logging_service.dart';
 import 'dart:async';
 
@@ -23,10 +25,11 @@ class ProviderTrackingScreen extends StatefulWidget {
 }
 
 class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
-  GoogleMapController? mapController;
+  final MapController _mapController = MapController();
   Position? _currentPosition;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
+  List<Marker> _markers = [];
+  List<Polyline> _polylines = [];
+  ll.LatLng? _customerLocation;
   double _distance = 0;
   int _eta = 0;
   bool _isLoading = true;
@@ -95,41 +98,44 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
         final eta = LocationService.calculateETA(distanceKm);
 
         setState(() {
+          _customerLocation = ll.LatLng(customerLat, customerLng);
           _distance = distanceKm;
           _eta = eta;
-          _markers = {
+          _markers = [
             Marker(
-              markerId: const MarkerId('provider'),
-              position: LatLng(
+              point: ll.LatLng(
                 _currentPosition!.latitude,
                 _currentPosition!.longitude,
               ),
-              infoWindow: const InfoWindow(title: 'Your Location'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueBlue,
+              width: 40,
+              height: 40,
+              child: const Icon(
+                Icons.my_location,
+                color: Colors.blue,
+                size: 30,
               ),
             ),
             Marker(
-              markerId: const MarkerId('customer'),
-              position: LatLng(customerLat, customerLng),
-              infoWindow: const InfoWindow(title: 'Customer Location'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueRed,
-              ),
+              point: ll.LatLng(customerLat, customerLng),
+              width: 40,
+              height: 40,
+              child: const Icon(Icons.location_on, color: Colors.red, size: 40),
             ),
-          };
+          ];
 
-          _polylines = {
+          _polylines = [
             Polyline(
-              polylineId: const PolylineId('route'),
               points: [
-                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                LatLng(customerLat, customerLng),
+                ll.LatLng(
+                  _currentPosition!.latitude,
+                  _currentPosition!.longitude,
+                ),
+                _customerLocation!,
               ],
               color: AppTheme.primaryBlue,
-              width: 5,
+              strokeWidth: 5,
             ),
-          };
+          ];
         });
       }
     } catch (e) {
@@ -168,17 +174,31 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
 
               try {
                 // Update location in Firestore
+                final Map<String, dynamic> locationData = {
+                  'providerLocation': {
+                    'latitude': position.latitude,
+                    'longitude': position.longitude,
+                    'speed': position.speed,
+                    'timestamp': FieldValue.serverTimestamp(),
+                  },
+                };
+
+                // Update Booking
                 await FirebaseFirestore.instance
                     .collection('bookings')
                     .doc(widget.bookingId)
-                    .update({
-                      'providerLocation': {
-                        'latitude': position.latitude,
-                        'longitude': position.longitude,
-                        'speed': position.speed,
-                        'timestamp': FieldValue.serverTimestamp(),
-                      },
-                    });
+                    .update(locationData);
+
+                // If this has been converted to a task, update the task document too
+                final taskQuery = await FirebaseFirestore.instance
+                    .collection('tasks')
+                    .where('bookingId', isEqualTo: widget.bookingId)
+                    .limit(1)
+                    .get();
+                
+                if (taskQuery.docs.isNotEmpty) {
+                  await taskQuery.docs.first.reference.update(locationData);
+                }
 
                 // Refresh markers and polyline
                 await _setupMarkers();
@@ -241,20 +261,12 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
     );
   }
 
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-    if (_currentPosition != null) {
-      _animateToLocation();
-    }
-  }
-
   void _animateToLocation() {
-    if (_currentPosition == null || mapController == null) return;
+    if (_currentPosition == null) return;
 
-    mapController!.animateCamera(
-      CameraUpdate.newLatLng(
-        LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-      ),
+    _mapController.move(
+      ll.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+      15,
     );
   }
 
@@ -262,7 +274,6 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
   void dispose() {
     // Cancel location subscription to prevent memory leaks
     _locationSubscription?.cancel();
-    mapController?.dispose();
     super.dispose();
   }
 
@@ -319,20 +330,24 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
             )
           : Stack(
               children: [
-                GoogleMap(
-                  cloudMapId: 'd80a93f8c224576ddf5af450',
-                  onMapCreated: _onMapCreated,
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: ll.LatLng(
                       _currentPosition!.latitude,
                       _currentPosition!.longitude,
                     ),
-                    zoom: 15,
+                    initialZoom: 15,
                   ),
-                  markers: _markers,
-                  polylines: _polylines,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.household_towing_app',
+                    ),
+                    PolylineLayer(polylines: _polylines),
+                    MarkerLayer(markers: _markers),
+                  ],
                 ),
                 Positioned(
                   bottom: 0,
@@ -417,8 +432,18 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
                               ),
                             ),
                             onPressed: () {
-                              // Open navigation app
-                              Geolocator.openLocationSettings();
+                              final customerLocation = _customerLocation;
+                              if (customerLocation == null) {
+                                ErrorHandler.showInfo(
+                                  context,
+                                  'Customer location is still loading',
+                                );
+                                return;
+                              }
+                              MapUtils.openMapWithCoords(
+                                customerLocation.latitude,
+                                customerLocation.longitude,
+                              );
                             },
                             child: const Text(
                               'Open in Navigation',

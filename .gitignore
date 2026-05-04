@@ -1,0 +1,40 @@
+# Secrets and local Firebase files
+functions/.env
+functions/.env.*
+firebase-debug.log*
+.runtimeconfig.json
+
+# Flutter/Dart generated files
+household_towing_app/.dart_tool/
+household_towing_app/.flutter-plugins
+household_towing_app/.flutter-plugins-dependencies
+household_towing_app/.pub/
+household_towing_app/.pub-cache/
+household_towing_app/build/
+household_towing_app/coverage/
+household_towing_app/*.log
+household_towing_app/*.zip
+
+# Native platform generated files
+household_towing_app/android/.gradle/
+household_towing_app/android/local.properties
+household_towing_app/android/app/debug/
+household_towing_app/android/app/profile/
+household_towing_app/android/app/release/
+household_towing_app/ios/Flutter/Generated.xcconfig
+household_towing_app/ios/Flutter/flutter_export_environment.sh
+household_towing_app/ios/Flutter/ephemeral/
+household_towing_app/ios/Runner/GeneratedPluginRegistrant.*
+household_towing_app/macos/Flutter/ephemeral/
+
+# JavaScript dependencies and build outputs
+functions/node_modules/
+functions/build/
+functions/dist/
+
+# IDE and OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

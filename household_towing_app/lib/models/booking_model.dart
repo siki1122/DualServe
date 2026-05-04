@@ -8,6 +8,13 @@ enum BookingStatus {
   cancelled,
 }
 
+enum TruckType {
+  light,     // Light tow truck
+  medium,    // Medium tow truck
+  heavy,     // Heavy tow truck
+  recovery,  // Recovery vehicle
+}
+
 class Booking {
   final String id;
   final String customerId;
@@ -25,6 +32,14 @@ class Booking {
   final String? providerNotes;
   final double? estimatedCost;
   final int? estimatedDurationMinutes;
+  final String? specificService; // E.g. "Flatbed", "Emergency Tow", "Jump Start"
+  // New fields for asset management
+  final TruckType? assignedTruckType;
+  final String? assignedTruckId; // Asset ID of the assigned truck
+  final List<String> assignedPersonnelIds; // UIDs of assigned staff
+  final Map<String, int> assignedAssets; // assetId: quantity
+  final String? assignedTruckName;
+  final List<String> assignedPersonnelNames;
 
   Booking({
     required this.id,
@@ -43,6 +58,13 @@ class Booking {
     this.providerNotes,
     this.estimatedCost,
     this.estimatedDurationMinutes,
+    this.specificService,
+    this.assignedTruckType,
+    this.assignedTruckId,
+    this.assignedPersonnelIds = const [],
+    this.assignedAssets = const {},
+    this.assignedTruckName,
+    this.assignedPersonnelNames = const [],
   });
 
   // Convert from Firestore document
@@ -65,6 +87,19 @@ class Booking {
       providerNotes: data['providerNotes'],
       estimatedCost: (data['estimatedCost'] as num?)?.toDouble(),
       estimatedDurationMinutes: data['estimatedDurationMinutes'] as int?,
+      specificService: data['specificService'],
+      assignedTruckType: data['assignedTruckType'] != null
+          ? TruckType.values.asNameMap()[data['assignedTruckType']]
+          : null,
+      assignedTruckId: data['assignedTruckId'],
+      assignedPersonnelIds: List<String>.from(data['assignedPersonnelIds'] ?? []),
+      assignedAssets: data['assignedAssets'] != null
+          ? (data['assignedAssets'] as Map).map(
+              (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+            )
+          : {},
+      assignedTruckName: data['assignedTruckName'],
+      assignedPersonnelNames: List<String>.from(data['assignedPersonnelNames'] ?? []),
     );
   }
 
@@ -86,6 +121,13 @@ class Booking {
       'providerNotes': providerNotes,
       'estimatedCost': estimatedCost,
       'estimatedDurationMinutes': estimatedDurationMinutes,
+      'specificService': specificService,
+      'assignedTruckType': assignedTruckType?.name,
+      'assignedTruckId': assignedTruckId,
+      'assignedPersonnelIds': assignedPersonnelIds,
+      'assignedAssets': assignedAssets,
+      'assignedTruckName': assignedTruckName,
+      'assignedPersonnelNames': assignedPersonnelNames,
     };
   }
 
@@ -107,6 +149,13 @@ class Booking {
     String? providerNotes,
     double? estimatedCost,
     int? estimatedDurationMinutes,
+    String? specificService,
+    TruckType? assignedTruckType,
+    String? assignedTruckId,
+    List<String>? assignedPersonnelIds,
+    Map<String, int>? assignedAssets,
+    String? assignedTruckName,
+    List<String>? assignedPersonnelNames,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -125,6 +174,13 @@ class Booking {
       providerNotes: providerNotes ?? this.providerNotes,
       estimatedCost: estimatedCost ?? this.estimatedCost,
       estimatedDurationMinutes: estimatedDurationMinutes ?? this.estimatedDurationMinutes,
+      specificService: specificService ?? this.specificService,
+      assignedTruckType: assignedTruckType ?? this.assignedTruckType,
+      assignedTruckId: assignedTruckId ?? this.assignedTruckId,
+      assignedPersonnelIds: assignedPersonnelIds ?? this.assignedPersonnelIds,
+      assignedAssets: assignedAssets ?? this.assignedAssets,
+      assignedTruckName: assignedTruckName ?? this.assignedTruckName,
+      assignedPersonnelNames: assignedPersonnelNames ?? this.assignedPersonnelNames,
     );
   }
 

@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/customer/customer_home.dart';
 import 'screens/provider/provider_main_layout.dart';
 import 'screens/admin/admin_home.dart';
 import 'utils/app_theme.dart';
@@ -17,6 +16,7 @@ import 'screens/auth/profile_setup_screen.dart';
 import 'widgets/error_boundary.dart';
 
 import 'screens/auth/pending_approval_screen.dart';
+import 'services/logging_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +27,7 @@ void main() async {
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
+  FirebaseFirestore.instance.enableNetwork().catchError((e) => Logger.error('Failed to enable network', e));
 
   runApp(
     MultiProvider(
@@ -71,9 +72,6 @@ class AuthWrapper extends StatelessWidget {
           );
         }
         if (snapshot.hasData) {
-          final user = snapshot.data!;
-
-
           // Trigger data load in provider and init notifications
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Provider.of<UserProvider>(
@@ -85,7 +83,7 @@ class AuthWrapper extends StatelessWidget {
           });
           return const RoleBasedHome();
         }
-        
+
         // Clear user data when logged out
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Provider.of<UserProvider>(context, listen: false).clear();
@@ -109,6 +107,11 @@ class RoleBasedHome extends StatelessWidget {
           );
         }
 
+        final role = userProvider.role?.toLowerCase();
+        if (role == 'admin') {
+          return const AdminHome();
+        }
+
         // Check if profile is incomplete (missing name or role)
         final profile = userProvider.userProfile;
         if (profile == null ||
@@ -118,13 +121,10 @@ class RoleBasedHome extends StatelessWidget {
           return const ProfileSetupScreen();
         }
 
-        final role = userProvider.role;
         if (role == 'provider') {
           return const ProviderMainLayout();
         } else if (role == 'pending_provider') {
           return const PendingApprovalScreen();
-        } else if (role == 'admin') {
-          return const AdminHome();
         }
         return const CustomerMainLayout();
       },

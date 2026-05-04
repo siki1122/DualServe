@@ -35,6 +35,13 @@ class Task {
   final String? completedImageUrl;
   final DateTime? completedAt;
 
+  // New fields for asset management
+  final String? assignedTruckId;
+  final String? assignedTruckName;
+  final List<String> assignedPersonnelIds;
+  final List<String> assignedPersonnelNames;
+  final Map<String, int> assignedAssets;
+
   Task({
     required this.id,
     required this.customerId,
@@ -54,6 +61,11 @@ class Task {
     this.bookingId,
     this.completedImageUrl,
     this.completedAt,
+    this.assignedTruckId,
+    this.assignedTruckName,
+    this.assignedPersonnelIds = const [],
+    this.assignedPersonnelNames = const [],
+    this.assignedAssets = const {},
   });
 
   factory Task.fromFirestore(DocumentSnapshot doc) {
@@ -77,6 +89,15 @@ class Task {
       bookingId: data['bookingId'],
       completedImageUrl: data['completedImageUrl'],
       completedAt: (data['completedAt'] as Timestamp?)?.toDate(),
+      assignedTruckId: data['assignedTruckId'],
+      assignedTruckName: data['assignedTruckName'],
+      assignedPersonnelIds: List<String>.from(data['assignedPersonnelIds'] ?? []),
+      assignedPersonnelNames: List<String>.from(data['assignedPersonnelNames'] ?? []),
+      assignedAssets: data['assignedAssets'] != null
+          ? (data['assignedAssets'] as Map).map(
+              (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+            )
+          : {},
     );
   }
 
@@ -99,6 +120,11 @@ class Task {
       'bookingId': bookingId,
       'completedImageUrl': completedImageUrl,
       'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'assignedTruckId': assignedTruckId,
+      'assignedTruckName': assignedTruckName,
+      'assignedPersonnelIds': assignedPersonnelIds,
+      'assignedPersonnelNames': assignedPersonnelNames,
+      'assignedAssets': assignedAssets,
     };
   }
 
@@ -141,6 +167,11 @@ class Task {
       bookingId: bookingId ?? this.bookingId,
       completedImageUrl: completedImageUrl ?? this.completedImageUrl,
       completedAt: completedAt ?? this.completedAt,
+      assignedTruckId: assignedTruckId ?? this.assignedTruckId,
+      assignedTruckName: assignedTruckName ?? this.assignedTruckName,
+      assignedPersonnelIds: assignedPersonnelIds ?? this.assignedPersonnelIds,
+      assignedPersonnelNames: assignedPersonnelNames ?? this.assignedPersonnelNames,
+      assignedAssets: assignedAssets ?? this.assignedAssets,
     );
   }
 }

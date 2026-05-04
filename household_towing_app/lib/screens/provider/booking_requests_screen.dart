@@ -13,44 +13,40 @@ class BookingRequestsScreen extends StatefulWidget {
 }
 
 class _BookingRequestsScreenState extends State<BookingRequestsScreen> {
-  String _filter = 'all';
-
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppTheme.background,
       drawer: const ProviderDrawer(),
       appBar: AppBar(
         title: const Text(
-          'Requests',
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSlateDark),
+          'New Job Requests',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textSlateDark,
+          ),
         ),
       ),
       body: Column(
         children: [
-          // Filter Tabs
+          // Info Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(16),
+            width: double.infinity,
+            color: Colors.white,
             child: Row(
               children: [
-                _FilterChip(
-                  label: 'All',
-                  isSelected: _filter == 'all',
-                  onTap: () => setState(() => _filter = 'all'),
-                ),
+                Icon(Icons.info_outline, size: 18, color: AppTheme.primaryBlue),
                 const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'New',
-                  isSelected: _filter == 'pending',
-                  onTap: () => setState(() => _filter = 'pending'),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Active',
-                  isSelected: _filter == 'active',
-                  onTap: () => setState(() => _filter = 'active'),
+                const Text(
+                  'Review and accept incoming service requests.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textSlateMedium,
+                  ),
                 ),
               ],
             ),
@@ -74,13 +70,13 @@ class _BookingRequestsScreenState extends State<BookingRequestsScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.assignment_outlined,
+                          Icons.notifications_none,
                           size: 64,
                           color: Colors.grey[400],
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No requests found',
+                          'No new requests at the moment',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[600],
@@ -119,53 +115,11 @@ class _BookingRequestsScreenState extends State<BookingRequestsScreen> {
   }
 
   Stream<QuerySnapshot> _getStream(String uid) {
-    Query query = FirebaseFirestore.instance.collection('bookings').where('providerId', isEqualTo: uid);
-    
-    if (_filter == 'pending') {
-      query = query.where('status', isEqualTo: 'pending');
-    } else if (_filter == 'active') {
-      query = query.where('status', whereIn: ['accepted', 'in_progress']);
-    } else {
-      // all non-completed
-      query = query.where('status', whereIn: ['pending', 'accepted', 'in_progress']);
-    }
-
-    return query.snapshots();
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _FilterChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.textSlateDark : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? AppTheme.textSlateDark : Colors.grey.shade300),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.white : AppTheme.textSlateMedium,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
+    return FirebaseFirestore.instance
+        .collection('bookings')
+        .where('assignedProviderId', isEqualTo: uid)
+        .where('status', isEqualTo: 'pending')
+        .snapshots();
   }
 }
 
@@ -190,37 +144,37 @@ class _BookingCardState extends State<_BookingCard> {
 
   void _loadCustomerName() async {
     try {
+      final customerId = widget.booking['customerId'];
+      if (customerId == null || customerId.isEmpty) {
+        if (mounted) setState(() => _customerName = 'Guest Customer');
+        return;
+      }
+
       final customerDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(widget.booking['customerId'])
+          .doc(customerId)
           .get();
+          
       if (mounted) {
-        setState(() {
-          _customerName = customerDoc['name'] ?? 'Unknown Customer';
-        });
+        if (customerDoc.exists) {
+          final data = customerDoc.data() as Map<String, dynamic>;
+          setState(() {
+            _customerName = data['name'] ?? data['displayName'] ?? 'Customer';
+          });
+        } else {
+          setState(() => _customerName = 'Customer');
+        }
       }
     } catch (e) {
+      if (mounted) {
+        setState(() => _customerName = 'Customer');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final booking = widget.booking;
-    final status = booking['status'] as String;
-
-    Color statusColor = AppTheme.statusPendingBg;
-    Color statusTextColor = AppTheme.statusPendingText;
-    String statusText = 'Pending';
-
-    if (status == 'accepted') {
-      statusColor = AppTheme.statusAcceptedBg;
-      statusTextColor = AppTheme.statusAcceptedText;
-      statusText = 'Accepted';
-    } else if (status == 'in_progress') {
-      statusColor = AppTheme.towingOrange.withOpacity(0.1);
-      statusTextColor = AppTheme.towingOrange;
-      statusText = 'In Progress';
-    }
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -249,41 +203,24 @@ class _BookingCardState extends State<_BookingCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              booking['serviceType'],
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textSlateDark,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              statusText,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: statusTextColor,
-                              ),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        booking['serviceType'],
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textSlateDark,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Customer: $_customerName',
-                        style: const TextStyle(fontSize: 13, color: AppTheme.textSlateMedium),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textSlateMedium,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ],
                   ),
@@ -293,10 +230,13 @@ class _BookingCardState extends State<_BookingCard> {
                   children: [
                     const Text(
                       'Est. Cost',
-                      style: TextStyle(fontSize: 10, color: AppTheme.textSlateLight),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppTheme.textSlateLight,
+                      ),
                     ),
                     Text(
-                      '₱${booking['estimatedCost']}',
+                      '₱${(booking['estimatedCost'] as num).toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -310,46 +250,40 @@ class _BookingCardState extends State<_BookingCard> {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.textSlateMedium),
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 16,
+                  color: AppTheme.textSlateMedium,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     booking['address'],
-                    style: const TextStyle(fontSize: 13, color: AppTheme.textSlateMedium),
-                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSlateMedium,
+                    ),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            if (status == 'pending')
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: widget.onTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.towingOrange,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: const Text('View Request'),
-                ),
-              )
-            else
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: widget.onTap,
-                  icon: const Icon(Icons.navigation_outlined, size: 18),
-                  label: const Text('Start Service'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.textSlateDark,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: widget.onTap,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.towingOrange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
+                child: const Text('View Request'),
               ),
+            ),
           ],
         ),
       ),

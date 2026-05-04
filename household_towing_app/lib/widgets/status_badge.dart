@@ -10,19 +10,36 @@ class StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color bgColor;
     Color textColor;
-    
-    switch (status.toLowerCase()) {
+    String label = status;
+
+    switch (status.toLowerCase().replaceAll('_', '')) {
       case 'pending':
         bgColor = AppTheme.statusPendingBg;
         textColor = AppTheme.statusPendingText;
+        label = 'Pending';
         break;
       case 'accepted':
+      case 'assigned':
         bgColor = AppTheme.statusAcceptedBg;
         textColor = AppTheme.statusAcceptedText;
+        label = 'Assigned';
+        break;
+      case 'convertedtotask':
+      case 'inprogress':
+        bgColor = Colors.blue.shade100;
+        textColor = Colors.blue.shade800;
+        label = 'In Progress';
         break;
       case 'completed':
         bgColor = AppTheme.statusCompletedBg;
         textColor = AppTheme.statusCompletedText;
+        label = 'Completed';
+        break;
+      case 'cancelled':
+      case 'rejected':
+        bgColor = Colors.red.shade100;
+        textColor = Colors.red.shade800;
+        label = 'Cancelled';
         break;
       default:
         bgColor = Colors.grey[200]!;
@@ -36,7 +53,7 @@ class StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        status.toUpperCase(),
+        label.toUpperCase(),
         style: TextStyle(
           color: textColor,
           fontSize: 10,

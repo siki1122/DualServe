@@ -11,6 +11,7 @@ import 'package:household_towing_app/utils/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:household_towing_app/utils/pricing_constants.dart';
 import '../../widgets/success_dialog.dart';
+import 'customer_active_bookings_screen.dart';
 
 class BookingScreen extends StatefulWidget {
   final String serviceType;
@@ -36,10 +37,13 @@ class _BookingScreenState extends State<BookingScreen> {
   bool _isLoading = false;
   double _estimatedCost = 0;
   String? _selectedProviderId;
+  String? _selectedSubService;
+  Map<String, double> _offeredServices = {};
   List<Provider> _availableProviders = [];
   bool _loadingProviders = true;
   double? _userLat;
   double? _userLng;
+  late final String _serviceType;
 
   // Geocoding optimization
   Timer? _geocodingTimer;
@@ -50,14 +54,15 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
-    // Use Today for Towing, Tomorrow for Cleaning by default
-    if (widget.serviceType == 'Towing') {
+    _serviceType = PricingConfig.normalizeServiceType(widget.serviceType);
+    // Use today for towing and tomorrow for scheduled household services.
+    if (_serviceType == PricingConfig.towingService) {
       _selectedDate = DateTime.now();
       _selectedTime = TimeOfDay.now();
     }
 
     // Initial price calculation
-    _estimatedCost = PricingConfig.getBasePrice(widget.serviceType);
+    _estimatedCost = PricingConfig.getBasePrice(_serviceType);
 
     _loadAvailableProviders();
     _detectCurrentLocation();
@@ -146,16 +151,25 @@ class _BookingScreenState extends State<BookingScreen> {
           });
           _updateEstimatedPrice();
         }
+      } else {
+        throw Exception('Permission denied');
       }
     } catch (e) {
       Logger.error('Location detection failed', e);
       if (mounted) {
+        String message = 'Could not detect your location. Please enter address manually.';
+        if (e.toString().contains('denied')) {
+          message = 'Location permissions are denied. Please enable them in settings.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'Could not detect your location. Please enter address manually.',
+            content: Text(message),
+            backgroundColor: AppTheme.towingOrange,
+            action: SnackBarAction(
+              label: 'RETRY',
+              textColor: Colors.white,
+              onPressed: _detectCurrentLocation,
             ),
-            backgroundColor: Colors.orange,
           ),
         );
       }
@@ -188,8 +202,13 @@ class _BookingScreenState extends State<BookingScreen> {
       }
     }
 
-    // 2. Use the specialized PricingConfig to get the final cost
-    // This handles: Base Price (Service specific) + Night Differential + Distance Surcharge
+    // 2. Determine base price (custom from provider OR system default)
+    double baseRate = PricingConfig.getBasePrice(_serviceType);
+    if (_selectedSubService != null && _offeredServices.containsKey(_selectedSubService)) {
+      baseRate = _offeredServices[_selectedSubService]!;
+    }
+
+    // 3. Use the specialized PricingConfig to get the final cost
     final scheduledDateTime = DateTime(
       _selectedDate.year,
       _selectedDate.month,
@@ -199,18 +218,18 @@ class _BookingScreenState extends State<BookingScreen> {
     );
 
     setState(() {
-      _estimatedCost = PricingConfig.calculateTotalCost(
-        widget.serviceType,
-        distance,
-        scheduledDateTime,
-      );
+      // Calculate total cost (Base + Night Diff + Distance)
+      final nightDiff = PricingConfig.calculateNightDifferential(baseRate, scheduledDateTime);
+      final distanceSurcharge = PricingConfig.calculateDistanceSurcharge(distance);
+      
+      _estimatedCost = baseRate + nightDiff + distanceSurcharge;
     });
   }
 
   Future<void> _loadAvailableProviders() async {
     try {
       final providers = await _providerService.getProvidersByServiceType(
-        widget.serviceType,
+        _serviceType,
       );
       setState(() {
         _availableProviders = providers
@@ -221,6 +240,18 @@ class _BookingScreenState extends State<BookingScreen> {
         } else if (_availableProviders.isNotEmpty) {
           _selectedProviderId = _availableProviders[0].id;
         }
+        
+        // Load offered services for the selected provider
+        if (_selectedProviderId != null) {
+          final selectedProv = _availableProviders.firstWhere((p) => p.id == _selectedProviderId);
+          _offeredServices = selectedProv.offeredServices;
+          if (_offeredServices.isNotEmpty) {
+            _selectedSubService = _offeredServices.keys.first;
+          } else {
+            _selectedSubService = 'General $_serviceType';
+          }
+        }
+
         _loadingProviders = false;
       });
       _updateEstimatedPrice();
@@ -231,11 +262,20 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _submitBooking() async {
     if (_addressController.text.isEmpty || _selectedProviderId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please fill all details')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all details')),
+      );
       return;
     }
+
+    if (_userLat == null || _userLng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please wait for location to be verified on the map.')),
+      );
+      return;
+    }
+
+    if (_isLoading) return; // Spam protection
 
     setState(() => _isLoading = true);
 
@@ -254,7 +294,8 @@ class _BookingScreenState extends State<BookingScreen> {
         id: '',
         customerId: uid,
         assignedProviderId: _selectedProviderId,
-        serviceType: widget.serviceType,
+        serviceType: _serviceType,
+        specificService: _selectedSubService,
         status: BookingStatus.pending,
         scheduledDate: _selectedDate,
         scheduledTime: timeStr,
@@ -270,11 +311,14 @@ class _BookingScreenState extends State<BookingScreen> {
         SuccessDialog.show(
           context,
           title: 'Booking Successful!',
-          message:
-              'A ${widget.serviceType} request has been sent to the provider.',
+          message: 'A $_serviceType request has been sent to the provider.',
           onPressed: () {
             Navigator.of(context).pop(); // Pop dialog
-            Navigator.of(context).pop(); // Pop booking screen
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const CustomerActiveBookingsScreen(),
+              ),
+            );
           },
         );
       }
@@ -295,10 +339,7 @@ class _BookingScreenState extends State<BookingScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
-      appBar: AppBar(
-        title: Text('Book ${widget.serviceType}'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text('Book $_serviceType'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -309,6 +350,10 @@ class _BookingScreenState extends State<BookingScreen> {
             _buildSectionTitle('Choose a Provider', isDark),
             const SizedBox(height: 12),
             _buildProviderSelector(isDark),
+            const SizedBox(height: 24),
+            _buildSectionTitle('Select Specific Service', isDark),
+            const SizedBox(height: 12),
+            _buildSubServiceSelector(isDark),
             const SizedBox(height: 32),
             _buildSectionTitle('Service Location', isDark),
             const SizedBox(height: 12),
@@ -331,7 +376,7 @@ class _BookingScreenState extends State<BookingScreen> {
     return Text(
       title,
       style: TextStyle(
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: FontWeight.bold,
         color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
       ),
@@ -356,7 +401,7 @@ class _BookingScreenState extends State<BookingScreen> {
       child: Row(
         children: [
           Icon(
-            widget.serviceType == 'Towing'
+            _serviceType == PricingConfig.towingService
                 ? Icons.car_repair
                 : Icons.cleaning_services,
             color: Colors.white,
@@ -367,7 +412,7 @@ class _BookingScreenState extends State<BookingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.serviceType,
+                _serviceType,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -387,6 +432,21 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Widget _buildProviderSelector(bool isDark) {
     if (_loadingProviders) return const LinearProgressIndicator();
+    if (_availableProviders.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: AppTheme.cardDecoration(context),
+        child: Text(
+          'No available $_serviceType providers right now. Please try again later.',
+          style: TextStyle(
+            color: isDark
+                ? AppTheme.textDarkSecondary
+                : AppTheme.textSlateMedium,
+          ),
+        ),
+      );
+    }
     return Container(
       decoration: AppTheme.cardDecoration(context),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -396,7 +456,18 @@ class _BookingScreenState extends State<BookingScreen> {
           isExpanded: true,
           dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
           onChanged: (val) {
-            setState(() => _selectedProviderId = val);
+            setState(() {
+              _selectedProviderId = val;
+              if (val != null) {
+                final selectedProv = _availableProviders.firstWhere((p) => p.id == val);
+                _offeredServices = selectedProv.offeredServices;
+                if (_offeredServices.isNotEmpty) {
+                  _selectedSubService = _offeredServices.keys.first;
+                } else {
+                  _selectedSubService = 'General $_serviceType';
+                }
+              }
+            });
             _updateEstimatedPrice();
           },
           items: _availableProviders
@@ -427,6 +498,63 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
+  Widget _buildSubServiceSelector(bool isDark) {
+    final List<String> items = _offeredServices.isEmpty 
+        ? ['General $_serviceType'] 
+        : _offeredServices.keys.toList();
+
+    // Ensure current selection is in the list
+    if (!items.contains(_selectedSubService)) {
+      _selectedSubService = items[0];
+    }
+
+    return Container(
+      decoration: AppTheme.cardDecoration(context),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedSubService,
+          isExpanded: true,
+          dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+          onChanged: (val) {
+            setState(() => _selectedSubService = val);
+            _updateEstimatedPrice();
+          },
+          items: items
+              .map(
+                (service) => DropdownMenuItem(
+                  value: service,
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.handyman_outlined,
+                        size: 18,
+                        color: AppTheme.towingOrange,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          service,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : AppTheme.textSlateDark,
+                          ),
+                        ),
+                      ),
+                      if (_offeredServices.containsKey(service))
+                        Text(
+                          '₱${_offeredServices[service]?.toStringAsFixed(0)}',
+                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                        ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAddressField(bool isDark) {
     return Container(
       decoration: AppTheme.cardDecoration(context),
@@ -439,6 +567,16 @@ class _BookingScreenState extends State<BookingScreen> {
             Icons.location_on,
             color: AppTheme.primaryBlue,
           ),
+          suffixIcon: _addressController.text.isNotEmpty && (_userLat == null)
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(16),
         ),
@@ -515,8 +653,11 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _buildPricingBreakdown(bool isDark) {
-    final basePrice = PricingConfig.getBasePrice(widget.serviceType);
-    final surcharge = _estimatedCost - basePrice;
+    double currentBase = PricingConfig.getBasePrice(_serviceType);
+    if (_selectedSubService != null && _offeredServices.containsKey(_selectedSubService)) {
+      currentBase = _offeredServices[_selectedSubService]!;
+    }
+    final surcharge = _estimatedCost - currentBase;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -530,11 +671,14 @@ class _BookingScreenState extends State<BookingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Base Rate (${widget.serviceType})',
-                style: const TextStyle(fontSize: 14),
+              Expanded(
+                child: Text(
+                  'Base Rate (${_selectedSubService ?? _serviceType})',
+                  style: const TextStyle(fontSize: 14),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              Text('₱${basePrice.toStringAsFixed(2)}'),
+              Text(PricingConfig.formatPrice(currentBase)),
             ],
           ),
           if (surcharge > 0) ...[
@@ -546,7 +690,7 @@ class _BookingScreenState extends State<BookingScreen> {
                   'Distance Surcharge',
                   style: TextStyle(fontSize: 14),
                 ),
-                Text('+ ₱${surcharge.toStringAsFixed(2)}'),
+                Text('+ ${PricingConfig.formatPrice(surcharge)}'),
               ],
             ),
           ],
@@ -562,7 +706,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
-                '₱${_estimatedCost.toStringAsFixed(2)}',
+                PricingConfig.formatPrice(_estimatedCost),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 24,

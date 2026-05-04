@@ -50,6 +50,7 @@ class ProviderPricing {
   /// Get multiplier for service type
   double getMultiplier(String serviceType) {
     switch (serviceType) {
+      case 'Household':
       case 'Cleaning':
         return cleaningMultiplier;
       case 'Towing':

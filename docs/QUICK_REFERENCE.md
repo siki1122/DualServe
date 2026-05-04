@@ -3,6 +3,11 @@
 ## Firebase CLI Essentials
 
 ```bash
+# Build Flutter web output before deploying hosting
+cd household_towing_app
+flutter build web
+cd ..
+
 # Check current project
 firebase use
 
@@ -36,18 +41,18 @@ firebase functions:shell
 ```
 
 ### View Audit Logs
-1. Firebase Console → Firestore
-2. Navigate: `_system` → `auditLogs` → `entries`
+1. Firebase Console -> Firestore
+2. Navigate: `_system` -> `auditLogs` -> `entries`
 3. Filter by action, actor, or date
 
 ### Check Rate Limits
-1. Firebase Console → Firestore
-2. Navigate: `_system` → `rateLimits` → `keys`
+1. Firebase Console -> Firestore
+2. Navigate: `_system` -> `rateLimits` -> `keys`
 3. View count and reset time for each admin
 
 ### Create Provider
 1. Login as admin
-2. Go to Admin Panel → Providers
+2. Go to Admin Panel -> Providers
 3. Click "Add Provider"
 4. Fill form and submit
 
@@ -56,32 +61,32 @@ firebase functions:shell
 firebase functions:log --lines 50
 
 # Or in Firebase Console:
-# Cloud Functions → See logs icon
+# Cloud Functions -> See logs icon
 ```
 
 ## Firestore Collections
 
-```
+```text
 _system/
-├── auditLogs/
-│   └── entries/          # All admin action logs
-├── rateLimits/
-│   └── keys/             # Rate limit tracking
+|-- auditLogs/
+|   `-- entries/          # All admin action logs
+`-- rateLimits/
+    `-- keys/             # Rate limit tracking
 
 bookings/
-├── {bookingId}           # Customer booking records
+`-- {bookingId}           # Customer booking records
 
 providers/
-├── {providerId}          # Service provider profiles
+`-- {providerId}          # Service provider profiles
 
 tasks/
-├── {taskId}              # Admin-assigned tasks
+`-- {taskId}              # Admin-assigned tasks
 
 transactions/
-├── {transactionId}       # Payment/billing records
+`-- {transactionId}       # Payment/billing records
 
 users/
-├── {userId}              # User profiles (role field here)
+`-- {userId}              # User profiles (role field here)
 ```
 
 ## Error Messages & Solutions
@@ -98,12 +103,18 @@ users/
 
 | File | Purpose |
 |------|---------|
+| `firebase.json` | Repo-root Firebase deploy config |
+| `.firebaserc` | Firebase project aliases and hosting target |
 | `functions/index.js` | Cloud Functions (createProvider, setAdminRole, etc) |
-| `firestore.rules` | Security rules |
+| `household_towing_app/firestore.rules` | Firestore security rules |
+| `household_towing_app/firestore.indexes.json` | Firestore composite indexes |
+| `household_towing_app/firebase.json` | FlutterFire generated app metadata |
+| `household_towing_app/lib/` | Flutter app source |
+| `household_towing_app/pubspec.yaml` | Flutter dependencies and app metadata |
 | `functions/.env` | Environment variables (API keys, SMTP) |
-| `.firebaserc` | Firebase project configuration |
-| `DEPLOYMENT_GUIDE.md` | Full deployment instructions |
-| `ADMIN_SETUP_GUIDE.md` | Admin role management |
+| `docs/DEPLOYMENT_GUIDE.md` | Full deployment instructions |
+| `docs/ADMIN_SETUP_GUIDE.md` | Admin role management |
+| `household_towing_app/docs/` | Flutter app feature and workflow docs |
 
 ## Feature Checklist
 

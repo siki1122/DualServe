@@ -136,7 +136,7 @@ class BookingService {
         // 1. Prepare task data
         final booking = Booking.fromFirestore(bookingSnapshot);
         final taskRef = _firestore.collection(_tasksCollection).doc();
-        
+
         final task = Task(
           id: taskRef.id,
           customerId: booking.customerId,
@@ -152,6 +152,12 @@ class BookingService {
           createdAt: DateTime.now(),
           estimatedCost: booking.estimatedCost,
           estimatedDurationMinutes: booking.estimatedDurationMinutes,
+          bookingId: bookingId,
+          assignedTruckId: booking.assignedTruckId,
+          assignedTruckName: booking.assignedTruckName,
+          assignedPersonnelIds: booking.assignedPersonnelIds,
+          assignedPersonnelNames: booking.assignedPersonnelNames,
+          assignedAssets: booking.assignedAssets,
         );
 
         // 2. Create task document
@@ -276,6 +282,12 @@ class BookingService {
         createdAt: DateTime.now(),
         estimatedCost: booking.estimatedCost,
         estimatedDurationMinutes: booking.estimatedDurationMinutes,
+        assignedTruckId: booking.assignedTruckId,
+        assignedTruckName: booking.assignedTruckName,
+        assignedPersonnelIds: booking.assignedPersonnelIds,
+        assignedPersonnelNames: booking.assignedPersonnelNames,
+        assignedAssets: booking.assignedAssets,
+        bookingId: bookingId,
       );
 
       // Save task to Firestore
@@ -341,10 +353,7 @@ class BookingService {
             'scheduledDate',
             isLessThanOrEqualTo: Timestamp.fromDate(endOfDay),
           )
-          .where(
-            'status',
-            whereIn: ['accepted', 'in_progress', 'converted_to_task'],
-          )
+          .where('status', whereIn: ['accepted', 'converted_to_task'])
           .get();
 
       return snapshot.size;
@@ -376,12 +385,7 @@ class BookingService {
           )
           .where(
             'status',
-            whereIn: [
-              'accepted',
-              'in_progress',
-              'converted_to_task',
-              'completed',
-            ],
+            whereIn: ['accepted', 'converted_to_task', 'completed'],
           )
           .get();
 
@@ -431,21 +435,16 @@ class BookingService {
 
             if (status == 'pending') {
               pending++;
-            } else if (status == 'accepted' ||
-                status == 'in_progress' ||
-                status == 'converted_to_task') {
+            } else if (status == 'accepted' || status == 'converted_to_task') {
               active++;
             }
 
             if (isToday) {
-              if ([
-                'accepted',
-                'in_progress',
-                'converted_to_task',
-                'completed',
-              ].contains(status)) {
+              if (status == 'completed') {
                 todayJobs++;
                 todayEarnings += (data['estimatedCost'] ?? 0.0).toDouble();
+              } else if (['accepted', 'converted_to_task'].contains(status)) {
+                todayJobs++;
               }
               todayEarnings += (data['cancellationFee'] ?? 0.0).toDouble();
             }
@@ -514,7 +513,10 @@ class BookingService {
       var query = _firestore
           .collection(_bookingsCollection)
           .where('assignedProviderId', isEqualTo: providerId)
-          .where('status', whereIn: ['pending', 'accepted', 'in_progress'])
+          .where(
+            'status',
+            whereIn: ['pending', 'accepted', 'converted_to_task'],
+          )
           .orderBy('scheduledDate')
           .limit(limit);
 

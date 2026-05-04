@@ -93,15 +93,13 @@ class BillingService {
     required String providerId,
     required String serviceType,
     required double distanceTraveled,
+    required double basePrice,
+    required double distanceSurcharge,
+    required double nightDifferential,
+    required double finalCost,
     required String? providerNotes,
   }) async {
     try {
-      final basePrice = PricingConfig.getBasePrice(serviceType);
-      final distanceSurcharge = PricingConfig.calculateDistanceSurcharge(
-        distanceTraveled,
-      );
-      final finalCost = basePrice + distanceSurcharge;
-
       final transaction = Transaction(
         id: '', // Will be set by Firestore
         taskId: taskId,

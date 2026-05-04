@@ -29,11 +29,13 @@ class _ProviderEarningsScreenState extends State<ProviderEarningsScreen> {
     final sevenDaysAgo = now.subtract(const Duration(days: 7));
 
     try {
+      // We use scheduledDate instead of completedAt for the query to avoid needing a new index
+      // We will filter the actual 7 days in memory
       final snapshot = await FirebaseFirestore.instance
           .collection('tasks')
-          .where('providerId', isEqualTo: _providerId)
+          .where('assignedProviderId', isEqualTo: _providerId)
           .where('status', isEqualTo: 'completed')
-          .where('completedAt', isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
+          .orderBy('scheduledDate')
           .get();
 
       double total = 0;
@@ -48,14 +50,20 @@ class _ProviderEarningsScreenState extends State<ProviderEarningsScreen> {
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        final double cost = (data['estimatedCost'] as num?)?.toDouble() ?? 0.0;
-        final timestamp = (data['completedAt'] as Timestamp).toDate();
-        final dayKey = DateFormat('EEE').format(timestamp);
+        if (data['completedAt'] == null) continue;
 
-        if (daily.containsKey(dayKey)) {
-          daily[dayKey] = daily[dayKey]! + cost;
+        final timestamp = (data['completedAt'] as Timestamp).toDate();
+
+        // Only process if completed within the last 7 days
+        if (timestamp.isAfter(sevenDaysAgo)) {
+          final double cost = (data['estimatedCost'] as num?)?.toDouble() ?? 0.0;
+          final dayKey = DateFormat('EEE').format(timestamp);
+
+          if (daily.containsKey(dayKey)) {
+            daily[dayKey] = daily[dayKey]! + cost;
+          }
+          total += cost;
         }
-        total += cost;
       }
 
       setState(() {
@@ -175,12 +183,15 @@ class _ProviderEarningsScreenState extends State<ProviderEarningsScreen> {
       );
     }
 
+    final double maxDaily = _dailyEarnings.values.fold(0.0, (max, e) => e > max ? e : max);
+    final double calculatedMaxY = maxDaily > 0 ? (maxDaily * 1.2) : 1000.0;
+
     return SizedBox(
       height: 200,
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
-          maxY: (_totalEarnings / 2).clamp(1000, 50000), // Dynamic scaling
+          maxY: calculatedMaxY,
           barTouchData: BarTouchData(enabled: true),
           titlesData: FlTitlesData(
             show: true,

@@ -102,7 +102,7 @@ class CustomerHistoryScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Cost: ₱${data['estimatedCost']}',
+                          'Cost: ₱${(data['estimatedCost'] as num? ?? 0.0).toStringAsFixed(2)}',
                           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
                         ),
                         if (!isReviewed)

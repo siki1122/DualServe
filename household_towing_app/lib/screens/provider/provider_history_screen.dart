@@ -70,41 +70,30 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
   }
 
   Future<void> _fetchHistory({bool isMore = false}) async {
-    if (_isFetchingMore || (!_hasMore && isMore)) return;
+    if (_isFetchingMore) return;
 
     setState(() => _isFetchingMore = true);
 
     final uid = FirebaseAuth.instance.currentUser!.uid;
     Query query = FirebaseFirestore.instance
-        .collection('bookings')
+        .collection('tasks')
         .where('assignedProviderId', isEqualTo: uid)
         .where('status', isEqualTo: 'completed')
-        .orderBy('scheduledDate', descending: true)
-        .limit(15);
-
-    if (isMore && _lastDoc != null) {
-      query = query.startAfterDocument(_lastDoc!);
-    }
+        .orderBy('scheduledDate'); // Ascending to use existing index
 
     try {
       final snapshot = await query.get();
-      if (snapshot.docs.length < 15) {
-        _hasMore = false;
-      }
+      _hasMore = false; // Fetch all at once for simplicity with reversing
 
-      if (snapshot.docs.isNotEmpty) {
-        _lastDoc = snapshot.docs.last;
+      if (mounted) {
         setState(() {
-          if (isMore) {
-            _historyDocs.addAll(snapshot.docs);
-          } else {
-            _historyDocs.clear();
-            _historyDocs.addAll(snapshot.docs);
-          }
+          _historyDocs.clear();
+          // Reverse to show newest first
+          _historyDocs.addAll(snapshot.docs.reversed);
         });
       }
     } catch (e) {
-      // Error fetching history
+      debugPrint('Error fetching history: $e');
     } finally {
       if (mounted) {
         setState(() => _isFetchingMore = false);
@@ -131,22 +120,36 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
           // Summary Stats Header
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.white,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatColumn(
-                  'Total Earnings',
-                  '₱${_totalEarnings.toStringAsFixed(0)}',
-                  Colors.blue,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                Container(width: 1, height: 40, color: Colors.grey.shade300),
-                _buildStatColumn('Jobs', '$_completedJobs', Colors.green),
-                Container(width: 1, height: 40, color: Colors.grey.shade300),
-                _buildStatColumn(
-                  'Rating',
-                  _rating.toStringAsFixed(1),
-                  AppTheme.towingOrange,
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildStatColumn(
+                    'Lifetime',
+                    '₱${_totalEarnings.toStringAsFixed(0)}',
+                    Colors.blue,
+                  ),
+                ),
+                Container(width: 1, height: 30, color: Colors.grey.shade200),
+                Expanded(
+                  child: _buildStatColumn('Jobs', '$_completedJobs', Colors.green),
+                ),
+                Container(width: 1, height: 30, color: Colors.grey.shade200),
+                Expanded(
+                  child: _buildStatColumn(
+                    'Rating',
+                    _rating.toStringAsFixed(1),
+                    AppTheme.towingOrange,
+                  ),
                 ),
               ],
             ),
@@ -224,12 +227,15 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
   Widget _buildStatColumn(String label, String value, Color valueColor) {
     return Column(
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: valueColor,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: valueColor,
+            ),
           ),
         ),
         const SizedBox(height: 4),
@@ -262,17 +268,28 @@ class _HistoryCardState extends State<_HistoryCard> {
 
   void _loadCustomerName() async {
     try {
+      final customerId = widget.booking['customerId'];
+      if (customerId == null || customerId.isEmpty) {
+        if (mounted) setState(() => _customerName = 'Unknown');
+        return;
+      }
+
       final customerDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(widget.booking['customerId'])
+          .doc(customerId)
           .get();
+          
       if (mounted) {
         setState(() {
-          _customerName = customerDoc['name'] ?? 'Unknown Customer';
+          if (customerDoc.exists) {
+            _customerName = customerDoc['name'] ?? 'Unknown Customer';
+          } else {
+            _customerName = 'Unknown User';
+          }
         });
       }
     } catch (e) {
-      // Error loading customer
+      if (mounted) setState(() => _customerName = 'Unknown');
     }
   }
 
@@ -280,11 +297,15 @@ class _HistoryCardState extends State<_HistoryCard> {
   Widget build(BuildContext context) {
     final booking = widget.booking;
     final date = (booking['scheduledDate'] as Timestamp).toDate();
+    final formattedTime = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     final formattedDate =
-        '${date.day}/${date.month}/${date.year} ${booking['scheduledTime']}';
+        '${date.day}/${date.month}/${date.year} $formattedTime';
 
     final hasReview = true;
     final reviewText = 'Excellent work! Very professional.';
+
+    final rawCost = (booking['estimatedCost'] ?? 0.0);
+    final formattedCost = rawCost is num ? rawCost.toStringAsFixed(2) : rawCost.toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -362,7 +383,7 @@ class _HistoryCardState extends State<_HistoryCard> {
                 ),
               ),
               Text(
-                '₱${booking['estimatedCost']}',
+                '₱$formattedCost',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

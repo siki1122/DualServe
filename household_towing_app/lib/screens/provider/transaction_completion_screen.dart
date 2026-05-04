@@ -5,6 +5,7 @@ import 'package:household_towing_app/services/billing_service.dart';
 import 'package:household_towing_app/services/location_service.dart';
 import 'package:household_towing_app/services/task_service.dart';
 import 'package:household_towing_app/utils/pricing_constants.dart';
+import '../../widgets/success_dialog.dart';
 
 class TransactionCompletionScreen extends StatefulWidget {
   final String taskId;
@@ -50,6 +51,9 @@ class _TransactionCompletionScreenState
   String? _errorMessage;
   late DateTime _completionTime;
 
+  static const double MAX_BILLABLE_DISTANCE = 200.0;
+  bool _isDistanceSuspicious = false;
+
   @override
   void initState() {
     super.initState();
@@ -61,19 +65,27 @@ class _TransactionCompletionScreenState
   Future<void> _calculateCosts() async {
     try {
       // Calculate distance traveled
-      _distanceTraveled = LocationService.calculateDistance(
+      double actualDistance = LocationService.calculateDistance(
         widget.startLatitude,
         widget.startLongitude,
         widget.endLatitude,
         widget.endLongitude,
       );
 
+      _distanceTraveled = actualDistance;
+      _isDistanceSuspicious = actualDistance > MAX_BILLABLE_DISTANCE;
+
+      // For billing purposes, we cap the distance if it's suspiciously high (likely a test/GPS error)
+      double billableDistance = actualDistance > MAX_BILLABLE_DISTANCE 
+          ? MAX_BILLABLE_DISTANCE 
+          : actualDistance;
+
       // Get provider pricing and calculate with multiplier + night differential
       final billingService = BillingService();
       final costBreakdown = await billingService
           .calculateCostWithProviderPricing(
             serviceType: widget.serviceType,
-            distanceTraveled: _distanceTraveled,
+            distanceTraveled: billableDistance,
             providerId: widget.providerId,
             completionTime: _completionTime,
           );
@@ -111,27 +123,36 @@ class _TransactionCompletionScreenState
         customerId: widget.customerId,
         providerId: widget.providerId,
         serviceType: widget.serviceType,
-        distanceTraveled: _distanceTraveled,
+        distanceTraveled: _distanceTraveled > MAX_BILLABLE_DISTANCE 
+            ? MAX_BILLABLE_DISTANCE 
+            : _distanceTraveled,
+        basePrice: _adjustedBasePrice, // Use the adjusted one (with multiplier)
+        distanceSurcharge: _distanceSurcharge,
+        nightDifferential: _nightDifferential,
+        finalCost: _finalCost,
         providerNotes: _notesController.text.isEmpty
             ? null
             : _notesController.text,
       );
 
-      // Update task status to completed
+      // Update task status to completed (also sets completedAt and syncs booking)
       final taskService = TaskService();
-      await taskService.updateTaskStatus(widget.taskId, TaskStatus.completed);
+      await taskService.updateTaskCompletion(
+        widget.taskId,
+        bookingId: widget.bookingId,
+      );
 
       if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Transaction recorded successfully!'),
-            backgroundColor: Colors.green,
-          ),
+        // Show beautiful success dialog instead of a small snackbar
+        SuccessDialog.show(
+          context,
+          title: 'Job Well Done!',
+          message: 'The task has been completed and the transaction is recorded in your billing history.',
+          onPressed: () {
+            Navigator.of(context).pop(); // Close dialog
+            Navigator.of(context).pop(); // Pop back to tasks screen
+          },
         );
-
-        // Pop back to previous screen
-        Navigator.of(context).pop();
       }
     } catch (e) {
       setState(() {
@@ -225,25 +246,28 @@ class _TransactionCompletionScreenState
                                       ),
                                     ],
                                   ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      const Text(
-                                        'Distance Traveled',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        const Text(
+                                          'Distance Traveled',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${_distanceTraveled.toStringAsFixed(2)} km',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${_distanceTraveled.toStringAsFixed(2)} km',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -251,6 +275,34 @@ class _TransactionCompletionScreenState
                           ),
                         ),
                       ),
+                      if (_isDistanceSuspicious) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.warning_amber_rounded,
+                                  color: Colors.orange),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Note: Distance detected is very high (${_distanceTraveled.toStringAsFixed(0)}km). Billing has been capped to ${MAX_BILLABLE_DISTANCE.toInt()}km for accuracy.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade900,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
 
                       // Cost Breakdown
@@ -406,26 +458,34 @@ class _TransactionCompletionScreenState
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Distance Surcharge',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Distance Surcharge',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${_distanceTraveled.toStringAsFixed(2)} km × ${PricingConfig.formatPrice(PricingConfig.costPerKm)}/km',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${(_isDistanceSuspicious ? MAX_BILLABLE_DISTANCE : _distanceTraveled).toStringAsFixed(2)} km × ${PricingConfig.formatPrice(PricingConfig.costPerKm)}/km',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: _isDistanceSuspicious
+                                                ? Colors.orange
+                                                : Colors.grey,
+                                            fontWeight: _isDistanceSuspicious
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                   Text(
                                     PricingConfig.formatPrice(

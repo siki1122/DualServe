@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import '../widgets/stat_card.dart';
 
 class UsersPage extends StatefulWidget {
@@ -12,6 +13,22 @@ class UsersPage extends StatefulWidget {
 class _UsersPageState extends State<UsersPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String _userSearch = '';
+
+  String _formatDate(dynamic value) {
+    if (value is Timestamp) {
+      return DateFormat('MMM dd, yyyy').format(value.toDate());
+    }
+    if (value is DateTime) {
+      return DateFormat('MMM dd, yyyy').format(value);
+    }
+    if (value is String && value.isNotEmpty) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) {
+        return DateFormat('MMM dd, yyyy').format(parsed);
+      }
+    }
+    return 'N/A';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,21 +72,17 @@ class _UsersPageState extends State<UsersPage> {
           StreamBuilder<QuerySnapshot>(
             stream: _firestore.collection('users').snapshots(),
             builder: (context, snapshot) {
-              int totalUsers = snapshot.data?.docs.length ?? 0;
-              int activeUsers =
-                  snapshot.data?.docs
-                      .where(
-                        (doc) =>
-                            (doc.get('status') ?? '') == 'active',
-                      )
-                      .length ??
-                  0;
+              final docs = snapshot.data?.docs ?? [];
+              int totalUsers = docs.length;
+              int activeUsers = docs.where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return (data['status'] ?? 'active') == 'active';
+              }).length;
               double totalSpending = 0;
-              if (snapshot.hasData) {
-                for (var doc in snapshot.data!.docs) {
-                  totalSpending +=
-                      (doc['totalSpending'] as num?)?.toDouble() ?? 0;
-                }
+              for (var doc in docs) {
+                final data = doc.data() as Map<String, dynamic>;
+                totalSpending +=
+                    (data['totalSpending'] as num?)?.toDouble() ?? 0;
               }
               return Row(
                 children: [
@@ -149,17 +162,15 @@ class _UsersPageState extends State<UsersPage> {
                     }
                     var users = snapshot.data!.docs;
                     if (_userSearch.isNotEmpty) {
-                      users = users
-                          .where(
-                            (doc) =>
-                                doc['name'].toLowerCase().contains(
-                                  _userSearch.toLowerCase(),
-                                ) ||
-                                doc['email'].toLowerCase().contains(
-                                  _userSearch.toLowerCase(),
-                                ),
-                          )
-                          .toList();
+                      users = users.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final name =
+                            data['name']?.toString().toLowerCase() ?? '';
+                        final email =
+                            data['email']?.toString().toLowerCase() ?? '';
+                        final search = _userSearch.toLowerCase();
+                        return name.contains(search) || email.contains(search);
+                      }).toList();
                     }
                     return SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -173,74 +184,81 @@ class _UsersPageState extends State<UsersPage> {
                           DataColumn(label: Text('Spending')),
                           DataColumn(label: Text('Actions')),
                         ],
-                        rows: users
-                            .map(
-                              (user) => DataRow(
-                                cells: [
-                                  DataCell(
-                                    Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          user['name'] ?? 'N/A',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        Text(
-                                          user['email'] ?? 'N/A',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  DataCell(Text(user['phone'] ?? 'N/A')),
-                                  DataCell(
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: const Text(
-                                        'Active',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DataCell(Text(user['createdAt'] ?? 'N/A')),
-                                  DataCell(
+                        rows: users.map((user) {
+                          final data = user.data() as Map<String, dynamic>;
+                          final totalSpending =
+                              (data['totalSpending'] as num?)?.toDouble() ?? 0;
+                          final status = data['status']?.toString() ?? 'active';
+
+                          return DataRow(
+                            cells: [
+                              DataCell(
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      user['requestCount']?.toString() ?? '0',
+                                      data['name']?.toString() ?? 'N/A',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
-                                  DataCell(
                                     Text(
-                                      '₱${user['totalSpending']?.toStringAsFixed(0) ?? '0'}',
+                                      data['email']?.toString() ?? 'N/A',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
-                                  ),
-                                  DataCell(
-                                    IconButton(
-                                      icon: const Icon(Icons.more_vert),
-                                      onPressed: () {},
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            )
-                            .toList(),
+                              DataCell(
+                                Text(data['phone']?.toString() ?? 'N/A'),
+                              ),
+                              DataCell(
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    status.toUpperCase(),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              DataCell(Text(_formatDate(data['createdAt']))),
+                              DataCell(
+                                Text(data['requestCount']?.toString() ?? '0'),
+                              ),
+                              DataCell(
+                                Text('PHP ${totalSpending.toStringAsFixed(0)}'),
+                              ),
+                              DataCell(
+                                IconButton(
+                                  icon: const Icon(Icons.more_vert),
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'User actions are not available yet',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
                       ),
                     );
                   },

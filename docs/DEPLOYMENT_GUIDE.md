@@ -56,6 +56,8 @@ Firestore > _system > auditLogs > entries
 
 ## 🚀 Deployment Guide
 
+Run Firebase deploy commands from the repository root unless a command explicitly changes directories.
+
 ### Prerequisites
 ```bash
 # Install Firebase CLI
@@ -68,6 +70,11 @@ firebase login
 cd functions
 npm install
 cd ..
+
+# Build Flutter web output for Firebase Hosting
+cd household_towing_app
+flutter build web
+cd ..
 ```
 
 ### Deploy to Production
@@ -76,7 +83,12 @@ cd ..
 # 1. Set your Firebase project (if not already set)
 firebase use production
 
-# 2. Deploy everything
+# 2. Build web hosting output
+cd household_towing_app
+flutter build web
+cd ..
+
+# 3. Deploy everything
 firebase deploy
 
 # Or deploy specific components:
@@ -84,7 +96,7 @@ firebase deploy --only functions        # Cloud Functions only
 firebase deploy --only firestore:rules  # Firestore Rules only
 firebase deploy --only hosting          # Hosting only
 
-# 3. Verify deployment
+# 4. Verify deployment
 firebase functions:list
 ```
 
@@ -94,12 +106,17 @@ firebase functions:list
 # 1. Switch to staging project
 firebase use staging
 
-# 2. Deploy to staging
+# 2. Build web hosting output
+cd household_towing_app
+flutter build web
+cd ..
+
+# 3. Deploy to staging
 firebase deploy
 
-# 3. Test the changes (see Testing section below)
+# 4. Test the changes (see Testing section below)
 
-# 4. If satisfied, promote to production
+# 5. If satisfied, promote to production
 firebase use production
 firebase deploy
 ```
@@ -200,7 +217,7 @@ firebase functions:shell
 # 3. Try creating provider as this user
 # Should still succeed (custom claims check passes first)
 
-# 4. Check firestore.rules - custom claims is first check:
+# 4. Check household_towing_app/firestore.rules - custom claims is first check:
 # request.auth.token.admin == true || ...
 ```
 
@@ -233,7 +250,7 @@ firebase use production
 ### 1. Hardcoded Email Fallback
 - **Current:** charleskalvinvalenzuela@gmail.com is hardcoded for emergency access
 - **Action:** Remove this after custom claims are fully deployed
-- **How to remove:** Delete the email check from `firestore.rules` and `functions/index.js`
+- **How to remove:** Delete the email check from `household_towing_app/firestore.rules` and `functions/index.js`
 
 ```javascript
 // REMOVE THIS in production:
@@ -320,7 +337,7 @@ firebase functions:log
 
 # Verify Firestore permissions:
 # _system collection should allow Cloud Functions to write
-# Check firestore.rules for _system collection rules
+# Check household_towing_app/firestore.rules for _system collection rules
 ```
 
 ---
@@ -337,7 +354,7 @@ firebase functions:log
 ```
 Week 1: Assess current admin count
 Week 2: Set custom claims for all admins
-Week 3: Update firestore.rules to remove email check
+Week 3: Update household_towing_app/firestore.rules to remove email check
 Week 4: Verify in staging
 Week 5: Deploy to production
 Week 6: Monitor and verify
@@ -351,7 +368,7 @@ For issues or questions:
 - Check Firebase docs: https://firebase.google.com/docs
 - Review Cloud Functions logs: `firebase functions:log`
 - Check Firestore for audit events
-- Review firestore.rules for permission issues
+- Review household_towing_app/firestore.rules for permission issues
 
 ---
 
@@ -361,10 +378,9 @@ For issues or questions:
 - [ ] .env file configured with correct values
 - [ ] Staging tested: provider creation, rate limiting, audit logs
 - [ ] Custom claims set for admin users
-- [ ] firestore.rules deployed
+- [ ] household_towing_app/firestore.rules deployed
 - [ ] Audit logs visible in Firestore
 - [ ] Rate limiting prevents abuse
 - [ ] Email templates tested (if using custom SMTP)
 - [ ] Backup of current setup
 - [ ] Monitoring/alerting configured (optional but recommended)
-

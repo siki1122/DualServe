@@ -12,7 +12,20 @@
           "package_name": "com.example.household_towing_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "318653580866-osrb6a364v4uqrju8lsr4gt5o6pp3gv8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.household_towing_app",
+            "certificate_hash": "fc411262f5a0345c6914495cf40608c100cce02b"
+          }
+        },
+        {
+          "client_id": "318653580866-lnmk9tmi4qkl32cai6idnkfnptvksfi8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCnrlk3KzHr5ggI-7jk0SZdqiIU_jdSS38"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "318653580866-lnmk9tmi4qkl32cai6idnkfnptvksfi8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "318653580866-he3oh1n2ohq4nrcd0vko6h46ob1m260q.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.householdTowingApp"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:provider/provider.dart';
 import '../../utils/app_theme.dart';
 import '../../providers/user_provider.dart';
@@ -15,7 +15,7 @@ class ProviderSettingsScreen extends StatefulWidget {
 }
 
 class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
-  LatLng? _shopLocation;
+  ll.LatLng? _shopLocation;
   bool _isLoading = true;
   String _providerName = '';
   String _providerPhone = '';
@@ -38,8 +38,12 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
         setState(() {
           _providerName = providerDoc['name'] ?? '';
           _providerPhone = providerDoc['phone'] ?? '';
-          if (providerDoc['latitude'] != null && providerDoc['longitude'] != null) {
-            _shopLocation = LatLng(providerDoc['latitude'], providerDoc['longitude']);
+          if (providerDoc['latitude'] != null &&
+              providerDoc['longitude'] != null) {
+            _shopLocation = ll.LatLng(
+              providerDoc['latitude'],
+              providerDoc['longitude'],
+            );
           }
           _isLoading = false;
         });
@@ -56,13 +60,17 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
     return Consumer<UserProvider>(
       builder: (context, userProvider, child) {
         return Scaffold(
-          backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+          backgroundColor: isDark
+              ? AppTheme.backgroundDark
+              : AppTheme.background,
           appBar: AppBar(
             title: Text(
               'Account Settings',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                color: isDark
+                    ? AppTheme.textDarkPrimary
+                    : AppTheme.textSlateDark,
               ),
             ),
           ),
@@ -78,7 +86,9 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                          color: isDark
+                              ? AppTheme.textDarkPrimary
+                              : AppTheme.textSlateDark,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -87,11 +97,15 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                         child: SwitchListTile(
                           title: const Text('Dark Mode'),
                           subtitle: Text(
-                            userProvider.isDarkMode ? 'Using dark theme' : 'Using light theme',
+                            userProvider.isDarkMode
+                                ? 'Using dark theme'
+                                : 'Using light theme',
                             style: const TextStyle(fontSize: 12),
                           ),
                           secondary: Icon(
-                            userProvider.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                            userProvider.isDarkMode
+                                ? Icons.dark_mode
+                                : Icons.light_mode,
                             color: AppTheme.primaryBlue,
                           ),
                           value: userProvider.isDarkMode,
@@ -104,7 +118,9 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                          color: isDark
+                              ? AppTheme.textDarkPrimary
+                              : AppTheme.textSlateDark,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -123,9 +139,11 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                       Text(
                         'Shop Location',
                         style: TextStyle(
-                          fontSize: 18, 
-                          fontWeight: FontWeight.bold, 
-                          color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? AppTheme.textDarkPrimary
+                              : AppTheme.textSlateDark,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -136,20 +154,31 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.location_on, color: AppTheme.towingOrange),
+                                const Icon(
+                                  Icons.location_on,
+                                  color: AppTheme.towingOrange,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        _shopLocation != null ? 'Location Registered' : 'Not Set',
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                        _shopLocation != null
+                                            ? 'Location Registered'
+                                            : 'Not Set',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                       if (_shopLocation != null)
                                         Text(
                                           '${_shopLocation!.latitude.toStringAsFixed(4)}, ${_shopLocation!.longitude.toStringAsFixed(4)}',
-                                          style: const TextStyle(fontSize: 12, color: AppTheme.textSlateMedium),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.textSlateMedium,
+                                          ),
                                         ),
                                     ],
                                   ),
@@ -161,31 +190,49 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                               width: double.infinity,
                               child: ElevatedButton.icon(
                                 onPressed: () async {
-                                  final location = await Navigator.push<LatLng>(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => LocationPickerScreen(initialLocation: _shopLocation),
-                                    ),
-                                  );
+                                  final location =
+                                      await Navigator.push<ll.LatLng>(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              LocationPickerScreen(
+                                                initialLocation: _shopLocation,
+                                              ),
+                                        ),
+                                      );
                                   if (location != null) {
-                                    final uid = FirebaseAuth.instance.currentUser!.uid;
-                                    await FirebaseFirestore.instance.collection('providers').doc(uid).update({
-                                      'latitude': location.latitude,
-                                      'longitude': location.longitude,
-                                    });
+                                    final uid =
+                                        FirebaseAuth.instance.currentUser!.uid;
+                                    await FirebaseFirestore.instance
+                                        .collection('providers')
+                                        .doc(uid)
+                                        .update({
+                                          'latitude': location.latitude,
+                                          'longitude': location.longitude,
+                                        });
                                     setState(() => _shopLocation = location);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Shop location updated!')),
+                                      const SnackBar(
+                                        content: Text('Shop location updated!'),
+                                      ),
                                     );
                                   }
                                 },
                                 icon: const Icon(Icons.edit_location_alt),
-                                label: Text(_shopLocation != null ? 'Update Shop Location' : 'Set Shop Location'),
+                                label: Text(
+                                  _shopLocation != null
+                                      ? 'Update Shop Location'
+                                      : 'Set Shop Location',
+                                ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.primaryBlue,
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                 ),
                               ),
                             ),
@@ -198,7 +245,9 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                          color: isDark
+                              ? AppTheme.textDarkPrimary
+                              : AppTheme.textSlateDark,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -210,15 +259,21 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                               context: context,
                               builder: (context) => AlertDialog(
                                 title: const Text('Logout'),
-                                content: const Text('Are you sure you want to log out?'),
+                                content: const Text(
+                                  'Are you sure you want to log out?',
+                                ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () => Navigator.pop(context, false),
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
                                     child: const Text('Cancel'),
                                   ),
                                   TextButton(
-                                    onPressed: () => Navigator.pop(context, true),
-                                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.red,
+                                    ),
                                     child: const Text('Logout'),
                                   ),
                                 ],
@@ -231,10 +286,15 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                             }
                           },
                           icon: const Icon(Icons.logout, color: Colors.red),
-                          label: const Text('Log Out', style: TextStyle(color: Colors.red)),
+                          label: const Text(
+                            'Log Out',
+                            style: TextStyle(color: Colors.red),
+                          ),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.red),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
@@ -248,7 +308,11 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
     );
   }
 
-  Widget _buildSettingItem({required String label, required String value, required IconData icon}) {
+  Widget _buildSettingItem({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: AppTheme.cardDecoration(context),
@@ -259,8 +323,21 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textSlateMedium)),
-              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textSlateDark)),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSlateMedium,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textSlateDark,
+                ),
+              ),
             ],
           ),
         ],

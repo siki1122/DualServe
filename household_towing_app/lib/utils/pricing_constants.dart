@@ -1,9 +1,12 @@
 /// Centralized pricing configuration for the household towing app
 class PricingConfig {
+  static const String householdService = 'Household';
+  static const String towingService = 'Towing';
+
   // Base prices by service type (in Philippine Pesos)
   static const Map<String, double> basePrices = {
-    'Cleaning': 500.0,
-    'Towing': 1500.0,
+    householdService: 500.0,
+    towingService: 1500.0,
   };
 
   // Cost per kilometer surcharge
@@ -33,7 +36,16 @@ class PricingConfig {
   /// Get base price for a service type
   /// Returns 0.0 if service type not found
   static double getBasePrice(String serviceType) {
-    return basePrices[serviceType] ?? 0.0;
+    return basePrices[normalizeServiceType(serviceType)] ?? 0.0;
+  }
+
+  /// Keep old records that used "Cleaning" compatible with the current service taxonomy.
+  static String normalizeServiceType(String serviceType) {
+    final normalized = serviceType.trim();
+    if (normalized.toLowerCase() == 'cleaning') {
+      return householdService;
+    }
+    return normalized;
   }
 
   /// Calculate distance surcharge
@@ -79,7 +91,7 @@ class PricingConfig {
 
   /// Format price as Philippine Peso string
   static String formatPrice(double amount) {
-    return '₱${amount.toStringAsFixed(2)}';
+    return 'PHP ${amount.toStringAsFixed(2)}';
   }
 
   /// Get night differential percentage

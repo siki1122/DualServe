@@ -4,26 +4,60 @@ import 'logging_service.dart';
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Fetch user profile from 'users' collection
+  /// Fetch user profile from 'users' collection with retry logic
   Future<Map<String, dynamic>?> getUserProfile(String uid) async {
-    try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      return doc.data();
-    } catch (e) {
-      Logger.error('Failed to fetch user profile for $uid', e);
-      return null;
+    int retryCount = 0;
+    const int maxRetries = 3;
+    dynamic lastError;
+
+    while (retryCount < maxRetries) {
+      try {
+        final doc = await _firestore.collection('users').doc(uid).get();
+        if (!doc.exists) return null;
+        return doc.data();
+      } catch (e) {
+        lastError = e;
+        if (e.toString().contains('unavailable') || e.toString().contains('offline')) {
+          retryCount++;
+          Logger.warn('Firestore unavailable, retrying ($retryCount/$maxRetries) for user $uid...');
+          await _firestore.enableNetwork().catchError((_) {});
+          await Future.delayed(Duration(seconds: 1 * retryCount));
+          continue;
+        }
+        Logger.error('Failed to fetch user profile for $uid', e);
+        rethrow;
+      }
     }
+    Logger.error('Max retries reached for user profile $uid', lastError);
+    throw lastError ?? Exception('Failed to fetch user profile after $maxRetries retries');
   }
 
-  /// Fetch provider profile from 'providers' collection
+  /// Fetch provider profile from 'providers' collection with retry logic
   Future<Map<String, dynamic>?> getProviderProfile(String uid) async {
-    try {
-      final doc = await _firestore.collection('providers').doc(uid).get();
-      return doc.data();
-    } catch (e) {
-      Logger.error('Failed to fetch provider profile for $uid', e);
-      return null;
+    int retryCount = 0;
+    const int maxRetries = 3;
+    dynamic lastError;
+
+    while (retryCount < maxRetries) {
+      try {
+        final doc = await _firestore.collection('providers').doc(uid).get();
+        if (!doc.exists) return null;
+        return doc.data();
+      } catch (e) {
+        lastError = e;
+        if (e.toString().contains('unavailable') || e.toString().contains('offline')) {
+          retryCount++;
+          Logger.warn('Firestore unavailable, retrying ($retryCount/$maxRetries) for provider $uid...');
+          await _firestore.enableNetwork().catchError((_) {});
+          await Future.delayed(Duration(seconds: 1 * retryCount));
+          continue;
+        }
+        Logger.error('Failed to fetch provider profile for $uid', e);
+        rethrow;
+      }
     }
+    Logger.error('Max retries reached for provider profile $uid', lastError);
+    throw lastError ?? Exception('Failed to fetch provider profile after $maxRetries retries');
   }
 
   /// Update availability status for provider

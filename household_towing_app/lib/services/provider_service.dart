@@ -142,8 +142,24 @@ class ProviderService {
       final dayName = _getDayName(date.weekday);
       final availableSlots = provider.getAvailableSlotsForDay(dayName);
 
-      if (!availableSlots.contains(time)) {
-        Logger.debug('Provider $providerId has no slot at $time on $dayName');
+      // Normalize input time (ensure HH:MM format)
+      String normalizedTime = time;
+      if (time.contains(' ')) {
+        // If input is "08:00 AM", convert to "08:00" (or handle as needed)
+        // Actually, it's easier to normalize both to a comparable format.
+        normalizedTime = _normalizeTime(time);
+      }
+
+      bool found = false;
+      for (var slot in availableSlots) {
+        if (_normalizeTime(slot) == normalizedTime) {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        Logger.debug('Provider $providerId has no slot at $time ($normalizedTime) on $dayName. Available: $availableSlots');
         return false;
       }
 
@@ -269,6 +285,30 @@ class ProviderService {
     } catch (e) {
       Logger.error('Error getting remaining capacity', e);
       return 0;
+    }
+  }
+
+  // HELPER - Normalize time string to "HH:mm" 24h format for comparison
+  String _normalizeTime(String timeStr) {
+    try {
+      timeStr = timeStr.trim();
+      if (timeStr.isEmpty) return "";
+
+      // Handle "08:00 AM" or "8:00 AM" or "14:00"
+      final parts = timeStr.split(' ');
+      final timeParts = parts[0].split(':');
+      int hour = int.parse(timeParts[0]);
+      int minute = timeParts.length > 1 ? int.parse(timeParts[1]) : 0;
+
+      if (parts.length > 1) {
+        final isPM = parts[1].toUpperCase() == 'PM';
+        if (isPM && hour != 12) hour += 12;
+        if (!isPM && hour == 12) hour = 0;
+      }
+
+      return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return timeStr; // Fallback to original
     }
   }
 

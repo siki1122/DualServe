@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../utils/app_theme.dart';
 import 'provider_home.dart';
-import 'booking_requests_screen.dart';
-import 'provider_history_screen.dart';
-import 'earnings_history_screen.dart';
-import 'provider_pricing_settings_screen.dart';
+import 'provider_tasks_screen.dart';
+import 'provider_asset_inventory_screen.dart';
+import 'provider_services_screen.dart';
+import '../../widgets/provider_drawer.dart';
 
 class ProviderMainLayout extends StatefulWidget {
   const ProviderMainLayout({super.key});
@@ -18,15 +18,15 @@ class _ProviderMainLayoutState extends State<ProviderMainLayout> {
 
   final List<Widget> _screens = [
     const ProviderHome(),
-    const BookingRequestsScreen(),
-    const ProviderHistoryScreen(),
-    const EarningsHistoryScreen(),
-    const ProviderPricingSettingsScreen(),
+    const ProviderTasksScreen(),
+    const ProviderAssetInventoryScreen(),
+    const ProviderServicesScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const ProviderDrawer(),
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -49,33 +49,28 @@ class _ProviderMainLayoutState extends State<ProviderMainLayout> {
           backgroundColor: AppTheme.surface,
           selectedItemColor: AppTheme.towingOrange,
           unselectedItemColor: AppTheme.textSlateLight,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
+          selectedFontSize: 10,
+          unselectedFontSize: 10,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
+              icon: Icon(Icons.dashboard_outlined),
+              activeIcon: Icon(Icons.dashboard),
               label: 'Dashboard',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.list_alt_outlined),
-              activeIcon: Icon(Icons.list_alt),
-              label: 'Requests',
+              icon: Icon(Icons.assignment_outlined),
+              activeIcon: Icon(Icons.assignment),
+              label: 'My Tasks',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.history_outlined),
-              activeIcon: Icon(Icons.history),
-              label: 'History',
+              icon: Icon(Icons.inventory_2_outlined),
+              activeIcon: Icon(Icons.inventory_2),
+              label: 'Inventory',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.attach_money_outlined),
-              activeIcon: Icon(Icons.attach_money),
-              label: 'Earnings',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings),
-              label: 'Pricing',
+              icon: Icon(Icons.build_circle_outlined),
+              activeIcon: Icon(Icons.build_circle),
+              label: 'Services',
             ),
           ],
         ),

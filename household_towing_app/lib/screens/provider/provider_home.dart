@@ -8,6 +8,8 @@ import 'available_tasks_screen.dart';
 import 'provider_tasks_screen.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../widgets/new_job_overlay.dart';
+import '../../services/provider_service.dart';
+import '../../models/provider_model.dart';
 
 class ProviderHome extends StatefulWidget {
   const ProviderHome({super.key});
@@ -18,10 +20,33 @@ class ProviderHome extends StatefulWidget {
 
 class _ProviderHomeState extends State<ProviderHome> {
   final BookingService _bookingService = BookingService();
+  final ProviderService _providerService = ProviderService();
+  bool _isToggling = false;
+
+  Future<void> _toggleStatus(String providerId, bool isAvailable) async {
+    if (_isToggling) return;
+    
+    setState(() => _isToggling = true);
+    try {
+      final newStatus = isAvailable ? ProviderStatus.available : ProviderStatus.offline;
+      await _providerService.updateProviderStatus(providerId, newStatus);
+      
+      if (mounted) {
+        await context.read<UserProvider>().loadCurrentUserData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update status: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isToggling = false);
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {git add .
-
+  Widget build(BuildContext context) {
     return NewJobOverlay(
       child: Consumer<UserProvider>(
         builder: (context, userProvider, child) {
@@ -45,6 +70,10 @@ class _ProviderHomeState extends State<ProviderHome> {
               title: const Text('Dashboard'),
               backgroundColor: Colors.transparent,
               elevation: 0,
+              actions: [
+                _buildStatusToggle(userProvider.uid, profile['status'] == 'available', isDark),
+                const SizedBox(width: 8),
+              ],
               foregroundColor: isDark ? Colors.white : AppTheme.textSlateDark,
             ),
             body: SingleChildScrollView(
@@ -59,7 +88,7 @@ class _ProviderHomeState extends State<ProviderHome> {
                       child: FadeInAnimation(child: widget),
                     ),
                     children: [
-                      _buildHeader(profile['name'] ?? 'Provider', isDark),
+                      _buildHeader(profile['name'] ?? 'Provider', isDark, profile['status'] == 'available'),
                       const SizedBox(height: 32),
                       _buildStatsGrid(userProvider.uid, isDark),
                       const SizedBox(height: 32),
@@ -75,27 +104,95 @@ class _ProviderHomeState extends State<ProviderHome> {
     );
   }
 
-  Widget _buildHeader(String name, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildStatusToggle(String providerId, bool isAvailable, bool isDark) {
+    return Row(
       children: [
         Text(
-          'Welcome back,',
+          isAvailable ? 'ONLINE' : 'OFFLINE',
           style: TextStyle(
-            fontSize: 16,
-            color: isDark
-                ? AppTheme.textDarkSecondary
-                : AppTheme.textSlateMedium,
-          ),
-        ),
-        Text(
-          name,
-          style: TextStyle(
-            fontSize: 28,
+            fontSize: 10,
             fontWeight: FontWeight.bold,
-            color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+            letterSpacing: 1.2,
+            color: isAvailable 
+              ? Colors.green 
+              : (isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
           ),
         ),
+        const SizedBox(width: 4),
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: isAvailable,
+            onChanged: _isToggling ? null : (val) => _toggleStatus(providerId, val),
+            activeColor: Colors.green,
+            activeTrackColor: Colors.green.withOpacity(0.3),
+            inactiveThumbColor: Colors.grey,
+            inactiveTrackColor: Colors.grey.withOpacity(0.3),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader(String name, bool isDark, bool isAvailable) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome back,',
+              style: TextStyle(
+                fontSize: 16,
+                color: isDark
+                    ? AppTheme.textDarkSecondary
+                    : AppTheme.textSlateMedium,
+              ),
+            ),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+              ),
+            ),
+          ],
+        ),
+        if (isAvailable)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.green, blurRadius: 4, spreadRadius: 1),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Available',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -132,7 +229,7 @@ class _ProviderHomeState extends State<ProviderHome> {
             ),
             _buildStatCard(
               'Today',
-              '₱${stats['todayEarnings']}',
+              '₱${(stats['todayEarnings'] as double).toStringAsFixed(2)}',
               Icons.payments,
               Colors.green,
               isDark,

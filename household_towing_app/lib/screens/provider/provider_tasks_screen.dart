@@ -9,6 +9,11 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/storage_service.dart';
 import '../chat/chat_screen.dart';
 import '../../utils/map_utils.dart';
+import '../../services/location_service.dart';
+import 'transaction_completion_screen.dart';
+import '../../widgets/asset_selection_dialog.dart';
+import '../../providers/user_provider.dart';
+import 'package:provider/provider.dart' as provider_pkg;
 
 class ProviderTasksScreen extends StatefulWidget {
   const ProviderTasksScreen({super.key});
@@ -79,6 +84,19 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(32.0),
                       child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'Error loading tasks:\n${snapshot.error}',
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   );
                 }
@@ -247,14 +265,15 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                         children: [
                           Icon(Icons.schedule, size: 16, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
                           const SizedBox(width: 6),
-                          Text(
-                            _formatDate(task.scheduledDate),
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
-                              fontWeight: FontWeight.w500,
+                            Text(
+                              _formatDate(task.scheduledDate),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -282,53 +301,48 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
 
                 Row(
                   children: [
-                    if (task.status == TaskStatus.inProgress)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ElevatedButton.icon(
-                            onPressed: () => MapUtils.openMap(task.location),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue[700],
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            icon: const Icon(Icons.directions, size: 18),
-                            label: const Text('Navigate', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ),
                     if (task.status == TaskStatus.assigned || task.status == TaskStatus.inProgress)
                       Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ChatScreen(
-                                    bookingId: task.id,
-                                    receiverId: task.customerId,
-                                    receiverName: 'Customer',
-                                  ),
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatScreen(
+                                  bookingId: task.bookingId ?? task.id,
+                                  receiverId: task.customerId,
+                                  receiverName: 'Customer',
                                 ),
-                              );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.primaryBlue,
-                              side: const BorderSide(color: AppTheme.primaryBlue),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                            label: const Text('Message', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlue,
+                            side: const BorderSide(color: AppTheme.primaryBlue),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
+                          icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                          label: const Text('Message', style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
+                    const SizedBox(width: 8),
                     if (task.status == TaskStatus.assigned)
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => _updateStatus(task, TaskStatus.inProgress),
+                          onPressed: () {
+                            if (task.assignedTruckId == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please assign Assets (Truck & Personnel) before starting.'),
+                                  backgroundColor: AppTheme.towingOrange,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                              _showAssetAssignment(task);
+                            } else {
+                              _updateStatus(task, TaskStatus.inProgress);
+                            }
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.towingOrange,
                             foregroundColor: Colors.white,
@@ -336,7 +350,10 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text('Start Task', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Start Task',
+                            style: TextStyle(fontWeight: FontWeight.bold)
+                          ),
                         ),
                       )
                     else if (task.status == TaskStatus.inProgress)
@@ -361,6 +378,31 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
         ),
       ),
     );
+  }
+
+  void _showAssetAssignment(Task task) async {
+    final userProvider = provider_pkg.Provider.of<UserProvider>(context, listen: false);
+    final providerName = userProvider.userProfile?['name'] ?? 'Provider';
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AssetSelectionDialog(
+        providerId: _providerId,
+        providerName: providerName,
+        preselectedTask: task,
+      ),
+    );
+
+    if (result == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Assets assigned successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
   }
 
   void _showTaskDetail(Task task) {
@@ -427,6 +469,31 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                   ),
                 ),
               ],
+              if (task.status == TaskStatus.assigned) ...[
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showAssetAssignment(task);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo[600],
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.inventory_2_outlined),
+                    label: const Text(
+                      'Edit Assigned Assets',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
             ],
           ),
@@ -490,88 +557,76 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
   void _showCompletionDialog(Task task) {
     showDialog(
       context: context,
-      barrierDismissible: !_isUploading,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Complete Task'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Please upload a photo of the completed service for verification.'),
-              const SizedBox(height: 20),
-              if (_isUploading)
-                const CircularProgressIndicator()
-              else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildUploadOption(
-                      icon: Icons.camera_alt,
-                      label: 'Camera',
-                      onTap: () => _handleImageUpload(task, ImageSource.camera, setDialogState),
-                    ),
-                    _buildUploadOption(
-                      icon: Icons.photo_library,
-                      label: 'Gallery',
-                      onTap: () => _handleImageUpload(task, ImageSource.gallery, setDialogState),
-                    ),
-                  ],
-                ),
-            ],
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Complete Task'),
+        content: const Text('Are you sure you want to mark this task as completed? You will be directed to the billing screen to finalize the transaction.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
           ),
-          actions: [
-            if (!_isUploading)
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext); // Close dialog
 
-  Widget _buildUploadOption({required IconData icon, required String label, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Icon(icon, size: 40, color: AppTheme.primaryBlue),
-          const SizedBox(height: 8),
-          Text(label),
+              // Show loading overlay while fetching GPS
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(child: CircularProgressIndicator()),
+              );
+
+              try {
+                final position = await LocationService().getCurrentLocation();
+
+                if (mounted) {
+                  Navigator.pop(context); // Close loading
+
+                  if (position == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Could not detect your location. GPS is required for distance surcharge calculation.'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TransactionCompletionScreen(
+                        taskId: task.id,
+                        bookingId: task.bookingId ?? task.id,
+                        customerId: task.customerId,
+                        providerId: task.assignedProviderId ?? _providerId,
+                        serviceType: task.serviceType,
+                        startLatitude: position.latitude,
+                        startLongitude: position.longitude,
+                        endLatitude: task.latitude,
+                        endLongitude: task.longitude,
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context); // Close loading
+                  ScaffoldMessenger.of(context).showSnackBar( // Use screen context
+                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Continue to Billing'),
+          ),
         ],
       ),
     );
-  }
-
-  Future<void> _handleImageUpload(Task task, ImageSource source, Function setDialogState) async {
-    final image = await _storageService.pickImage(source);
-    if (image == null) return;
-
-    setDialogState(() => _isUploading = true);
-
-    try {
-      final imageUrl = await _storageService.uploadServiceImage(task.id, image);
-      if (imageUrl != null) {
-        await _taskService.updateTaskCompletion(task.id, imageUrl);
-        if (mounted) {
-          Navigator.pop(context); // Close upload dialog
-          SuccessDialog.show(
-            context,
-            title: 'Job Well Done!',
-            message: 'You have successfully completed this task and uploaded the proof.',
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error completing task: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      setDialogState(() => _isUploading = false);
-    }
   }
 
   List<Color> _getStatusColor(TaskStatus status, bool isDark) {

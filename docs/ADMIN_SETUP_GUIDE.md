@@ -197,7 +197,7 @@ node
 
 ### Current State (Development)
 ```javascript
-// In firestore.rules and functions/index.js
+// In household_towing_app/firestore.rules and functions/index.js
 request.auth.token.email.lower() == 'charleskalvinvalenzuela@gmail.com'
 ```
 
@@ -213,7 +213,7 @@ firebase functions:shell
 - Check audit logs
 
 ### Step 3: Remove Hardcoded Email
-Edit `firestore.rules`:
+Edit `household_towing_app/firestore.rules`:
 ```javascript
 function isAdmin() {
   return isSignedIn() && (
@@ -264,4 +264,3 @@ firebase deploy --only firestore:rules
 **Logs:**
 - Audit log entry created in `_system/auditLogs`
 - Console log with details
-

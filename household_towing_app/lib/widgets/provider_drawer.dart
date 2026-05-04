@@ -5,7 +5,12 @@ import 'package:household_towing_app/screens/provider/provider_schedule_screen.d
 import 'package:household_towing_app/screens/provider/provider_tasks_screen.dart';
 import 'package:household_towing_app/screens/provider/available_tasks_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_settings_screen.dart';
+import 'package:household_towing_app/screens/provider/provider_asset_inventory_screen.dart';
+
+import 'package:household_towing_app/screens/provider/provider_services_screen.dart';
+import 'package:household_towing_app/screens/provider/provider_history_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_earnings_screen.dart';
+import 'package:household_towing_app/screens/provider/provider_pricing_settings_screen.dart';
 
 class ProviderDrawer extends StatelessWidget {
   const ProviderDrawer({super.key});
@@ -49,54 +54,98 @@ class ProviderDrawer extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          _buildDrawerItem(
-            context,
-            icon: Icons.task_alt,
-            title: 'My Assigned Tasks',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderTasksScreen()));
-            },
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.task_alt,
+                    title: 'My Assigned Tasks',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderTasksScreen()));
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.search,
+                    title: 'Browse Available Tasks',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AvailableTasksScreen()));
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.calendar_month,
+                    title: 'Manage Schedule',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderScheduleScreen()));
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.inventory_2,
+                    title: 'Asset Inventory',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderAssetInventoryScreen()));
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.handyman,
+                    title: 'My Services',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderServicesScreen()));
+                    },
+                  ),
+                  Divider(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.history,
+                    title: 'Service History',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderHistoryScreen()));
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.payments_outlined,
+                    title: 'My Earnings',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderEarningsScreen()));
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.sell_outlined,
+                    title: 'Pricing Config',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderPricingSettingsScreen()));
+                    },
+                  ),
+                  Divider(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.settings,
+                    title: 'Settings',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderSettingsScreen()));
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.search,
-            title: 'Browse Available Tasks',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const AvailableTasksScreen()));
-            },
-          ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.calendar_month,
-            title: 'Manage Schedule',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderScheduleScreen()));
-            },
-          ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.attach_money,
-            title: 'My Earnings',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderEarningsScreen()));
-            },
-          ),
-          Divider(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]),
-          _buildDrawerItem(
-            context,
-            icon: Icons.settings,
-            title: 'Settings',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderSettingsScreen()));
-            },
-          ),
-          const Spacer(),
           Divider(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]),
           _buildDrawerItem(
             context,

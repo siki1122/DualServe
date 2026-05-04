@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:geolocator/geolocator.dart';
 import '../../services/location_service.dart';
 import '../../utils/app_theme.dart';
 
 class LocationPickerScreen extends StatefulWidget {
-  final LatLng? initialLocation;
+  final ll.LatLng? initialLocation;
 
   const LocationPickerScreen({super.key, this.initialLocation});
 
@@ -14,8 +15,8 @@ class LocationPickerScreen extends StatefulWidget {
 }
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
-  LatLng? _pickedLocation;
-  GoogleMapController? _mapController;
+  ll.LatLng? _pickedLocation;
+  final MapController _mapController = MapController();
 
   @override
   void initState() {
@@ -38,26 +39,39 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       ),
       body: Stack(
         children: [
-          GoogleMap(
-            cloudMapId: 'd80a93f8c224576ddf5af450',
-            initialCameraPosition: CameraPosition(
-              target: widget.initialLocation ?? const LatLng(10.6667, 122.9500),
-              zoom: 15,
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter:
+                  widget.initialLocation ?? ll.LatLng(10.6667, 122.9500),
+              initialZoom: 15,
+              onTap: (tapPosition, point) {
+                setState(() {
+                  _pickedLocation = point;
+                });
+              },
             ),
-            onMapCreated: (controller) => _mapController = controller,
-            onTap: (location) {
-              setState(() {
-                _pickedLocation = location;
-              });
-            },
-            markers: _pickedLocation == null
-                ? {}
-                : {
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.household_towing_app',
+              ),
+              if (_pickedLocation != null)
+                MarkerLayer(
+                  markers: [
                     Marker(
-                      markerId: const MarkerId('picked'),
-                      position: _pickedLocation!,
+                      point: _pickedLocation!,
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 40,
+                      ),
                     ),
-                  },
+                  ],
+                ),
+            ],
           ),
           if (_pickedLocation == null)
             Center(
@@ -84,11 +98,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text(
                 'Confirm Location',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

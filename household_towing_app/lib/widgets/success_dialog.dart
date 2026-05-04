@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import '../utils/app_theme.dart';
 
 class SuccessDialog extends StatelessWidget {
@@ -31,11 +30,17 @@ class SuccessDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Lottie.network(
-              'https://lottie.host/76672323-8686-4e56-8a7e-125027581177/vP7E5YV1X7.json',
-              width: 150,
-              height: 150,
-              repeat: false,
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Color(0xFFE8F5E9), // Light green background
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 80,
+              ),
             ),
             const SizedBox(height: 24),
             Text(

@@ -3,7 +3,6 @@ import 'package:household_towing_app/models/provider_pricing_model.dart';
 import 'package:household_towing_app/services/provider_pricing_service.dart';
 import 'package:household_towing_app/utils/pricing_constants.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 
@@ -11,14 +10,16 @@ class ProviderPricingSettingsScreen extends StatefulWidget {
   const ProviderPricingSettingsScreen({super.key});
 
   @override
-  State<ProviderPricingSettingsScreen> createState() => _ProviderPricingSettingsScreenState();
+  State<ProviderPricingSettingsScreen> createState() =>
+      _ProviderPricingSettingsScreenState();
 }
 
-class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsScreen> {
+class _ProviderPricingSettingsScreenState
+    extends State<ProviderPricingSettingsScreen> {
   final ProviderPricingService _pricingService = ProviderPricingService();
   final TextEditingController _notesController = TextEditingController();
   bool _isLoading = false;
-  
+
   // Local state for live preview
   double? _tempCleaningMultiplier;
   double? _tempTowingMultiplier;
@@ -42,8 +43,12 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
 
     // Get the provider's actual specialization (from their profile)
     final profile = userProvider.providerProfile ?? {};
-    final bool providesTowing = profile['serviceType'] == 'Towing' || profile['serviceType'] == 'Both';
-    final bool providesCleaning = profile['serviceType'] == 'Cleaning' || profile['serviceType'] == 'Both';
+    final bool providesTowing =
+        profile['serviceType'] == 'Towing' || profile['serviceType'] == 'Both';
+    final bool providesHousehold =
+        profile['serviceType'] == 'Household' ||
+        profile['serviceType'] == 'Cleaning' ||
+        profile['serviceType'] == 'Both';
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
@@ -56,12 +61,15 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
       body: StreamBuilder<ProviderPricing>(
         stream: _pricingService.getProviderPricingStream(providerId),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting && _tempCleaningMultiplier == null) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              _tempCleaningMultiplier == null) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final pricing = snapshot.data;
-          if (pricing == null) return const Center(child: Text('No pricing data found'));
+          if (pricing == null) {
+            return const Center(child: Text('No pricing data found'));
+          }
 
           // Initialize local state if not set
           _tempCleaningMultiplier ??= pricing.cleaningMultiplier;
@@ -75,7 +83,7 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
               children: [
                 _buildInfoSection(isDark),
                 const SizedBox(height: 32),
-                
+
                 if (providesTowing) ...[
                   _buildSectionTitle('Towing Rates', isDark),
                   const SizedBox(height: 12),
@@ -89,11 +97,11 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
                   const SizedBox(height: 24),
                 ],
 
-                if (providesCleaning) ...[
-                  _buildSectionTitle('Cleaning Rates', isDark),
+                if (providesHousehold) ...[
+                  _buildSectionTitle('Household Rates', isDark),
                   const SizedBox(height: 12),
                   _buildMultiplierCard(
-                    'Cleaning Multiplier',
+                    'Household Multiplier',
                     _tempCleaningMultiplier!,
                     AppTheme.primaryBlue,
                     (val) => setState(() => _tempCleaningMultiplier = val),
@@ -106,10 +114,10 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
                 const SizedBox(height: 12),
                 _buildNightDifferentialCard(isDark),
                 const SizedBox(height: 32),
-                
-                _buildLivePreview(providesTowing, providesCleaning, isDark),
+
+                _buildLivePreview(providesTowing, providesHousehold, isDark),
                 const SizedBox(height: 40),
-                
+
                 _buildSaveButton(pricing, providerId),
                 const SizedBox(height: 20),
               ],
@@ -148,7 +156,9 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
               'Your final price to the customer is: (Base Rate × Multiplier) + Distance Surcharge.',
               style: TextStyle(
                 fontSize: 13,
-                color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
+                color: isDark
+                    ? AppTheme.textDarkSecondary
+                    : AppTheme.textSlateMedium,
               ),
             ),
           ),
@@ -157,7 +167,13 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
     );
   }
 
-  Widget _buildMultiplierCard(String label, double value, Color color, Function(double) onChanged, bool isDark) {
+  Widget _buildMultiplierCard(
+    String label,
+    double value,
+    Color color,
+    Function(double) onChanged,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: AppTheme.cardDecoration(context),
@@ -168,7 +184,10 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
             children: [
               Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -192,9 +211,18 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Economy', style: TextStyle(fontSize: 11, color: Colors.grey)),
-              Text('Standard', style: TextStyle(fontSize: 11, color: Colors.grey)),
-              Text('Premium', style: TextStyle(fontSize: 11, color: Colors.grey)),
+              Text(
+                'Economy',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              Text(
+                'Standard',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              Text(
+                'Premium',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
             ],
           ),
         ],
@@ -212,8 +240,14 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Night Surcharge', style: TextStyle(fontWeight: FontWeight.w600)),
-              Text('11 PM - 5 AM (+30%)', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                'Night Surcharge',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text(
+                '11 PM - 5 AM (+30%)',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
           Switch(
@@ -228,25 +262,51 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
 
   Widget _buildLivePreview(bool towing, bool cleaning, bool isDark) {
     final baseTowing = PricingConfig.basePrices['Towing']!;
-    final baseCleaning = PricingConfig.basePrices['Cleaning']!;
+    final baseHousehold =
+        PricingConfig.basePrices[PricingConfig.householdService]!;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.surfaceDark : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.3), width: 2),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withOpacity(0.3),
+          width: 2,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Live Price Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryBlue)),
+          const Text(
+            'Live Price Preview',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: AppTheme.primaryBlue,
+            ),
+          ),
           const SizedBox(height: 16),
-          if (towing) _buildPreviewRow('Towing (Base)', baseTowing * _tempTowingMultiplier!),
+          if (towing)
+            _buildPreviewRow(
+              'Towing (Base)',
+              baseTowing * _tempTowingMultiplier!,
+            ),
           if (towing && cleaning) const Divider(height: 24),
-          if (cleaning) _buildPreviewRow('Cleaning (Base)', baseCleaning * _tempCleaningMultiplier!),
+          if (cleaning)
+            _buildPreviewRow(
+              'Household (Base)',
+              baseHousehold * _tempCleaningMultiplier!,
+            ),
           const SizedBox(height: 12),
-          const Text('*Excludes distance and night surcharges', style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic)),
+          const Text(
+            '*Excludes distance and night surcharges',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
         ],
       ),
     );
@@ -274,11 +334,16 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.primaryBlue,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
         ),
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white)
-            : const Text('Save Pricing Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            : const Text(
+                'Save Pricing Settings',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
       ),
     );
   }
@@ -293,11 +358,18 @@ class _ProviderPricingSettingsScreenState extends State<ProviderPricingSettingsS
         useNightDifferential: _tempUseNightDifferential,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pricing updated successfully!'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pricing updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

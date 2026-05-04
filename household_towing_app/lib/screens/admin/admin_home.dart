@@ -3,10 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/users_page.dart';
 import 'pages/providers_page.dart';
-import 'pages/assets_page.dart';
 import 'pages/reports_page.dart';
-import 'pages/task_assignment_page.dart';
-import 'pages/transactions_page.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -18,6 +15,25 @@ class AdminHome extends StatefulWidget {
 class _AdminHomeState extends State<AdminHome> {
   int _selectedIndex = 0;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  static const List<_AdminSection> _sections = [
+    _AdminSection(
+      title: 'Dashboard',
+      icon: Icons.dashboard,
+      page: DashboardPage(),
+    ),
+    _AdminSection(title: 'Users', icon: Icons.people, page: UsersPage()),
+    _AdminSection(
+      title: 'Providers',
+      icon: Icons.handshake,
+      page: ProvidersPage(),
+    ),
+    _AdminSection(
+      title: 'Reports',
+      icon: Icons.assessment,
+      page: ReportsPage(),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -53,17 +69,8 @@ class _AdminHomeState extends State<AdminHome> {
                 Expanded(
                   child: ListView(
                     children: [
-                      _sidebarItem(0, Icons.dashboard, 'Dashboard'),
-                      _sidebarItem(1, Icons.people, 'Users'),
-                      _sidebarItem(2, Icons.handshake, 'Providers'),
-                      _sidebarItem(3, Icons.local_shipping, 'Assets'),
-                      _sidebarItem(
-                        4,
-                        Icons.assignment_turned_in,
-                        'Task Management',
-                      ),
-                      _sidebarItem(5, Icons.assessment, 'Reports'),
-                      _sidebarItem(6, Icons.receipt_long, 'Transactions'),
+                      for (var i = 0; i < _sections.length; i++)
+                        _sidebarItem(i, _sections[i].icon, _sections[i].title),
                     ],
                   ),
                 ),
@@ -106,7 +113,7 @@ class _AdminHomeState extends State<AdminHome> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _getPageTitle(_selectedIndex),
+                            _sections[_selectedIndex].title,
                             style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -146,15 +153,7 @@ class _AdminHomeState extends State<AdminHome> {
                 Expanded(
                   child: IndexedStack(
                     index: _selectedIndex,
-                    children: const [
-                      DashboardPage(),
-                      UsersPage(),
-                      ProvidersPage(),
-                      AssetsPage(),
-                      TaskAssignmentScreen(),
-                      ReportsPage(),
-                      TransactionsPage(),
-                    ],
+                    children: _sections.map((section) => section.page).toList(),
                   ),
                 ),
               ],
@@ -201,19 +200,6 @@ class _AdminHomeState extends State<AdminHome> {
     );
   }
 
-  String _getPageTitle(int index) {
-    const titles = [
-      'Dashboard',
-      'Users',
-      'Providers',
-      'Assets',
-      'Task Management',
-      'Reports',
-      'Transactions',
-    ];
-    return titles[index];
-  }
-
   Future<void> _logout() async {
     try {
       await FirebaseAuth.instance.signOut();
@@ -225,4 +211,16 @@ class _AdminHomeState extends State<AdminHome> {
       }
     }
   }
+}
+
+class _AdminSection {
+  const _AdminSection({
+    required this.title,
+    required this.icon,
+    required this.page,
+  });
+
+  final String title;
+  final IconData icon;
+  final Widget page;
 }

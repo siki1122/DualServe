@@ -13,6 +13,17 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  DateTime? _dateFromBooking(Map<String, dynamic> data) {
+    final scheduledDate = data['scheduledDate'];
+    if (scheduledDate is Timestamp) {
+      return scheduledDate.toDate();
+    }
+    if (scheduledDate is DateTime) {
+      return scheduledDate;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -79,13 +90,19 @@ class _DashboardPageState extends State<DashboardPage> {
       stream: _firestore
           .collection('bookings')
           .where('status', isEqualTo: 'completed')
-          .where('scheduledDate', isGreaterThanOrEqualTo: Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 30))))
+          .where(
+            'scheduledDate',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(
+              DateTime.now().subtract(const Duration(days: 30)),
+            ),
+          )
           .snapshots(),
       builder: (context, snapshot) {
         double revenue = 0;
         if (snapshot.hasData) {
           for (var doc in snapshot.data!.docs) {
-            revenue += (doc['estimatedCost'] as num).toDouble();
+            final data = doc.data() as Map<String, dynamic>;
+            revenue += (data['estimatedCost'] as num?)?.toDouble() ?? 0;
           }
         }
         return Container(
@@ -176,23 +193,20 @@ class _DashboardPageState extends State<DashboardPage> {
           StreamBuilder<QuerySnapshot>(
             stream: _firestore
                 .collection('bookings')
-                .where('scheduledDate', isGreaterThanOrEqualTo: Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 7))))
+                .where(
+                  'scheduledDate',
+                  isGreaterThanOrEqualTo: Timestamp.fromDate(
+                    DateTime.now().subtract(const Duration(days: 7)),
+                  ),
+                )
                 .snapshots(),
             builder: (context, snapshot) {
               List<int> weeklyData = [0, 0, 0, 0, 0, 0, 0];
               if (snapshot.hasData) {
                 for (var doc in snapshot.data!.docs) {
-                  DateTime? date;
-                  final scheduledTime = doc['scheduledTime'];
-                  if (scheduledTime is Timestamp) {
-                    date = scheduledTime.toDate();
-                  } else if (scheduledTime is String) {
-                    try {
-                      date = DateTime.parse(scheduledTime);
-                    } catch (e) {
-                      date = null;
-                    }
-                  }
+                  final date = _dateFromBooking(
+                    doc.data() as Map<String, dynamic>,
+                  );
                   if (date == null) continue;
                   final dayOfWeek = date.weekday - 1;
                   if (dayOfWeek >= 0 && dayOfWeek < 7) {
@@ -286,28 +300,26 @@ class _DashboardPageState extends State<DashboardPage> {
             stream: _firestore
                 .collection('bookings')
                 .where('status', isEqualTo: 'completed')
-                .where('scheduledDate', isGreaterThanOrEqualTo: Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 180))))
+                .where(
+                  'scheduledDate',
+                  isGreaterThanOrEqualTo: Timestamp.fromDate(
+                    DateTime.now().subtract(const Duration(days: 180)),
+                  ),
+                )
                 .snapshots(),
             builder: (context, snapshot) {
               List<double> monthlyRevenue = [0, 0, 0, 0, 0, 0];
               if (snapshot.hasData) {
                 for (var doc in snapshot.data!.docs) {
-                  DateTime? date;
-                  final scheduledTime = doc['scheduledTime'];
-                  if (scheduledTime is Timestamp) {
-                    date = scheduledTime.toDate();
-                  } else if (scheduledTime is String) {
-                    try {
-                      date = DateTime.parse(scheduledTime);
-                    } catch (e) {
-                      date = null;
-                    }
-                  }
+                  final data = doc.data() as Map<String, dynamic>;
+                  final date = _dateFromBooking(data);
                   if (date == null) continue;
-                  final monthDiff = DateTime.now().month - date.month;
+                  final now = DateTime.now();
+                  final monthDiff =
+                      (now.year - date.year) * 12 + now.month - date.month;
                   if (monthDiff >= 0 && monthDiff < 6) {
                     monthlyRevenue[5 - monthDiff] +=
-                        (doc['estimatedCost'] as num).toDouble();
+                        (data['estimatedCost'] as num?)?.toDouble() ?? 0;
                   }
                 }
               }

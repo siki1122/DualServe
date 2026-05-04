@@ -28,7 +28,7 @@ service cloud.firestore {
     // USERS COLLECTION
     // ============================================================================
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow read: if isSignedIn();
       
       // Users can only create their own document with customer or pending_provider role
       allow create: if isSignedIn() && request.auth.uid == userId && 
@@ -99,8 +99,107 @@ service cloud.firestore {
     // ============================================================================
     match /assets/{assetId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow create: if isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.keys().hasOnly([
+          'name',
+          'category',
+          'type',
+          'status',
+          'plateNumber',
+          'assignedTo',
+          'providerName',
+          'lastMaintenance',
+          'nextMaintenance',
+          'jobsCompleted',
+          'metadata',
+          'quantity'
+        ]) &&
+        request.resource.data.keys().hasAll([
+          'name',
+          'category',
+          'type',
+          'status',
+          'assignedTo',
+          'providerName',
+          'jobsCompleted',
+          'metadata',
+          'quantity'
+        ]) &&
+        request.resource.data.assignedTo == request.auth.uid &&
+        request.resource.data.status == 'inUse' &&
+        request.resource.data.type in ['vehicle', 'tool', 'equipment'] &&
+        request.resource.data.name is string &&
+        request.resource.data.category is string &&
+        request.resource.data.providerName is string &&
+        request.resource.data.jobsCompleted == 0
+      );
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'assignedTo',
+          'providerName',
+          'status',
+          'jobsCompleted',
+          'quantity'
+        ]) &&
+        (
+          // Allow picking up an asset
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'assignedTo',
+              'providerName',
+              'status'
+            ]) &&
+            resource.data.status == 'active' &&
+            resource.data.get('assignedTo', null) == null &&
+            request.resource.data.assignedTo == request.auth.uid &&
+            request.resource.data.status == 'inUse'
+          ) ||
+          // Allow returning an asset (setting to active/null)
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'assignedTo',
+              'providerName',
+              'status'
+            ]) &&
+            resource.data.assignedTo == request.auth.uid &&
+            request.resource.data.assignedTo == null &&
+            request.resource.data.providerName == null &&
+            request.resource.data.status == 'active'
+          ) ||
+          // Allow incrementing jobs completed
+          (
+            resource.data.assignedTo == request.auth.uid &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'jobsCompleted'
+            ]) &&
+            request.resource.data.jobsCompleted ==
+              resource.data.get('jobsCompleted', 0) + 1
+          ) ||
+          // Allow returning quantity (for tools/consumables)
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'quantity'
+            ]) &&
+            request.resource.data.quantity > resource.data.quantity
+          )
+        )
+      );
       allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // ASSET USAGE COLLECTION
+    // ============================================================================
+    match /asset_usage/{usageId} {
+      allow read: if isSignedIn() && (
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() &&
+        request.resource.data.providerId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
     // ============================================================================
@@ -131,6 +230,15 @@ service cloud.firestore {
         isAdmin()
       );
       allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // MESSAGES COLLECTION
+    // ============================================================================
+    match /messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
     // ============================================================================

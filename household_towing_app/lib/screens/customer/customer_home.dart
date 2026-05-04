@@ -6,7 +6,7 @@ import '../../widgets/service_action_card.dart';
 import '../../widgets/status_badge.dart';
 import 'booking_screen.dart';
 import 'customer_tracking_screen.dart';
-import 'request_service_screen.dart';
+import 'customer_service_tracking_screen.dart';
 import 'towing_map_screen.dart';
 
 import 'package:provider/provider.dart';
@@ -126,57 +126,6 @@ class _CustomerHomeState extends State<CustomerHome> {
                 ),
                 const SizedBox(height: 32),
                 
-                // Banner / Prominent Action
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.primaryBlue, Color(0xFF60A5FA)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryBlue.withOpacity(0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Need urgent help?',
-                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Book a trusted provider now in Bacolod City.',
-                        style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const RequestServiceScreen()));
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppTheme.primaryBlue,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
-                        icon: const Icon(Icons.flash_on, size: 20),
-                        label: const Text('Request Emergency', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
                 // Services Section
                 Text(
                   'Our Services',
@@ -270,20 +219,42 @@ class _CustomerHomeState extends State<CustomerHome> {
                       itemCount: snapshot.data!.docs.length,
                       itemBuilder: (context, index) {
                         final booking = snapshot.data!.docs[index];
-                        final isAccepted = booking['status'] == 'accepted';
+                        final status = booking['status'];
+                        final bool isTrackable = status == 'accepted' || status == 'converted_to_task';
 
                         return GestureDetector(
-                          onTap: isAccepted
+                          onTap: isTrackable
                               ? () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CustomerTrackingScreen(
-                                        bookingId: booking.id,
-                                        bookingData: booking.data() as Map<String, dynamic>,
+                                  if (status == 'converted_to_task') {
+                                    // Find task then navigate
+                                    FirebaseFirestore.instance
+                                        .collection('tasks')
+                                        .where('bookingId', isEqualTo: booking.id)
+                                        .limit(1)
+                                        .get()
+                                        .then((taskSnap) {
+                                      if (taskSnap.docs.isNotEmpty) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => CustomerServiceTrackingScreen(
+                                              taskId: taskSnap.docs.first.id,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    });
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CustomerTrackingScreen(
+                                          bookingId: booking.id,
+                                          bookingData: booking.data() as Map<String, dynamic>,
+                                        ),
                                       ),
-                                    ),
-                                  );
+                                    );
+                                  }
                                 }
                               : null,
                           child: Container(
@@ -328,7 +299,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                                           ),
                                           const SizedBox(height: 6),
                                           Text(
-                                            '₱${booking['estimatedCost']}',
+                                            '₱${(booking['estimatedCost'] as num? ?? 0.0).toStringAsFixed(2)}',
                                             style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold),
                                           ),
                                         ],
@@ -337,7 +308,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                                     StatusBadge(status: booking['status']),
                                   ],
                                 ),
-                                if (isAccepted) ...[
+                                if (isTrackable) ...[
                                   const SizedBox(height: 16),
                                   Divider(height: 1, color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]),
                                   const SizedBox(height: 16),
@@ -351,15 +322,35 @@ class _CustomerHomeState extends State<CustomerHome> {
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
                                       onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => CustomerTrackingScreen(
-                                              bookingId: booking.id,
-                                              bookingData: booking.data() as Map<String, dynamic>,
+                                        if (status == 'converted_to_task') {
+                                          FirebaseFirestore.instance
+                                              .collection('tasks')
+                                              .where('bookingId', isEqualTo: booking.id)
+                                              .limit(1)
+                                              .get()
+                                              .then((taskSnap) {
+                                            if (taskSnap.docs.isNotEmpty) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => CustomerServiceTrackingScreen(
+                                                    taskId: taskSnap.docs.first.id,
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          });
+                                        } else {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => CustomerTrackingScreen(
+                                                bookingId: booking.id,
+                                                bookingData: booking.data() as Map<String, dynamic>,
+                                              ),
                                             ),
-                                          ),
-                                        );
+                                          );
+                                        }
                                       },
                                       icon: const Icon(Icons.location_on, size: 18),
                                       label: const Text('Track Provider', style: TextStyle(fontWeight: FontWeight.bold)),

@@ -7,6 +7,7 @@ class Message {
   final String receiverId;
   final String text;
   final DateTime timestamp;
+  final bool isRead;
 
   Message({
     required this.id,
@@ -15,6 +16,7 @@ class Message {
     required this.receiverId,
     required this.text,
     required this.timestamp,
+    this.isRead = false,
   });
 
   factory Message.fromFirestore(DocumentSnapshot doc) {
@@ -26,6 +28,7 @@ class Message {
       receiverId: data['receiverId'] ?? '',
       text: data['text'] ?? '',
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      isRead: data['isRead'] ?? false,
     );
   }
 
@@ -36,6 +39,27 @@ class Message {
       'receiverId': receiverId,
       'text': text,
       'timestamp': Timestamp.fromDate(timestamp),
+      'isRead': isRead,
     };
+  }
+
+  Message copyWith({
+    String? id,
+    String? bookingId,
+    String? senderId,
+    String? receiverId,
+    String? text,
+    DateTime? timestamp,
+    bool? isRead,
+  }) {
+    return Message(
+      id: id ?? this.id,
+      bookingId: bookingId ?? this.bookingId,
+      senderId: senderId ?? this.senderId,
+      receiverId: receiverId ?? this.receiverId,
+      text: text ?? this.text,
+      timestamp: timestamp ?? this.timestamp,
+      isRead: isRead ?? this.isRead,
+    );
   }
 }

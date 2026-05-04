@@ -25,7 +25,13 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const Text('Task Management', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSlateDark)),
+          title: const Text(
+            'Task Management',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textSlateDark,
+            ),
+          ),
           bottom: const TabBar(
             labelColor: AppTheme.primaryBlue,
             unselectedLabelColor: AppTheme.textSlateMedium,
@@ -48,7 +54,9 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.towingOrange,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Create Task'),
@@ -57,10 +65,7 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
           ],
         ),
         body: TabBarView(
-          children: [
-            _buildUnassignedTab(),
-            _buildCompletedTab(),
-          ],
+          children: [_buildUnassignedTab(), _buildCompletedTab()],
         ),
       ),
     );
@@ -93,14 +98,21 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppTheme.primaryBlue.withOpacity(0.05) : Colors.white,
+                        color: isSelected
+                            ? AppTheme.primaryBlue.withOpacity(0.05)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade200,
+                          color: isSelected
+                              ? AppTheme.primaryBlue
+                              : Colors.grey.shade200,
                         ),
                       ),
                       child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         onTap: () {
                           setState(() {
                             _selectedTask = task;
@@ -110,12 +122,23 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
                         leading: _buildPriorityBadge(task.priority),
                         title: Text(
                           task.serviceType,
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSlateDark, fontSize: 16),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textSlateDark,
+                            fontSize: 16,
+                          ),
                         ),
                         subtitle: _buildTaskSubtitle(task),
                         trailing: isSelected
-                            ? const Icon(Icons.check_circle, color: AppTheme.primaryBlue)
-                            : const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.textSlateMedium),
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: AppTheme.primaryBlue,
+                              )
+                            : const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: AppTheme.textSlateMedium,
+                              ),
                       ),
                     );
                   },
@@ -167,13 +190,20 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ListTile(
-                    title: Text(data['serviceType'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      data['serviceType'] ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     subtitle: Text('Location: ${data['location'] ?? ''}'),
                     trailing: const Icon(Icons.verified, color: Colors.green),
                   ),
                   if (imageUrl != null)
                     Padding(
-                      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
+                      ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.network(
@@ -181,25 +211,46 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
                           height: 200,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            height: 200,
-                            color: Colors.grey[200],
-                            child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                height: 200,
+                                color: Colors.grey[200],
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
                         ),
                       ),
                     ),
                   Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                    padding: const EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'Completed: ${_formatTimestamp(data['completedAt'])}',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textSlateMedium),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSlateMedium,
+                          ),
                         ),
                         TextButton(
-                          onPressed: () {}, 
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Detailed task review is not available yet',
+                                ),
+                              ),
+                            );
+                          },
                           child: const Text('View Details'),
                         ),
                       ],
@@ -228,7 +279,10 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
         children: [
           Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          Text(message, style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+          Text(
+            message,
+            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+          ),
         ],
       ),
     );
@@ -246,7 +300,11 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
       child: Center(
         child: Text(
           priority.toString().split('.').last[0].toUpperCase(),
-          style: TextStyle(color: _getPriorityColor(priority), fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: _getPriorityColor(priority),
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
       ),
     );
@@ -259,17 +317,41 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
         const SizedBox(height: 4),
         Row(
           children: [
-            const Icon(Icons.location_on_outlined, size: 14, color: AppTheme.textSlateMedium),
+            const Icon(
+              Icons.location_on_outlined,
+              size: 14,
+              color: AppTheme.textSlateMedium,
+            ),
             const SizedBox(width: 4),
-            Expanded(child: Text(task.location, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textSlateMedium, fontSize: 13))),
+            Expanded(
+              child: Text(
+                task.location,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppTheme.textSlateMedium,
+                  fontSize: 13,
+                ),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 2),
         Row(
           children: [
-            const Icon(Icons.schedule, size: 14, color: AppTheme.textSlateMedium),
+            const Icon(
+              Icons.schedule,
+              size: 14,
+              color: AppTheme.textSlateMedium,
+            ),
             const SizedBox(width: 4),
-            Text(_formatDate(task.scheduledDate), style: const TextStyle(fontSize: 12, color: AppTheme.textSlateMedium)),
+            Text(
+              _formatDate(task.scheduledDate),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSlateMedium,
+              ),
+            ),
           ],
         ),
       ],
@@ -282,13 +364,26 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Assign Task to Provider', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textSlateDark)),
+          const Text(
+            'Assign Task to Provider',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textSlateDark,
+            ),
+          ),
           const SizedBox(height: 16),
           _buildProviderSelector(),
           const SizedBox(height: 20),
@@ -298,12 +393,28 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
             child: ElevatedButton(
               onPressed: _isAssigning ? null : _assignTask,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.towingOrange, 
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                backgroundColor: AppTheme.towingOrange,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: _isAssigning 
-                ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))) 
-                : const Text('Assign Task', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              child: _isAssigning
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Assign Task',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -312,68 +423,152 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
   }
 
   Widget _buildProviderSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.grey.shade50,
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          hint: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text('Select a provider...', style: TextStyle(color: AppTheme.textSlateMedium)),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('providers').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const LinearProgressIndicator();
+        }
+
+        final providers = (snapshot.data?.docs ?? []).where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final isApproved = data['isApproved'] as bool? ?? true;
+          final status = data['status'] as String? ?? 'available';
+          return isApproved && status != 'offline';
+        }).toList();
+
+        if (providers.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey.shade50,
+            ),
+            child: const Text(
+              'No approved providers are available for assignment.',
+              style: TextStyle(color: AppTheme.textSlateMedium),
+            ),
+          );
+        }
+
+        final selectedValue =
+            providers.any((doc) => doc.id == _selectedProviderId)
+            ? _selectedProviderId
+            : null;
+
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.grey.shade50,
           ),
-          value: _selectedProviderId,
-          icon: const Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Icon(Icons.expand_more, color: AppTheme.textSlateMedium),
-          ),
-          onChanged: (String? value) {
-            setState(() => _selectedProviderId = value);
-          },
-          items: [
-            DropdownMenuItem(
-              value: 'provider_1',
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: AppTheme.primaryBlue,
-                      child: Text('JD', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('John Doe', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSlateDark)),
-                          Text(
-                            '⭐ 4.8 (152 ratings)',
-                            style: TextStyle(fontSize: 12, color: AppTheme.textSlateMedium),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              hint: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Select a provider...',
+                  style: TextStyle(color: AppTheme.textSlateMedium),
                 ),
               ),
+              value: selectedValue,
+              icon: const Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: Icon(Icons.expand_more, color: AppTheme.textSlateMedium),
+              ),
+              onChanged: (String? value) {
+                setState(() => _selectedProviderId = value);
+              },
+              items: providers.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final name = data['name']?.toString() ?? 'Unnamed Provider';
+                final serviceType =
+                    data['serviceType']?.toString() ?? 'Service';
+                final rating = (data['rating'] as num?)?.toDouble() ?? 0;
+
+                return DropdownMenuItem(
+                  value: doc.id,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppTheme.primaryBlue,
+                          child: Text(
+                            _initialsFor(name),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textSlateDark,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.star,
+                                    size: 12,
+                                    color: Colors.amber,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${rating.toStringAsFixed(1)} - $serviceType',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.textSlateMedium,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  String _initialsFor(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return 'P';
+    final first = parts.first[0];
+    final second = parts.length > 1 ? parts[1][0] : '';
+    return '$first$second'.toUpperCase();
   }
 
   Future<void> _assignTask() async {
     if (_selectedTask == null || _selectedProviderId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a provider')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a provider')));
       return;
     }
 
@@ -384,7 +579,10 @@ class _TaskAssignmentScreenState extends State<TaskAssignmentScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task assigned successfully!'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Task assigned successfully!'),
+            backgroundColor: Colors.green,
+          ),
         );
         setState(() {
           _selectedTask = null;

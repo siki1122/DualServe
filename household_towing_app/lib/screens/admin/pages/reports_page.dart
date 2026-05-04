@@ -13,6 +13,17 @@ class ReportsPage extends StatefulWidget {
 class _ReportsPageState extends State<ReportsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  DateTime? _dateFromBooking(Map<String, dynamic> data) {
+    final scheduledDate = data['scheduledDate'];
+    if (scheduledDate is Timestamp) {
+      return scheduledDate.toDate();
+    }
+    if (scheduledDate is DateTime) {
+      return scheduledDate;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -67,7 +78,13 @@ class _ReportsPageState extends State<ReportsPage> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Report export is not available yet'),
+                        ),
+                      );
+                    },
                     icon: const Icon(Icons.download),
                     label: const Text('Export Report'),
                     style: ElevatedButton.styleFrom(
@@ -91,9 +108,10 @@ class _ReportsPageState extends State<ReportsPage> {
                   double monthlyRevenue = 0;
                   if (bookingsSnapshot.hasData) {
                     for (var doc in bookingsSnapshot.data!.docs) {
-                      if (doc['status'] == 'completed') {
-                        monthlyRevenue += (doc['estimatedCost'] as num)
-                            .toDouble();
+                      final data = doc.data() as Map<String, dynamic>;
+                      if (data['status'] == 'completed') {
+                        monthlyRevenue +=
+                            (data['estimatedCost'] as num?)?.toDouble() ?? 0;
                       }
                     }
                   }
@@ -183,19 +201,13 @@ class _ReportsPageState extends State<ReportsPage> {
               List<int> monthlyRequests = [0, 0, 0, 0, 0, 0, 0];
               if (snapshot.hasData) {
                 for (var doc in snapshot.data!.docs) {
-                  DateTime? date;
-                  final scheduledTime = doc['scheduledTime'];
-                  if (scheduledTime is Timestamp) {
-                    date = scheduledTime.toDate();
-                  } else if (scheduledTime is String) {
-                    try {
-                      date = DateTime.parse(scheduledTime);
-                    } catch (e) {
-                      date = null;
-                    }
-                  }
+                  final date = _dateFromBooking(
+                    doc.data() as Map<String, dynamic>,
+                  );
                   if (date == null) continue;
-                  final monthDiff = DateTime.now().month - date.month;
+                  final now = DateTime.now();
+                  final monthDiff =
+                      (now.year - date.year) * 12 + now.month - date.month;
                   if (monthDiff >= 0 && monthDiff < 7) {
                     monthlyRequests[6 - monthDiff]++;
                   }
@@ -295,22 +307,15 @@ class _ReportsPageState extends State<ReportsPage> {
               List<double> monthlyRevenue = [0, 0, 0, 0, 0, 0];
               if (snapshot.hasData) {
                 for (var doc in snapshot.data!.docs) {
-                  DateTime? date;
-                  final scheduledTime = doc['scheduledTime'];
-                  if (scheduledTime is Timestamp) {
-                    date = scheduledTime.toDate();
-                  } else if (scheduledTime is String) {
-                    try {
-                      date = DateTime.parse(scheduledTime);
-                    } catch (e) {
-                      date = null;
-                    }
-                  }
+                  final data = doc.data() as Map<String, dynamic>;
+                  final date = _dateFromBooking(data);
                   if (date == null) continue;
-                  final monthDiff = DateTime.now().month - date.month;
+                  final now = DateTime.now();
+                  final monthDiff =
+                      (now.year - date.year) * 12 + now.month - date.month;
                   if (monthDiff >= 0 && monthDiff < 6) {
                     monthlyRevenue[5 - monthDiff] +=
-                        (doc['estimatedCost'] as num).toDouble();
+                        (data['estimatedCost'] as num?)?.toDouble() ?? 0;
                   }
                 }
               }

@@ -1,17 +1,33 @@
-# household_towing_app
+# Household Towing App
 
-A new Flutter project.
+Flutter client for the DUALSERVE system.
 
-## Getting Started
+## App Structure
 
-This project is a starting point for a Flutter application.
+```text
+lib/
+|-- main.dart
+|-- firebase_options.dart
+|-- models/       # Firestore/domain models
+|-- providers/    # App state providers
+|-- screens/      # Auth, admin, customer, provider, and chat UI
+|-- services/     # Firebase and domain service classes
+|-- utils/        # Theme, validators, pricing, maps, and error helpers
+`-- widgets/      # Shared reusable UI widgets
+```
 
-A few resources to get you started if this is your first Flutter project:
+## App Documentation
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Feature and workflow notes for the Flutter app live in `docs/`, including task management, provider acceptance, and primary booking flow references.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Common Commands
+
+```bash
+flutter pub get
+flutter analyze
+flutter test
+flutter run
+flutter build web
+```
+
+Run Firebase deploy commands from the repository root, not from this folder. The root `firebase.json` references this app's Firestore rules, indexes, and web build output.

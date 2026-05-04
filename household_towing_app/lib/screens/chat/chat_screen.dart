@@ -63,6 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
       receiverId: widget.receiverId,
       text: _controller.text.trim(),
       timestamp: DateTime.now(),
+      isRead: false,
     );
 
     _chatService.sendMessage(message);
@@ -81,6 +82,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
       appBar: AppBar(
         title: Text(widget.receiverName),
@@ -97,7 +99,19 @@ class _ChatScreenState extends State<ChatScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Error loading messages: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red)),
+                  );
+                }
+
                 final messages = snapshot.data ?? [];
+                
+                // Mark messages as read when they arrive
+                if (messages.isNotEmpty) {
+                  _chatService.markMessagesAsRead(widget.bookingId, _currentUserId);
+                }
 
                 if (messages.isEmpty) {
                   return Center(
@@ -135,30 +149,84 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessageBubble(Message message, bool isMe, bool isDark) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isMe
-              ? AppTheme.primaryBlue
-              : (isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight),
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMe ? 16 : 0),
-            bottomRight: Radius.circular(isMe ? 0 : 16),
+      child: Column(
+        crossAxisAlignment:
+            isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            ),
+            decoration: BoxDecoration(
+              color: isMe
+                  ? AppTheme.primaryBlue
+                  : (isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight),
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(16),
+                topRight: const Radius.circular(16),
+                bottomLeft: Radius.circular(isMe ? 16 : 0),
+                bottomRight: Radius.circular(isMe ? 0 : 16),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  message.text,
+                  style: TextStyle(
+                    color: isMe
+                        ? Colors.white
+                        : (isDark ? Colors.white : AppTheme.textSlateDark),
+                  ),
+                ),
+                if (isMe) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatTime(message.timestamp),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        message.isRead ? Icons.done_all : Icons.done,
+                        size: 14,
+                        color: message.isRead
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.7),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        child: Text(
-          message.text,
-          style: TextStyle(
-            color: isMe
-                ? Colors.white
-                : (isDark ? Colors.white : AppTheme.textSlateDark),
-          ),
-        ),
+          if (!isMe)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 4),
+              child: Text(
+                _formatTime(message.timestamp),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark
+                      ? AppTheme.textDarkSecondary
+                      : AppTheme.textSlateMedium,
+                ),
+              ),
+            ),
+        ],
       ),
     );
+  }
+
+  String _formatTime(DateTime date) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _buildInputArea(bool isDark) {

@@ -79,7 +79,7 @@ For each admin:
 
 ### Step 7: Remove Email Check from Firestore Rules
 
-**Current Code (firestore.rules):**
+**Current Code (household_towing_app/firestore.rules):**
 ```javascript
 function isAdmin() {
   return isSignedIn() && (
@@ -103,7 +103,7 @@ function isAdmin() {
 ```
 
 **Steps:**
-1. [ ] Edit `firestore.rules`
+1. [ ] Edit `household_towing_app/firestore.rules`
 2. [ ] Remove email check line
 3. [ ] Save file
 4. [ ] Test in staging
@@ -162,7 +162,7 @@ If anything goes wrong, you can quickly rollback:
 
 ### Quick Rollback (Option 1: Re-add email check)
 ```bash
-# Edit firestore.rules - add back:
+# Edit household_towing_app/firestore.rules - add back:
 request.auth.token.email.lower() == 'charleskalvinvalenzuela@gmail.com' ||
 
 # Deploy immediately:
@@ -249,7 +249,7 @@ Week 2-3: Set Custom Claims
   └─ Monitor audit logs
 
 Week 4: Code Removal
-  ├─ Remove email check from firestore.rules
+  ├─ Remove email check from household_towing_app/firestore.rules
   ├─ Remove email check from functions/index.js
   ├─ Deploy changes
   └─ Test thoroughly
@@ -291,7 +291,7 @@ Week 5-6: Verification & Cleanup
 **Cause:** Custom claims not set correctly before removal
 
 **Solution:**
-1. Re-add email check to firestore.rules
+1. Re-add email check to household_towing_app/firestore.rules
 2. Deploy immediately: `firebase deploy --only firestore:rules`
 3. Verify access restored
 4. Set custom claims again
@@ -305,7 +305,7 @@ Week 5-6: Verification & Cleanup
 If you get stuck:
 1. Check ADMIN_SETUP_GUIDE.md
 2. Review Firebase Auth docs: https://firebase.google.com/docs/auth/admin/custom-claims
-3. Check firestore.rules syntax
+3. Check household_towing_app/firestore.rules syntax
 4. Review cloud functions logs: `firebase functions:log`
 5. Ask team for help
 
@@ -322,4 +322,3 @@ After completing this migration, sign off:
 **Notes:**
 _________________________________________________
 _________________________________________________
-

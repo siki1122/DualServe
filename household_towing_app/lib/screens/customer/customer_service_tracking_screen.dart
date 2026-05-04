@@ -166,6 +166,57 @@ class _CustomerServiceTrackingScreenState
                   _buildProviderCard(task.assignedProviderId!),
                 ],
 
+                // Assigned Truck
+                if (task.assignedTruckName != null) ...[
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Assigned Truck',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailCard(
+                    icon: Icons.local_shipping,
+                    title: 'Vehicle',
+                    value: task.assignedTruckName!,
+                    color: Colors.blueAccent,
+                  ),
+                ],
+
+                // Assigned Personnel
+                if (task.assignedPersonnelNames.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Assigned Team',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  ...task.assignedPersonnelNames.map((name) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildDetailCard(
+                      icon: Icons.person_pin,
+                      title: 'Personnel',
+                      value: name,
+                      color: Colors.teal,
+                    ),
+                  )),
+                ],
+
+                // Equipment & Tools
+                if (task.assignedAssets.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Equipment & Tools',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailCard(
+                    icon: Icons.handyman,
+                    title: 'Resources',
+                    value: '${task.assignedAssets.length} items assigned',
+                    color: Colors.orange,
+                  ),
+                ],
+
                 // Info Message
                 const SizedBox(height: 24),
                 Container(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,8 +24,8 @@ class UserProvider with ChangeNotifier {
   bool get isDarkMode => _isDarkMode;
   String? get errorMessage => _errorMessage;
 
-  bool get isProvider => _role == 'provider';
-  bool get isAdmin => _role == 'admin';
+  bool get isProvider => _role?.toLowerCase() == 'provider';
+  bool get isAdmin => _role?.toLowerCase() == 'admin';
   String get uid => FirebaseAuth.instance.currentUser?.uid ?? "";
 
   Future<void> _loadTheme() async {

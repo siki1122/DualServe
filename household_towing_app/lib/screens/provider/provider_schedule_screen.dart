@@ -25,6 +25,8 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
     'Sunday': [],
   };
 
+  bool _hasChanges = false;
+
   final List<String> _availableSlots = [
     '08:00 AM',
     '09:00 AM',
@@ -87,13 +89,34 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
 
   void _toggleSlot(String day, String time) {
     setState(() {
+      _hasChanges = true;
       if (_weeklySchedule[day]!.contains(time)) {
         _weeklySchedule[day]!.remove(time);
       } else {
         _weeklySchedule[day]!.add(time);
-        _weeklySchedule[day]!.sort((a, b) => a.compareTo(b));
+        // Sort chronologically using a helper
+        _weeklySchedule[day]!.sort((a, b) => _compareTimes(a, b));
       }
     });
+  }
+
+  int _compareTimes(String a, String b) {
+    final aTime = _parseTime(a);
+    final bTime = _parseTime(b);
+    return aTime.hour * 60 + aTime.minute - (bTime.hour * 60 + bTime.minute);
+  }
+
+  TimeOfDay _parseTime(String timeStr) {
+    final parts = timeStr.split(' ');
+    final timeParts = parts[0].split(':');
+    int hour = int.parse(timeParts[0]);
+    final int minute = int.parse(timeParts[1]);
+    final isPM = parts[1] == 'PM';
+
+    if (isPM && hour != 12) hour += 12;
+    if (!isPM && hour == 12) hour = 0;
+
+    return TimeOfDay(hour: hour, minute: minute);
   }
 
   void _saveSchedule() async {
@@ -109,6 +132,13 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
             'weeklySchedule': _weeklySchedule,
             'updatedAt': Timestamp.now(),
           });
+
+      setState(() => _hasChanges = false);
+
+      // Update UserProvider so other screens see the changes
+      if (mounted) {
+        Provider.of<UserProvider>(context, listen: false).loadCurrentUserData();
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -139,6 +169,11 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
           _blockOutDates.add(dateISO);
           _blockOutDates.sort();
         });
+      }
+      
+      // Update UserProvider
+      if (mounted) {
+        Provider.of<UserProvider>(context, listen: false).loadCurrentUserData();
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -173,6 +208,12 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
                   await _providerService.removeBlockOutDate(uid, date);
                 }
                 setState(() => _blockOutDates.clear());
+                
+                // Update UserProvider
+                if (mounted) {
+                  Provider.of<UserProvider>(context, listen: false).loadCurrentUserData();
+                }
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('All block-out dates cleared')),
                 );
@@ -202,40 +243,71 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Consumer<UserProvider>(
-      builder: (context, userProvider, child) {
-        return Scaffold(
-          backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
-          appBar: AppBar(
-            title: Text(
-              'Manage Schedule',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+    return PopScope(
+      canPop: !_hasChanges,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _showDiscardDialog();
+        if (shouldPop && mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Consumer<UserProvider>(
+        builder: (context, userProvider, child) {
+          return Scaffold(
+            backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+            appBar: AppBar(
+              title: Text(
+                'Manage Schedule',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                ),
+              ),
+              bottom: TabBar(
+                controller: _tabController,
+                indicatorColor: AppTheme.towingOrange,
+                labelColor: AppTheme.towingOrange,
+                unselectedLabelColor: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                tabs: const [
+                  Tab(text: 'Weekly Schedule'),
+                  Tab(text: 'Block-Out Dates'),
+                ],
               ),
             ),
-            bottom: TabBar(
+            body: TabBarView(
               controller: _tabController,
-              indicatorColor: AppTheme.towingOrange,
-              labelColor: AppTheme.towingOrange,
-              unselectedLabelColor: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-              tabs: const [
-                Tab(text: 'Weekly Schedule'),
-                Tab(text: 'Block-Out Dates'),
+              children: [
+                _buildWeeklyScheduleTab(),
+                _buildBlockOutDatesTab(),
               ],
             ),
-          ),
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildWeeklyScheduleTab(),
-              _buildBlockOutDatesTab(),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<bool> _showDiscardDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Discard Changes?'),
+            content: const Text('You have unsaved schedule changes. Are you sure you want to leave?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Keep Editing'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Discard', style: TextStyle(color: Colors.red)),
+              ),
             ],
           ),
-        );
-      },
-    );
+        ) ??
+        false;
   }
 
   Widget _buildWeeklyScheduleTab() {
