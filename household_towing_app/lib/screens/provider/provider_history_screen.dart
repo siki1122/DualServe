@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/provider_drawer.dart';
+import '../../widgets/status_badge.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class ProviderHistoryScreen extends StatefulWidget {
   const ProviderHistoryScreen({super.key});
@@ -20,14 +22,9 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
   DocumentSnapshot? _lastDoc;
   String _searchQuery = '';
 
-  double _totalEarnings = 0;
-  int _completedJobs = 0;
-  double _rating = 5.0;
-
   @override
   void initState() {
     super.initState();
-    _loadProviderStats();
     _fetchHistory();
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
@@ -49,28 +46,10 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
     super.dispose();
   }
 
-  Future<void> _loadProviderStats() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
-      if (userDoc.exists && mounted) {
-        final data = userDoc.data()!;
-        setState(() {
-          _totalEarnings = (data['totalEarnings'] ?? 0.0).toDouble();
-          _completedJobs = data['jobsCompleted'] ?? 0;
-          _rating = (data['rating'] ?? 5.0).toDouble();
-        });
-      }
-    } catch (e) {
-      // Error loading stats
-    }
-  }
 
   Future<void> _fetchHistory({bool isMore = false}) async {
     if (_isFetchingMore) return;
+    if (isMore && !_hasMore) return;
 
     setState(() => _isFetchingMore = true);
 
@@ -117,43 +96,6 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
       ),
       body: Column(
         children: [
-          // Summary Stats Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildStatColumn(
-                    'Lifetime',
-                    '₱${_totalEarnings.toStringAsFixed(0)}',
-                    Colors.blue,
-                  ),
-                ),
-                Container(width: 1, height: 30, color: Colors.grey.shade200),
-                Expanded(
-                  child: _buildStatColumn('Jobs', '$_completedJobs', Colors.green),
-                ),
-                Container(width: 1, height: 30, color: Colors.grey.shade200),
-                Expanded(
-                  child: _buildStatColumn(
-                    'Rating',
-                    _rating.toStringAsFixed(1),
-                    AppTheme.towingOrange,
-                  ),
-                ),
-              ],
-            ),
-          ),
 
           // Search Bar
           Padding(
@@ -193,12 +135,7 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
                     itemCount: _historyDocs.length + (_hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == _historyDocs.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
+                        return const SkeletonList(itemCount: 4);
                       }
 
                       final doc = _historyDocs[index];
@@ -224,28 +161,7 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
     );
   }
 
-  Widget _buildStatColumn(String label, String value, Color valueColor) {
-    return Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: valueColor,
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: AppTheme.textSlateMedium),
-        ),
-      ],
-    );
-  }
+
 }
 
 class _HistoryCard extends StatefulWidget {
@@ -259,11 +175,52 @@ class _HistoryCard extends StatefulWidget {
 
 class _HistoryCardState extends State<_HistoryCard> {
   String _customerName = 'Loading...';
+  bool _hasReview = false;
+  String _reviewText = '';
+  double _rating = 0.0;
+  bool _isLoadingReview = true;
 
   @override
   void initState() {
     super.initState();
     _loadCustomerName();
+    _loadReview();
+  }
+
+  void _loadReview() async {
+    try {
+      final reviewSnapshot = await FirebaseFirestore.instance
+          .collection('reviews')
+          .where('bookingId', isEqualTo: widget.booking.id)
+          .limit(1)
+          .get();
+
+      if (reviewSnapshot.docs.isNotEmpty) {
+        final data = reviewSnapshot.docs.first.data();
+        if (mounted) {
+          setState(() {
+            _hasReview = true;
+            _reviewText = data['comment'] ?? '';
+            _rating = (data['rating'] as num?)?.toDouble() ?? 5.0;
+            _isLoadingReview = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _hasReview = false;
+            _isLoadingReview = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hasReview = false;
+          _isLoadingReview = false;
+        });
+      }
+    }
   }
 
   void _loadCustomerName() async {
@@ -301,11 +258,12 @@ class _HistoryCardState extends State<_HistoryCard> {
     final formattedDate =
         '${date.day}/${date.month}/${date.year} $formattedTime';
 
-    final hasReview = true;
-    final reviewText = 'Excellent work! Very professional.';
+    final hasReview = _hasReview;
+    final reviewText = _reviewText;
+    final rating = _rating;
 
-    final rawCost = (booking['estimatedCost'] ?? 0.0);
-    final formattedCost = rawCost is num ? rawCost.toStringAsFixed(2) : rawCost.toString();
+    final rawCost = (booking['finalCost'] as num?) ?? (booking['estimatedCost'] as num?) ?? 0.0;
+    final formattedCost = rawCost.toDouble().toStringAsFixed(2);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -315,7 +273,7 @@ class _HistoryCardState extends State<_HistoryCard> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -327,23 +285,9 @@ class _HistoryCardState extends State<_HistoryCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.statusCompletedBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Completed',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.statusCompletedText,
-                  ),
-                ),
+              StatusBadge(
+                status: 'completed',
+                size: BadgeSize.small,
               ),
               Text(
                 formattedDate,
@@ -399,11 +343,17 @@ class _HistoryCardState extends State<_HistoryCard> {
             ),
             Row(
               children: [
-                const Icon(Icons.star, color: Colors.amber, size: 16),
-                const SizedBox(width: 4),
-                const Text(
-                  '5.0',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(5, (index) {
+                    return Icon(
+                      index < rating.floor() 
+                          ? Icons.star 
+                          : (index < rating ? Icons.star_half : Icons.star_border),
+                      color: Colors.amber,
+                      size: 16,
+                    );
+                  }),
                 ),
                 const SizedBox(width: 8),
                 Expanded(

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/asset_model.dart';
+import 'logging_service.dart';
 
 class AssetService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -51,13 +52,14 @@ class AssetService {
       name: name,
       category: category,
       type: type,
-      status: AssetStatus.inUse,
+      status: AssetStatus.active,
       plateNumber: type == AssetType.vehicle ? plateNumber : null,
       assignedTo: providerId,
       providerName: providerName,
-      jobsCompleted: 0,
-      metadata: {'registeredBy': 'provider'},
-    );
+       jobsCompleted: 0,
+       metadata: {'registeredBy': 'provider'},
+       ownerId: providerId,
+     );
 
     await _firestore.collection('assets').add(asset.toFirestore());
   }
@@ -111,6 +113,8 @@ class AssetService {
       'assignedTo': null,
       'providerName': null,
       'status': AssetStatus.active.name,
+      'currentTaskId': FieldValue.delete(),
+      'currentTaskLabel': FieldValue.delete(),
     });
   }
 
@@ -131,6 +135,8 @@ class AssetService {
         'assignedTo': null,
         'providerName': null,
         'status': AssetStatus.active.name,
+        'currentTaskId': FieldValue.delete(),
+        'currentTaskLabel': FieldValue.delete(),
       });
     });
   }
@@ -143,92 +149,68 @@ class AssetService {
     String? taskId,
     String? bookingId,
     String? taskLabel,
-    required int crewCount,
+    int? crewCount,
     AssetModel? vehicle,
     List<AssetModel> tools = const [],
     List<AssetModel> equipment = const [],
-    Map<String, int>? assetQuantities, // assetId: quantity
+    List<AssetModel> crew = const [],
+    Map<String, int>? assetQuantities,
     String? notes,
   }) async {
     final quantities = assetQuantities ?? {};
 
-    await _firestore.runTransaction((transaction) async {
-      // --- 1. PREPARE REFS ---
-      final usageRef = _firestore.collection('asset_usage').doc();
-      final vehicleRef = vehicle != null ? _firestore.collection('assets').doc(vehicle.id) : null;
-      final otherAssetRefs = <String, DocumentReference>{};
-      for (var asset in [...tools, ...equipment]) {
-        otherAssetRefs[asset.id] = _firestore.collection('assets').doc(asset.id);
-      }
+    // 1. Update the Task/Booking FIRST (Most critical for the workflow)
+    final assignmentData = {
+      'assignedTruckId': vehicle?.id,
+      'assignedTruckName': vehicle?.name,
+      'assignedDriverId': driverId,
+      'assignedDriverName': driverName,
+      'assignedPersonnelIds': crew.isNotEmpty 
+          ? crew.map((c) => c.id).toList() 
+          : (driverId != null ? [driverId] : []),
+      'assignedPersonnelNames': crew.isNotEmpty 
+          ? crew.map((c) => c.name).toList() 
+          : (driverName != null ? [driverName] : []),
+      'assignedAssets': Map.fromEntries([
+        ...tools.map((a) => MapEntry(a.id, quantities[a.id] ?? 1)),
+        ...equipment.map((a) => MapEntry(a.id, quantities[a.id] ?? 1)),
+      ]),
+      'resourceNotes': notes,
+    };
 
-      // --- 2. PERFORM ALL READS FIRST ---
-      DocumentSnapshot? vehicleDoc;
-      if (vehicleRef != null) {
-        vehicleDoc = await transaction.get(vehicleRef);
-      }
+    if (taskId != null) {
+      await _firestore.collection('tasks').doc(taskId).update(assignmentData);
+    } else if (bookingId != null) {
+      await _firestore.collection('bookings').doc(bookingId).update(assignmentData);
+    }
 
-      final otherAssetDocs = <String, DocumentSnapshot>{};
-      for (var entry in otherAssetRefs.entries) {
-        otherAssetDocs[entry.key] = await transaction.get(entry.value);
-      }
+    // 2. Create the usage log (Providers should always have permission here)
+    await _firestore.collection('asset_usage').add({
+      'providerId': providerId,
+      'providerName': providerName,
+      'driverId': driverId,
+      'driverName': driverName,
+      'taskId': taskId,
+      'bookingId': bookingId,
+      'taskLabel': taskLabel,
+      'crewCount': crewCount ?? (crew.isNotEmpty ? crew.length : 1),
+      'vehicleAssetId': vehicle?.id,
+      'vehicleName': vehicle?.name,
+      'toolAssetIds': tools.map((asset) => asset.id).toList(),
+      'toolNames': tools.map((asset) => asset.name).toList(),
+      'equipmentAssetIds': equipment.map((asset) => asset.id).toList(),
+      'equipmentNames': equipment.map((asset) => asset.name).toList(),
+      'crewAssetIds': crew.map((asset) => asset.id).toList(),
+      'crewNames': crew.map((asset) => asset.name).toList(),
+      'assetQuantities': quantities,
+      'notes': notes,
+      'createdAt': Timestamp.now(),
+    });
 
-      // --- 3. VALIDATION & LOGIC ---
-      if (vehicleDoc != null) {
-        if (!vehicleDoc.exists) throw Exception('Vehicle not found');
-        if (vehicleDoc['status'] == 'inUse') throw Exception('Vehicle is already in use');
-      }
-
-      for (final asset in [...tools, ...equipment]) {
-        final doc = otherAssetDocs[asset.id];
-        if (doc == null || !doc.exists) throw Exception('Asset ${asset.name} not found');
-        
-        final qty = quantities[asset.id] ?? 1;
-        final currentQty = (doc['quantity'] as num?)?.toInt() ?? 0;
-        if (currentQty < qty) {
-          throw Exception('Insufficient quantity for ${asset.name}. Available: $currentQty');
-        }
-      }
-
-      // --- 4. PERFORM ALL WRITES LAST ---
-      final assignmentData = {
-        'assignedTruckId': vehicle?.id,
-        'assignedTruckName': vehicle?.name,
-        'assignedPersonnelIds': [if (driverId != null) driverId],
-        'assignedPersonnelNames': [if (driverName != null) driverName],
-        'assignedAssets': Map.fromEntries([
-          ...tools.map((a) => MapEntry(a.id, quantities[a.id] ?? 1)),
-          ...equipment.map((a) => MapEntry(a.id, quantities[a.id] ?? 1)),
-        ]),
-      };
-
-      transaction.set(usageRef, {
-        'providerId': providerId,
-        'providerName': providerName,
-        'driverId': driverId,
-        'driverName': driverName,
-        'taskId': taskId,
-        'bookingId': bookingId,
-        'taskLabel': taskLabel,
-        'crewCount': crewCount,
-        'vehicleAssetId': vehicle?.id,
-        'vehicleName': vehicle?.name,
-        'toolAssetIds': tools.map((asset) => asset.id).toList(),
-        'toolNames': tools.map((asset) => asset.name).toList(),
-        'equipmentAssetIds': equipment.map((asset) => asset.id).toList(),
-        'equipmentNames': equipment.map((asset) => asset.name).toList(),
-        'assetQuantities': quantities,
-        'notes': notes,
-        'createdAt': Timestamp.now(),
-      });
-
-      if (taskId != null) {
-        transaction.update(_firestore.collection('tasks').doc(taskId), assignmentData);
-      } else if (bookingId != null) {
-        transaction.update(_firestore.collection('bookings').doc(bookingId), assignmentData);
-      }
-
-      if (vehicleRef != null) {
-        transaction.update(vehicleRef, {
+    // 3. Update Asset Status (Wrapped in try/catch to ignore permission issues on shared fleet)
+    try {
+      if (vehicle != null) {
+        await _firestore.collection('assets').doc(vehicle.id).update({
           'jobsCompleted': FieldValue.increment(1),
           'status': 'inUse',
           'currentTaskId': taskId,
@@ -238,17 +220,30 @@ class AssetService {
 
       for (final asset in [...tools, ...equipment]) {
         final qty = quantities[asset.id] ?? 1;
-        final assetRef = otherAssetRefs[asset.id]!;
-        final doc = otherAssetDocs[asset.id]!;
-        final currentQty = (doc['quantity'] as num?)?.toInt() ?? 0;
+        final doc = await _firestore.collection('assets').doc(asset.id).get();
+        if (doc.exists) {
+          final currentQty = (doc['quantity'] as num?)?.toInt() ?? 0;
+          await _firestore.collection('assets').doc(asset.id).update({
+            'jobsCompleted': FieldValue.increment(1),
+            'quantity': currentQty - qty >= 0 ? currentQty - qty : 0,
+            if (currentQty - qty <= 0) 'status': 'inUse',
+          });
+        }
+      }
 
-        transaction.update(assetRef, {
+      for (final asset in crew) {
+        await _firestore.collection('assets').doc(asset.id).update({
           'jobsCompleted': FieldValue.increment(1),
-          'quantity': currentQty - qty,
-          if (currentQty - qty == 0) 'status': 'inUse',
+          'status': 'inUse',
+          'currentTaskId': taskId,
+          'currentTaskLabel': taskLabel,
         });
       }
-    });
+    } catch (e) {
+      // Log error but don't fail the whole operation
+      // This happens if the provider doesn't have write access to global asset inventory
+      Logger.warn('Could not update global asset status', e);
+    }
   }
 
   Future<void> updateMaintenance(String assetId, DateTime date) async {

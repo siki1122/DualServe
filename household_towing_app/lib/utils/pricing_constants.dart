@@ -9,21 +9,21 @@ class PricingConfig {
     towingService: 1500.0,
   };
 
-  // Cost per kilometer surcharge
-  static const double costPerKm = 15.0;
+  // Cost per kilometer surcharge (applied after minDistanceKm)
+  static const double costPerKm = 120.0;
 
   // Cancellation fee (applied if cancelled after 5 minutes of acceptance)
   static const double cancellationFee = 100.0;
   static const int cancellationGracePeriodMinutes = 5;
 
   // Minimum distance threshold (no surcharge within this radius, in km)
-  static const double minDistanceKm = 0.5;
+  static const double minDistanceKm = 10.0;
 
   // Night differential rate multiplier (11 PM - 5 AM)
   static const double nightDifferentialMultiplier = 1.3; // 30% increase
 
   // Night time hours (24-hour format)
-  static const int nightStartHour = 23; // 11 PM
+  static const int nightStartHour = 22; // 10 PM
   static const int nightEndHour = 5; // 5 AM
 
   /// Check if a given hour is within night time
@@ -51,10 +51,10 @@ class PricingConfig {
   /// Calculate distance surcharge
   /// Distance less than minDistanceKm is free
   static double calculateDistanceSurcharge(double distanceKm) {
-    if (distanceKm <= minDistanceKm) {
+    if (distanceKm < 11.0) {
       return 0.0;
     }
-    return (distanceKm - minDistanceKm) * costPerKm;
+    return (distanceKm - 10.0) * costPerKm;
   }
 
   /// Calculate night differential surcharge
@@ -91,7 +91,7 @@ class PricingConfig {
 
   /// Format price as Philippine Peso string
   static String formatPrice(double amount) {
-    return 'PHP ${amount.toStringAsFixed(2)}';
+    return '₱${amount.toStringAsFixed(2)}';
   }
 
   /// Get night differential percentage

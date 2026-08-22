@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:household_towing_app/models/booking_model.dart';
 import 'package:household_towing_app/models/asset_model.dart';
 import 'package:household_towing_app/models/provider_model.dart';
+import 'package:household_towing_app/models/driver_model.dart';
 import 'package:household_towing_app/services/booking_service.dart';
 import 'package:household_towing_app/services/asset_service.dart';
 import 'package:household_towing_app/providers/user_provider.dart';
@@ -28,11 +29,13 @@ class _BookingAssetAssignmentScreenState
 
   TruckType? _selectedTruckType;
   String? _selectedTruckId;
-  List<String> _selectedPersonnelIds = [];
-  Map<String, int> _selectedAssets = {};
+  final List<String> _selectedCrewIds = [];
+  final Map<String, int> _selectedAssets = {};
+  String? _selectedDriverId;
   List<AssetModel> _availableTrucks = [];
-  List<Provider> _availablePersonnel = [];
+  List<AssetModel> _availableCrew = [];
   List<AssetModel> _availableAssets = [];
+  List<Driver> _availableDrivers = [];
   bool _isLoading = true;
   bool _isSubmitting = false;
 
@@ -58,10 +61,10 @@ class _BookingAssetAssignmentScreenState
           .where((asset) => asset.assignedTo == null || asset.assignedTo == uid)
           .toList();
 
-      // Load other assets (tools, equipment)
+      // Load other assets (tools, equipment, crew)
       final assetsSnapshot = await _firestore
           .collection('assets')
-          .where('type', whereIn: ['tool', 'equipment'])
+          .where('type', whereIn: ['tool', 'equipment', 'crew'])
           .where('status', whereIn: ['active', 'inUse']).get();
 
       final assets = assetsSnapshot.docs
@@ -69,53 +72,23 @@ class _BookingAssetAssignmentScreenState
           .where((asset) => asset.assignedTo == null || asset.assignedTo == uid)
           .toList();
 
-      // Load provider's personnel
-      final providerDoc =
-          await _firestore.collection('providers').doc(uid).get();
-      final personnelIds =
-          List<String>.from(providerDoc['teamMembers'] ?? []);
-
-      List<Provider> personnel = [];
-      for (String memberId in personnelIds) {
-        try {
-          final memberDoc =
-              await _firestore.collection('users').doc(memberId).get();
-          if (memberDoc.exists) {
-            final memberData = memberDoc.data() as Map<String, dynamic>;
-            personnel.add(Provider(
-              id: memberId,
-              name: memberData['name'] ?? 'Unknown',
-              email: memberData['email'] ?? '',
-              phone: memberData['phone'] ?? '',
-              specialty: memberData['specialty'] ?? '',
-              serviceType: memberData['serviceType'] ?? '',
-              latitude: null,
-              longitude: null,
-              rating: 0,
-              status: ProviderStatus.available,
-              serviceTypes: [],
-              createdAt: DateTime.now(),
-              bio: '',
-              licenseNumber: '',
-              yearsOfExperience: 0,
-              totalEarnings: 0,
-              totalRides: 0,
-              lastLocation: null,
-              profileImageUrl: '',
-              documentsVerified: false,
-              backgroundCheckPassed: false,
-            ));
-          }
-        } catch (e) {
-          print('Error loading personnel: $e');
-        }
-      }
+      // Load drivers
+      final driversSnapshot = await _firestore
+          .collection('drivers')
+          .where('providerId', isEqualTo: uid)
+          .where('status', isEqualTo: 'available')
+          .get();
+      
+      final drivers = driversSnapshot.docs
+          .map((doc) => Driver.fromFirestore(doc))
+          .toList();
 
       if (mounted) {
         setState(() {
           _availableTrucks = trucks;
           _availableAssets = assets;
-          _availablePersonnel = personnel;
+          _availableDrivers = drivers;
+          _availableCrew = assets.where((a) => a.type == AssetType.crew).toList();
           _isLoading = false;
         });
       }
@@ -142,8 +115,8 @@ class _BookingAssetAssignmentScreenState
       final List<AssetModel> selectedTools = _availableAssets
           .where((a) => _selectedAssets.containsKey(a.id))
           .toList();
-      final List<Provider> selectedPersonnel = _availablePersonnel
-          .where((p) => _selectedPersonnelIds.contains(p.id))
+      final List<AssetModel> selectedCrew = _availableCrew
+          .where((p) => _selectedCrewIds.contains(p.id))
           .toList();
       final AssetModel? selectedTruck = _selectedTruckId != null
           ? _availableTrucks.firstWhere((a) => a.id == _selectedTruckId)
@@ -159,14 +132,19 @@ class _BookingAssetAssignmentScreenState
         providerName: providerName,
         bookingId: widget.booking.id,
         taskLabel: '${widget.booking.serviceType} at ${widget.booking.address}',
-        crewCount: _selectedPersonnelIds.length + 1,
         vehicle: selectedTruck,
         tools: selectedTools.where((a) => a.type == AssetType.tool).toList(),
         equipment: selectedTools.where((a) => a.type == AssetType.equipment).toList(),
+        crew: selectedCrew,
         assetQuantities: _selectedAssets,
-        driverId: _selectedPersonnelIds.isNotEmpty ? _selectedPersonnelIds.first : null,
-        driverName: selectedPersonnel.isNotEmpty ? selectedPersonnel.first.name : null,
       );
+
+      // Save the driver ID directly to the booking
+      if (_selectedDriverId != null) {
+        await _firestore.collection('bookings').doc(widget.booking.id).update({
+          'assignedDriverId': _selectedDriverId,
+        });
+      }
 
       if (mounted) {
         ErrorHandler.showSuccess(context, '✓ Assets assigned successfully!');
@@ -216,7 +194,11 @@ class _BookingAssetAssignmentScreenState
             const SizedBox(height: 12),
             _buildTruckSelector(),
             const SizedBox(height: 24),
-            _buildSectionTitle('Assign Personnel'),
+            _buildSectionTitle('Assign App Driver (Optional)'),
+            const SizedBox(height: 12),
+            _buildDriverSelector(),
+            const SizedBox(height: 24),
+            _buildSectionTitle('Assign Extra Personnel'),
             const SizedBox(height: 12),
             _buildPersonnelSelector(),
             const SizedBox(height: 24),
@@ -313,7 +295,7 @@ class _BookingAssetAssignmentScreenState
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.towingOrange.withOpacity(0.1) : Colors.white,
+              color: isSelected ? AppTheme.towingOrange.withValues(alpha: 0.1) : Colors.white,
               border: Border.all(
                 color: isSelected ? AppTheme.towingOrange : Colors.grey.shade300,
               ),
@@ -354,27 +336,27 @@ class _BookingAssetAssignmentScreenState
   }
 
   Widget _buildPersonnelSelector() {
-    if (_availablePersonnel.isEmpty) {
+    if (_availableCrew.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Text('No personnel available'),
+        child: const Text('No crew available'),
       );
     }
 
     return Column(
-      children: _availablePersonnel.map((person) {
-        final isSelected = _selectedPersonnelIds.contains(person.id);
+      children: _availableCrew.map((person) {
+        final isSelected = _selectedCrewIds.contains(person.id);
         return GestureDetector(
           onTap: () {
             setState(() {
               if (isSelected) {
-                _selectedPersonnelIds.remove(person.id);
+                _selectedCrewIds.remove(person.id);
               } else {
-                _selectedPersonnelIds.add(person.id);
+                _selectedCrewIds.add(person.id);
               }
             });
           },
@@ -382,7 +364,7 @@ class _BookingAssetAssignmentScreenState
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primaryBlue.withOpacity(0.1) : Colors.white,
+              color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.1) : Colors.white,
               border: Border.all(
                 color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade300,
               ),
@@ -395,17 +377,91 @@ class _BookingAssetAssignmentScreenState
                   onChanged: (value) {
                     setState(() {
                       if (value!) {
-                        _selectedPersonnelIds.add(person.id);
+                        _selectedCrewIds.add(person.id);
                       } else {
-                        _selectedPersonnelIds.remove(person.id);
+                        _selectedCrewIds.remove(person.id);
                       }
                     });
                   },
                 ),
                 Expanded(
-                  child: Text(
-                    person.name,
-                    style: const TextStyle(fontSize: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        person.name,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        person.category, // Assuming category stores the role
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSlateMedium),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildDriverSelector() {
+    if (_availableDrivers.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Text('No drivers available online'),
+      );
+    }
+
+    return Column(
+      children: _availableDrivers.map((driver) {
+        final isSelected = _selectedDriverId == driver.id;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedDriverId = isSelected ? null : driver.id;
+            });
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.1) : Colors.white,
+              border: Border.all(
+                color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade300,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Radio<String?>(
+                  value: driver.id,
+                  groupValue: _selectedDriverId,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDriverId = value;
+                    });
+                  },
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        driver.name,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Phone: ${driver.phone}',
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSlateMedium),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -435,7 +491,7 @@ class _BookingAssetAssignmentScreenState
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: selectedQty > 0 ? AppTheme.primaryBlue.withOpacity(0.1) : Colors.white,
+            color: selectedQty > 0 ? AppTheme.primaryBlue.withValues(alpha: 0.1) : Colors.white,
             border: Border.all(
               color: selectedQty > 0 ? AppTheme.primaryBlue : Colors.grey.shade300,
             ),
@@ -509,9 +565,9 @@ class _BookingAssetAssignmentScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primaryBlue.withOpacity(0.05),
+        color: AppTheme.primaryBlue.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,10 +594,18 @@ class _BookingAssetAssignmentScreenState
                 : 'Not selected',
           ),
           _buildSummaryItem(
-            'Personnel',
-            _selectedPersonnelIds.isEmpty
+            'App Driver',
+            _selectedDriverId != null
+                ? (_availableDrivers
+                    .firstWhere((d) => d.id == _selectedDriverId)
+                    .name)
+                : 'None assigned',
+          ),
+          _buildSummaryItem(
+            'Extra Crew',
+            _selectedCrewIds.isEmpty
                 ? 'None'
-                : '${_selectedPersonnelIds.length} selected',
+                : '${_selectedCrewIds.length} selected',
           ),
           _buildSummaryItem(
             'Equipment',

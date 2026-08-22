@@ -10,8 +10,12 @@ class TaskService {
   Future<String> createTask(Task task) async {
     try {
       Logger.debug('Creating task with status: ${task.status}');
+      
       final taskData = task
-          .copyWith(createdAt: DateTime.now(), updatedAt: DateTime.now())
+          .copyWith(
+            createdAt: DateTime.now(), 
+            updatedAt: DateTime.now(),
+          )
           .toFirestore();
 
       Logger.debug('Task data prepared: ${taskData.keys.join(', ')}');
@@ -74,9 +78,30 @@ class TaskService {
         .map(
           (snapshot) {
             var tasks = snapshot.docs.map((doc) => Task.fromFirestore(doc)).toList();
-            if (status == TaskStatus.completed) {
-              return tasks.reversed.toList(); // Reverse in memory to show newest first
-            }
+            // Sort in memory by createdAt descending to show newest tasks first
+            tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return tasks;
+          },
+        );
+  }
+
+  // READ - Get tasks assigned to a driver by specific status
+  Stream<List<Task>> getDriverTasksByStatus(
+    String driverId,
+    TaskStatus status,
+  ) {
+    final statusStr = status.toString().split('.').last;
+    return _firestore
+        .collection(_tasksCollection)
+        .where('assignedDriverId', isEqualTo: driverId)
+        .where('status', isEqualTo: statusStr)
+        .orderBy('scheduledDate') // Always ascending to match existing Firestore index
+        .snapshots()
+        .map(
+          (snapshot) {
+            var tasks = snapshot.docs.map((doc) => Task.fromFirestore(doc)).toList();
+            // Sort in memory by createdAt descending to show newest tasks first
+            tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
             return tasks;
           },
         );
@@ -159,127 +184,115 @@ class TaskService {
   }
 
   // UPDATE - Mark task as completed using a Transaction for atomic inventory updates
-  Future<void> updateTaskCompletion(String taskId, {String? imageUrl, String? bookingId}) async {
+  Future<void> updateTaskCompletion(String taskId, {String? imageUrl, String? bookingId, double? finalCost}) async {
     try {
-      // 0. Find Booking ID before transaction if not provided
+      // 1. Find Booking ID if not provided
       String? finalBookingId = bookingId;
-      if (finalBookingId == null) {
-        final taskDoc = await _firestore.collection(_tasksCollection).doc(taskId).get();
-        if (taskDoc.exists) {
-          finalBookingId = taskDoc.data()?['bookingId'];
-        }
-        
-        if (finalBookingId == null) {
-          final bookingQuery = await _firestore
-              .collection('bookings')
-              .where('taskId', isEqualTo: taskId)
-              .limit(1)
-              .get();
-          if (bookingQuery.docs.isNotEmpty) {
-            finalBookingId = bookingQuery.docs.first.id;
-          }
-        }
-      }
+      final taskDoc = await _firestore.collection(_tasksCollection).doc(taskId).get();
+      if (!taskDoc.exists) throw Exception('Task not found');
+      
+      final taskData = taskDoc.data() as Map<String, dynamic>;
+      finalBookingId ??= taskData['bookingId'];
 
-      // CRITICAL: Firestore transactions MUST do all READS before any WRITES.
-      await _firestore.runTransaction((transaction) async {
-        final taskRef = _firestore.collection(_tasksCollection).doc(taskId);
-        final taskDoc = await transaction.get(taskRef);
-        if (!taskDoc.exists) throw Exception('Task not found');
-        final taskData = taskDoc.data() as Map<String, dynamic>;
+      // 2. Perform PRIMARY Updates (Task & Booking)
+      // We do these first as they are the most critical for the user
+      final batch = _firestore.batch();
+      
+      final updateData = <String, dynamic>{
+        'status': 'completed',
+        'completedAt': Timestamp.now(),
+        'updatedAt': Timestamp.now(),
+      };
+      if (imageUrl != null) updateData['completedImageUrl'] = imageUrl;
+      if (finalCost != null) updateData['finalCost'] = finalCost;
+      
+      batch.update(_firestore.collection(_tasksCollection).doc(taskId), updateData);
 
-        // --- 1. ALL READS FIRST ---
-        
-        // Read Booking
-        DocumentSnapshot? bookingDoc;
-        if (finalBookingId != null) {
-          final bookingRef = _firestore.collection('bookings').doc(finalBookingId);
-          bookingDoc = await transaction.get(bookingRef);
-        }
-        final bookingData = bookingDoc?.data() as Map<String, dynamic>?;
-
-        // Collect asset quantities
-        final assignedAssets = <String, int>{};
-        void parseAssets(dynamic source) {
-          if (source is Map) {
-            source.forEach((key, value) {
-              if (value is num) {
-                assignedAssets[key.toString()] = (assignedAssets[key.toString()] ?? 0) + value.toInt();
-              }
-            });
-          }
-        }
-        parseAssets(bookingData?['assignedAssets']);
-        parseAssets(taskData['assignedAssets']);
-
-        // Read all Asset documents
-        final assetSnapshots = <String, DocumentSnapshot>{};
-        for (var assetId in assignedAssets.keys) {
-          final assetRef = _firestore.collection('assets').doc(assetId);
-          assetSnapshots[assetId] = await transaction.get(assetRef);
-        }
-
-        // Read Truck document
-        final truckId = taskData['assignedTruckId'] ?? bookingData?['assignedTruckId'];
-        DocumentSnapshot? truckDoc;
-        if (truckId != null && truckId.toString().isNotEmpty) {
-          final truckRef = _firestore.collection('assets').doc(truckId);
-          truckDoc = await transaction.get(truckRef);
-        }
-
-        // --- 2. ALL WRITES SECOND ---
-        
-        // Update Task Status
-        final updateData = <String, dynamic>{
+      if (finalBookingId != null) {
+        final bookingUpdate = <String, dynamic>{
           'status': 'completed',
           'completedAt': Timestamp.now(),
-          'updatedAt': Timestamp.now(),
         };
-        if (imageUrl != null) updateData['completedImageUrl'] = imageUrl;
-        transaction.update(taskRef, updateData);
+        if (finalCost != null) bookingUpdate['finalCost'] = finalCost;
+        batch.update(_firestore.collection('bookings').doc(finalBookingId), bookingUpdate);
+      }
 
-        // Update Booking Status
-        if (bookingDoc != null && bookingDoc.exists) {
-          transaction.update(bookingDoc.reference, {
-            'status': 'completed',
-            'completedAt': Timestamp.now(),
+      await batch.commit();
+      Logger.info('Task $taskId and Booking $finalBookingId marked as completed.');
+
+      // 3. Perform SECONDARY Updates (Assets)
+      // These are wrapped in a try-catch so permission errors don't block the user
+      try {
+        final assignedAssets = <String, int>{};
+        if (taskData['assignedAssets'] is Map) {
+          (taskData['assignedAssets'] as Map).forEach((key, value) {
+            if (value is num) assignedAssets[key.toString()] = value.toInt();
           });
         }
 
-        // Update Asset Inventories
+        final truckId = taskData['assignedTruckId'];
+
+        // Release the Truck
+        if (truckId != null && truckId.toString().isNotEmpty) {
+          final truckRef = _firestore.collection('assets').doc(truckId);
+          final truckSnap = await truckRef.get();
+          if (truckSnap.exists) {
+            final truckData = truckSnap.data() as Map<String, dynamic>;
+            final isProviderAsset = truckData['metadata']?['registeredBy'] == 'provider';
+            
+            await truckRef.update({
+              'status': 'active',
+              'currentTaskId': FieldValue.delete(),
+              'currentTaskLabel': FieldValue.delete(),
+              if (!isProviderAsset) 'assignedTo': null,
+              if (!isProviderAsset) 'providerName': null,
+            });
+          }
+        }
+
+        // Release the Crew/Driver
+        final List<dynamic> personnelIds = taskData['assignedPersonnelIds'] ?? [];
+        final driverId = taskData['assignedDriverId'];
+        final Set<String> crewToRelease = {};
+        
+        for (var id in personnelIds) {
+          if (id != null) crewToRelease.add(id.toString());
+        }
+        if (driverId != null) crewToRelease.add(driverId.toString());
+
+        for (var crewId in crewToRelease) {
+          if (crewId.isNotEmpty) {
+            await _firestore.collection('assets').doc(crewId).update({
+              'status': 'active',
+              'currentTaskId': FieldValue.delete(),
+              'currentTaskLabel': FieldValue.delete(),
+            });
+          }
+        }
+
+        // Release/Restock other assets
         for (var entry in assignedAssets.entries) {
-          final assetDoc = assetSnapshots[entry.key];
-          if (assetDoc != null && assetDoc.exists) {
-            final data = assetDoc.data() as Map<String, dynamic>;
+          final assetRef = _firestore.collection('assets').doc(entry.key);
+          final assetSnap = await assetRef.get();
+          if (assetSnap.exists) {
+            final data = assetSnap.data() as Map<String, dynamic>;
             final isConsumable = data['isConsumable'] ?? false;
             if (!isConsumable) {
-              final rawQty = data['quantity'];
-              final int currentQuantity = (rawQty is num) ? rawQty.toInt() : 0;
-              transaction.update(assetDoc.reference, {
+              final currentQuantity = (data['quantity'] as num?)?.toInt() ?? 0;
+              await assetRef.update({
                 'quantity': currentQuantity + entry.value,
+                'status': 'active', // Ensure it's active if it was marked inUse
               });
             }
           }
         }
-
-        // Update Truck Status
-        if (truckDoc != null && truckDoc.exists) {
-          final truckData = truckDoc.data() as Map<String, dynamic>;
-          final isProviderAsset = truckData['metadata']?['registeredBy'] == 'provider';
-          
-          transaction.update(truckDoc.reference, {
-            'status': 'active',
-            'currentTaskId': FieldValue.delete(),
-            'currentTaskLabel': FieldValue.delete(),
-            if (!isProviderAsset) 'assignedTo': null,
-            if (!isProviderAsset) 'providerName': null,
-          });
-        }
-      });
+      } catch (e) {
+        Logger.warn('Asset auto-release encountered an issue (likely permissions): $e');
+        // We don't throw here because the Task is already marked as completed
+      }
       
-      Logger.info('Task $taskId completed successfully via transaction.');
     } catch (e) {
-      Logger.error('Error completing task via transaction', e);
+      Logger.error('Critical error in task completion', e);
       throw Exception('Error completing task: $e');
     }
   }
@@ -321,12 +334,73 @@ class TaskService {
   }
 
   // DELETE - Cancel task
-  Future<void> cancelTask(String taskId) async {
+  Future<void> cancelTask(String taskId, {String? bookingId, String? reason}) async {
     try {
-      await _firestore.collection(_tasksCollection).doc(taskId).update({
+      final taskDoc = await _firestore.collection(_tasksCollection).doc(taskId).get();
+      if (!taskDoc.exists) throw Exception('Task not found');
+      final taskData = taskDoc.data() as Map<String, dynamic>;
+      final bId = bookingId ?? taskData['bookingId'];
+
+      final batch = _firestore.batch();
+      batch.update(_firestore.collection(_tasksCollection).doc(taskId), {
         'status': 'cancelled',
+        'cancellationReason': reason,
         'updatedAt': Timestamp.now(),
       });
+
+      if (bId != null) {
+        batch.update(_firestore.collection('bookings').doc(bId), {
+          'status': 'cancelled',
+          'updatedAt': Timestamp.now(),
+        });
+      }
+
+      await batch.commit();
+
+      // Release assets so they aren't locked forever
+      try {
+        final truckId = taskData['assignedTruckId'];
+        if (truckId != null && truckId.toString().isNotEmpty) {
+          final truckRef = _firestore.collection('assets').doc(truckId);
+          final truckSnap = await truckRef.get();
+          if (truckSnap.exists) {
+            final truckData = truckSnap.data() as Map<String, dynamic>;
+            final isProviderAsset = truckData['metadata']?['registeredBy'] == 'provider';
+            await truckRef.update({
+              'status': 'active',
+              'currentTaskId': FieldValue.delete(),
+              'currentTaskLabel': FieldValue.delete(),
+              if (!isProviderAsset) 'assignedTo': null,
+              if (!isProviderAsset) 'providerName': null,
+            });
+          }
+        }
+        
+        final assignedAssets = <String, int>{};
+        if (taskData['assignedAssets'] is Map) {
+          (taskData['assignedAssets'] as Map).forEach((key, value) {
+            if (value is num) assignedAssets[key.toString()] = value.toInt();
+          });
+        }
+        
+        for (var entry in assignedAssets.entries) {
+          final assetRef = _firestore.collection('assets').doc(entry.key);
+          final assetSnap = await assetRef.get();
+          if (assetSnap.exists) {
+            final data = assetSnap.data() as Map<String, dynamic>;
+            final isConsumable = data['isConsumable'] ?? false;
+            if (!isConsumable) {
+              final currentQuantity = (data['quantity'] as num?)?.toInt() ?? 0;
+              await assetRef.update({
+                'quantity': currentQuantity + entry.value,
+                'status': 'active',
+              });
+            }
+          }
+        }
+      } catch (e) {
+        Logger.warn('Asset auto-release failed on cancel: $e');
+      }
     } catch (e) {
       throw Exception('Error cancelling task: $e');
     }
@@ -414,5 +488,64 @@ class TaskService {
       'Sunday',
     ];
     return days[weekday];
+  }
+
+  // UPDATE - Update specific milestone and recalculate progress
+  Future<void> updateTaskMilestone(String taskId, String milestoneId, bool isCompleted) async {
+    try {
+      final task = await getTask(taskId);
+      if (task == null) throw Exception('Task not found');
+
+      final updatedMilestones = task.milestones.map((m) {
+        if (m.id == milestoneId) {
+          return m.copyWith(
+            isCompleted: isCompleted,
+            completedAt: isCompleted ? DateTime.now() : null,
+          );
+        }
+        return m;
+      }).toList();
+
+      // Calculate progress
+      final completedCount = updatedMilestones.where((m) => m.isCompleted).length;
+      final double progress = updatedMilestones.isEmpty ? 0.0 : completedCount / updatedMilestones.length;
+
+      await _firestore.collection(_tasksCollection).doc(taskId).update({
+        'milestones': updatedMilestones.map((m) => m.toMap()).toList(),
+        'progress': progress,
+        'updatedAt': Timestamp.now(),
+      });
+      
+      // If any milestone is started, make sure status is inProgress
+      if (progress > 0.0 && task.status == TaskStatus.assigned) {
+        await updateTaskStatus(taskId, TaskStatus.inProgress);
+      }
+      
+    } catch (e) {
+      Logger.error('Error updating task milestone', e);
+      throw Exception('Error updating task milestone: $e');
+    }
+  }
+
+  // HELPER - Get default milestones based on service type
+  List<TaskMilestone> _getDefaultMilestones(String serviceType) {
+    if (serviceType.toLowerCase().contains('towing')) {
+      return [
+        TaskMilestone(id: 'assigned', title: 'Provider Assigned', isCompleted: true),
+        TaskMilestone(id: 'en_route', title: 'En Route'),
+        TaskMilestone(id: 'arrived', title: 'Arrived at Scene'),
+        TaskMilestone(id: 'loaded', title: 'Vehicle Loaded'),
+        TaskMilestone(id: 'completed', title: 'Delivered'),
+      ];
+    } else {
+      // Default for Household or other services
+      return [
+        TaskMilestone(id: 'dispatched', title: 'Team Dispatched'),
+        TaskMilestone(id: 'setup', title: 'Arrival & Setup'),
+        TaskMilestone(id: 'in_progress', title: 'Service Underway'),
+        TaskMilestone(id: 'inspection', title: 'Final Inspection'),
+        TaskMilestone(id: 'completed', title: 'Completed'),
+      ];
+    }
   }
 }

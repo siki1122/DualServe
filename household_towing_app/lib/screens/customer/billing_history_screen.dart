@@ -4,6 +4,9 @@ import 'package:household_towing_app/services/billing_service.dart';
 import 'package:household_towing_app/utils/pricing_constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/status_badge.dart';
+import '../../widgets/shimmer_loading.dart';
 
 class BillingHistoryScreen extends StatefulWidget {
   const BillingHistoryScreen({super.key});
@@ -32,17 +35,21 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Billing History'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        centerTitle: true,
       ),
       body: StreamBuilder<List<Transaction>>(
         stream: _billingService.getCustomerTransactions(_customerId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ShimmerLoading.cardPlaceholder(count: 3, isDark: isDark),
+            );
           }
 
           if (snapshot.hasError) {
@@ -97,40 +104,38 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
               if (index == 0) {
                 // Header with total
                 return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Total Spent',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                  padding: const EdgeInsets.only(bottom: 24.0, left: 16, right: 16, top: 16),
+                  child: Container(
+                    decoration: AppTheme.cardDecoration(context),
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Spent',
+                          style: TextStyle(
+                            fontSize: 14, 
+                            color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            PricingConfig.formatPrice(totalSpent),
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          PricingConfig.formatPrice(totalSpent),
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryBlue,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${transactions.length} completed services',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${transactions.length} completed services',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -147,109 +152,91 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                     horizontal: 16.0,
                     vertical: 8.0,
                   ),
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    transaction.serviceType,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    formattedDate,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                PricingConfig.formatPrice(
-                                  transaction.finalCost,
-                                ),
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.directions_car,
-                                    size: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${transaction.distanceTraveled.toStringAsFixed(2)} km',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _getPaymentStatusColor(
-                                    transaction.paymentStatus,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  _getPaymentStatusLabel(
-                                    transaction.paymentStatus,
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 11,
+                  child: Container(
+                    decoration: AppTheme.cardDecoration(context),
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  transaction.serviceType,
+                                  style: TextStyle(
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: isDark ? Colors.white : AppTheme.textSlateDark,
                                   ),
                                 ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  formattedDate,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              PricingConfig.formatPrice(
+                                transaction.finalCost,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              'Tap for details',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.blue.shade400,
-                                fontStyle: FontStyle.italic,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
                               ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.directions_car,
+                                  size: 16,
+                                  color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateLight,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${transaction.distanceTraveled.toStringAsFixed(2)} km',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            StatusBadge(
+                              status: transaction.paymentStatus == PaymentStatus.recorded ? 'Completed' : 'Pending',
+                              size: BadgeSize.small,
+                              showIcon: false,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            'Tap for details',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.primaryBlue.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

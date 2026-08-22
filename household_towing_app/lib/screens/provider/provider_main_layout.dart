@@ -4,6 +4,7 @@ import 'provider_home.dart';
 import 'provider_tasks_screen.dart';
 import 'provider_asset_inventory_screen.dart';
 import 'provider_services_screen.dart';
+import 'provider_ratings_screen.dart';
 import '../../widgets/provider_drawer.dart';
 
 class ProviderMainLayout extends StatefulWidget {
@@ -15,42 +16,49 @@ class ProviderMainLayout extends StatefulWidget {
 
 class _ProviderMainLayoutState extends State<ProviderMainLayout> {
   int _currentIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<Widget> _screens = [
     const ProviderHome(),
     const ProviderTasksScreen(),
+    const ProviderRatingsScreen(),
     const ProviderAssetInventoryScreen(),
     const ProviderServicesScreen(),
   ];
 
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
       drawer: const ProviderDrawer(),
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 10,
-              offset: const Offset(0, -5),
+              offset: const Offset(0, -2),
             ),
           ],
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: AppTheme.surface,
+          onTap: _onTabTapped,
+          backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surface,
           selectedItemColor: AppTheme.towingOrange,
-          unselectedItemColor: AppTheme.textSlateLight,
-          selectedFontSize: 10,
-          unselectedFontSize: 10,
+          unselectedItemColor: isDark ? AppTheme.textDarkSecondary : Colors.grey.shade400,
+          showUnselectedLabels: true,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.dashboard_outlined),
@@ -60,12 +68,17 @@ class _ProviderMainLayoutState extends State<ProviderMainLayout> {
             BottomNavigationBarItem(
               icon: Icon(Icons.assignment_outlined),
               activeIcon: Icon(Icons.assignment),
-              label: 'My Tasks',
+              label: 'Tasks',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.star_outline),
+              activeIcon: Icon(Icons.star),
+              label: 'Ratings',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.inventory_2_outlined),
               activeIcon: Icon(Icons.inventory_2),
-              label: 'Inventory',
+              label: 'Assets',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.build_circle_outlined),

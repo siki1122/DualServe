@@ -5,9 +5,11 @@ import 'package:household_towing_app/models/booking_model.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/status_badge.dart';
 import 'customer_service_tracking_screen.dart';
+import '../chat/chat_screen.dart';
 import 'customer_tracking_screen.dart';
 import 'customer_booking_details_screen.dart';
-import '../chat/chat_screen.dart';
+import '../../widgets/shimmer_loading.dart';
+import '../../widgets/customer_drawer.dart';
 
 class CustomerActiveBookingsScreen extends StatefulWidget {
   const CustomerActiveBookingsScreen({super.key});
@@ -19,84 +21,14 @@ class CustomerActiveBookingsScreen extends StatefulWidget {
 
 class _CustomerActiveBookingsScreenState
     extends State<CustomerActiveBookingsScreen> {
-  late ScrollController _scrollController;
-  List<QueryDocumentSnapshot> _bookings = [];
-  DocumentSnapshot? _lastDocument;
-  bool _isLoading = false;
-  bool _hasMoreData = true;
-
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_onScroll);
-    _loadMoreBookings();
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    // Infinite scroll: Load more when near bottom
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoading && _hasMoreData) {
-        _loadMoreBookings();
-      }
-    }
-  }
-
-  Future<void> _loadMoreBookings() async {
-    if (_isLoading) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      var query = FirebaseFirestore.instance
-          .collection('bookings')
-          .where(
-            'customerId',
-            isEqualTo: FirebaseAuth.instance.currentUser!.uid,
-          )
-          .where(
-            'status',
-            whereIn: ['pending', 'accepted', 'converted_to_task'],
-          )
-          .orderBy('scheduledDate', descending: true)
-          .limit(20);
-
-      final lastDocument = _lastDocument;
-      if (lastDocument != null) {
-        query = query.startAfterDocument(lastDocument);
-      }
-
-      final snapshot = await query.get();
-
-      if (snapshot.docs.isEmpty) {
-        setState(() => _hasMoreData = false);
-      } else {
-        setState(() {
-          _bookings.addAll(snapshot.docs);
-          _lastDocument = snapshot.docs.last;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading bookings: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
   }
 
   @override
@@ -109,6 +41,7 @@ class _CustomerActiveBookingsScreenState
 
     return Scaffold(
       backgroundColor: AppTheme.background,
+      drawer: const CustomerDrawer(),
       appBar: AppBar(
         title: const Text(
           'Active Requests',
@@ -117,7 +50,6 @@ class _CustomerActiveBookingsScreenState
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: AppTheme.textSlateDark,
-        automaticallyImplyLeading: false,
       ),
       body: StreamBuilder<List<Booking>>(
         stream: FirebaseFirestore.instance
@@ -125,10 +57,18 @@ class _CustomerActiveBookingsScreenState
             .where('customerId', isEqualTo: userId)
             .where('status', whereIn: ['pending', 'accepted', 'converted_to_task'])
             .snapshots()
-            .map((snapshot) => snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList()),
+            .map((snapshot) {
+              final bookings = snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList();
+              bookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              return bookings;
+            }),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: ShimmerLoading.cardPlaceholder(count: 3, isDark: isDark),
+            );
           }
 
           if (snapshot.hasError) {
@@ -221,8 +161,8 @@ class _CustomerActiveBookingsScreenState
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: booking.serviceType == 'Towing'
-                                    ? AppTheme.towingOrange.withOpacity(0.1)
-                                    : AppTheme.householdBlue.withOpacity(0.1),
+                                    ? AppTheme.towingOrange.withValues(alpha: 0.1)
+                                    : AppTheme.householdBlue.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Icon(
@@ -287,9 +227,9 @@ class _CustomerActiveBookingsScreenState
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.05),
+                              color: Colors.blue.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.blue.withOpacity(0.1)),
+                              border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,28 +267,72 @@ class _CustomerActiveBookingsScreenState
                                     children: [
                                       const Icon(Icons.person, size: 16, color: Colors.blue),
                                       const SizedBox(width: 8),
-                                      Text(
-                                        booking.assignedPersonnelNames.first,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppTheme.textSlateDark,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: booking.assignedPersonnelNames.map((name) => Padding(
+                                            padding: const EdgeInsets.only(bottom: 2),
+                                            child: Text(
+                                              name,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.textSlateDark,
+                                              ),
+                                            ),
+                                          )).toList(),
                                         ),
                                       ),
-                                      if (booking.assignedPersonnelNames.length > 1)
-                                        Text(
-                                          ' +${booking.assignedPersonnelNames.length - 1} more',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppTheme.textSlateMedium,
-                                          ),
-                                        ),
                                     ],
                                   ),
                               ],
                             ),
                           ),
                         ],
+                        
+                        // NEW: Progress Bar directly on the card
+                        if (booking.status == BookingStatus.converted_to_task || booking.status == BookingStatus.accepted)
+                          StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('tasks')
+                                .where('bookingId', isEqualTo: booking.id)
+                                .snapshots(),
+                            builder: (context, taskSnapshot) {
+                              if (!taskSnapshot.hasData || taskSnapshot.data!.docs.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
+                              final taskData = taskSnapshot.data!.docs.first.data() as Map<String, dynamic>;
+                              final double progress = (taskData['progress'] as num?)?.toDouble() ?? 0.0;
+                              
+                              if (progress <= 0) return const SizedBox.shrink();
+                              
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Service Progress', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSlateDark)),
+                                        Text('${(progress * 100).toInt()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: LinearProgressIndicator(
+                                        value: progress,
+                                        minHeight: 6,
+                                        backgroundColor: Colors.grey[200],
+                                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
 
                         const SizedBox(height: 16),
                         Row(
@@ -369,7 +353,7 @@ class _CustomerActiveBookingsScreenState
                                   backgroundColor: Colors.white,
                                   foregroundColor: AppTheme.primaryBlue,
                                   elevation: 0,
-                                  side: BorderSide(color: AppTheme.primaryBlue.withOpacity(0.2)),
+                                  side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
@@ -378,7 +362,32 @@ class _CustomerActiveBookingsScreenState
                               ),
                             ),
                             const SizedBox(width: 12),
-                            if (isTrackable && booking.assignedProviderId != null)
+                            if (booking.status == BookingStatus.converted_to_task)
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CustomerTrackingScreen(
+                                          bookingId: booking.id,
+                                          bookingData: booking.toFirestore(),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryBlue,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.map, size: 18),
+                                  label: const Text('Track Map'),
+                                ),
+                              )
+                            else if (isTrackable && booking.assignedProviderId != null)
                               Expanded(
                                 child: ElevatedButton.icon(
                                   onPressed: () {

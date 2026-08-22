@@ -12,6 +12,8 @@ import 'package:intl/intl.dart';
 import 'package:household_towing_app/utils/pricing_constants.dart';
 import '../../widgets/success_dialog.dart';
 import 'customer_active_bookings_screen.dart';
+import 'package:household_towing_app/utils/service_templates.dart';
+import 'complex_service_sheet.dart';
 
 class BookingScreen extends StatefulWidget {
   final String serviceType;
@@ -28,7 +30,11 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   final _addressController = TextEditingController();
+  final _barangayController = TextEditingController();
+  final _zoneController = TextEditingController();
+  final _landmarkController = TextEditingController();
   final _notesController = TextEditingController();
+  String? _issueCategory;
   final BookingService _bookingService = BookingService();
   final ProviderService _providerService = ProviderService();
 
@@ -38,7 +44,10 @@ class _BookingScreenState extends State<BookingScreen> {
   double _estimatedCost = 0;
   String? _selectedProviderId;
   String? _selectedSubService;
+  String? _problemCategory;
   Map<String, double> _offeredServices = {};
+  Map<String, dynamic> _rawOfferedServices = {};
+  Map<String, dynamic>? _complexDetails;
   List<Provider> _availableProviders = [];
   bool _loadingProviders = true;
   double? _userLat;
@@ -77,6 +86,9 @@ class _BookingScreenState extends State<BookingScreen> {
   void dispose() {
     _geocodingTimer?.cancel();
     _addressController.dispose();
+    _barangayController.dispose();
+    _zoneController.dispose();
+    _landmarkController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -203,9 +215,17 @@ class _BookingScreenState extends State<BookingScreen> {
     }
 
     // 2. Determine base price (custom from provider OR system default)
-    double baseRate = PricingConfig.getBasePrice(_serviceType);
-    if (_selectedSubService != null && _offeredServices.containsKey(_selectedSubService)) {
-      baseRate = _offeredServices[_selectedSubService]!;
+    double baseRate = 0.0;
+    final bool isComplex = ServiceTemplates.defaultTemplates.containsKey(_serviceType);
+
+    if (isComplex) {
+      final def = ServiceTemplates.getDefinition(_serviceType, _rawOfferedServices[_serviceType]);
+      baseRate = ServiceTemplates.calculatePrice(def, _complexDetails, 1);
+    } else {
+      baseRate = PricingConfig.getBasePrice(_serviceType);
+      if (_selectedSubService != null && _offeredServices.containsKey(_selectedSubService)) {
+        baseRate = _offeredServices[_selectedSubService]!;
+      }
     }
 
     // 3. Use the specialized PricingConfig to get the final cost
@@ -244,7 +264,15 @@ class _BookingScreenState extends State<BookingScreen> {
         // Load offered services for the selected provider
         if (_selectedProviderId != null) {
           final selectedProv = _availableProviders.firstWhere((p) => p.id == _selectedProviderId);
-          _offeredServices = selectedProv.offeredServices;
+          _rawOfferedServices = selectedProv.offeredServices;
+          _offeredServices = {};
+          selectedProv.offeredServices.forEach((k, v) {
+            if (v is num) {
+              _offeredServices[k] = v.toDouble();
+            } else {
+              _offeredServices[k] = 0.0;
+            }
+          });
           if (_offeredServices.isNotEmpty) {
             _selectedSubService = _offeredServices.keys.first;
           } else {
@@ -296,10 +324,16 @@ class _BookingScreenState extends State<BookingScreen> {
         assignedProviderId: _selectedProviderId,
         serviceType: _serviceType,
         specificService: _selectedSubService,
+        serviceDetails: _complexDetails,
         status: BookingStatus.pending,
         scheduledDate: _selectedDate,
         scheduledTime: timeStr,
         address: _addressController.text,
+        barangay: _barangayController.text.isNotEmpty ? _barangayController.text : null,
+        zone: _zoneController.text.isNotEmpty ? _zoneController.text : null,
+        landmarkDescription: _landmarkController.text.isNotEmpty ? _landmarkController.text : null,
+        problemCategory: _problemCategory,
+        issueCategory: _issueCategory,
         estimatedCost: _estimatedCost,
         notes: _notesController.text,
         createdAt: DateTime.now(),
@@ -342,31 +376,38 @@ class _BookingScreenState extends State<BookingScreen> {
       appBar: AppBar(title: Text('Book $_serviceType'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildServiceHeader(),
-            const SizedBox(height: 32),
-            _buildSectionTitle('Choose a Provider', isDark),
-            const SizedBox(height: 12),
-            _buildProviderSelector(isDark),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Select Specific Service', isDark),
-            const SizedBox(height: 12),
-            _buildSubServiceSelector(isDark),
-            const SizedBox(height: 32),
-            _buildSectionTitle('Service Location', isDark),
-            const SizedBox(height: 12),
-            _buildAddressField(isDark),
-            const SizedBox(height: 32),
-            _buildSectionTitle('Preferred Schedule', isDark),
-            const SizedBox(height: 12),
-            _buildDateTimePicker(isDark),
-            const SizedBox(height: 40),
-            _buildPricingBreakdown(isDark),
-            const SizedBox(height: 32),
-            _buildSubmitButton(),
-          ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildServiceHeader(),
+                const SizedBox(height: 32),
+                _buildSectionTitle('Choose a Provider', isDark),
+                const SizedBox(height: 12),
+                _buildProviderSelector(isDark),
+                const SizedBox(height: 24),
+                _buildSectionTitle('Select Specific Service', isDark),
+                const SizedBox(height: 12),
+                _buildSubServiceSelector(isDark),
+                const SizedBox(height: 32),
+                _buildSectionTitle('Service Location', isDark),
+                const SizedBox(height: 12),
+                _buildAddressField(isDark),
+                const SizedBox(height: 12),
+                _buildDetailedAddressFields(isDark),
+                const SizedBox(height: 32),
+                _buildSectionTitle('Preferred Schedule', isDark),
+                const SizedBox(height: 12),
+                _buildDateTimePicker(isDark),
+                const SizedBox(height: 40),
+                _buildPricingBreakdown(isDark),
+                const SizedBox(height: 32),
+                _buildSubmitButton(),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -460,7 +501,14 @@ class _BookingScreenState extends State<BookingScreen> {
               _selectedProviderId = val;
               if (val != null) {
                 final selectedProv = _availableProviders.firstWhere((p) => p.id == val);
-                _offeredServices = selectedProv.offeredServices;
+                _offeredServices = {};
+                selectedProv.offeredServices.forEach((k, v) {
+                  if (v is num) {
+                    _offeredServices[k] = v.toDouble();
+                  } else {
+                    _offeredServices[k] = 0.0;
+                  }
+                });
                 if (_offeredServices.isNotEmpty) {
                   _selectedSubService = _offeredServices.keys.first;
                 } else {
@@ -499,6 +547,49 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _buildSubServiceSelector(bool isDark) {
+    final bool isComplex = ServiceTemplates.defaultTemplates.containsKey(_serviceType);
+
+    if (isComplex) {
+      return Container(
+        width: double.infinity,
+        decoration: AppTheme.cardDecoration(context),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: ElevatedButton.icon(
+          onPressed: () async {
+            final def = ServiceTemplates.getDefinition(_serviceType, _rawOfferedServices[_serviceType]);
+            final details = await showModalBottomSheet<Map<String, dynamic>>(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => ComplexServiceSheet(
+                serviceName: _serviceType,
+                serviceDef: def,
+                initialDetails: _complexDetails,
+              ),
+            );
+            
+            if (details != null && mounted) {
+              setState(() {
+                _complexDetails = details;
+              });
+              _updateEstimatedPrice();
+            }
+          },
+          icon: const Icon(Icons.settings),
+          label: Text(
+            _complexDetails == null ? 'Configure Service Details' : 'Edit Details',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _complexDetails == null ? AppTheme.primaryBlue : Colors.green,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      );
+    }
+
     final List<String> items = _offeredServices.isEmpty 
         ? ['General $_serviceType'] 
         : _offeredServices.keys.toList();
@@ -740,6 +831,94 @@ class _BookingScreenState extends State<BookingScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
       ),
+    );
+  }
+
+  Widget _buildDetailedAddressFields(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: AppTheme.cardDecoration(context),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  controller: _barangayController,
+                  style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark, fontSize: 14),
+                  decoration: const InputDecoration(
+                    hintText: 'Barangay (Optional)',
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                decoration: AppTheme.cardDecoration(context),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  controller: _zoneController,
+                  style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark, fontSize: 14),
+                  decoration: const InputDecoration(
+                    hintText: 'Zone/Subdivision',
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: AppTheme.cardDecoration(context),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            controller: _landmarkController,
+            style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark, fontSize: 14),
+            decoration: const InputDecoration(
+              hintText: 'Nearby Landmarks / Description',
+              border: InputBorder.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: AppTheme.cardDecoration(context),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              hint: Text('Select Issue Category (Optional)', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 14)),
+              value: _issueCategory,
+              dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+              onChanged: (val) => setState(() => _issueCategory = val),
+              items: ['Engine Issue', 'Flat Tire', 'Electrical', 'Plumbing', 'Cleaning', 'Other']
+                  .map((cat) => DropdownMenuItem(value: cat, child: Text(cat, style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark, fontSize: 14))))
+                  .toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: AppTheme.cardDecoration(context),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              hint: Text('Damaged Parts Category (Optional)', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 14)),
+              value: _problemCategory,
+              dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+              onChanged: (val) => setState(() => _problemCategory = val),
+              items: ['Engine', 'Transmission', 'Suspension & Steering', 'Brakes', 'Electrical & Battery', 'Body & Glass', 'Tires & Wheels', 'Other']
+                  .map((cat) => DropdownMenuItem(value: cat, child: Text(cat, style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark, fontSize: 14))))
+                  .toList(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

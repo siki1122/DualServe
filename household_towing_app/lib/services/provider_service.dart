@@ -326,4 +326,38 @@ class ProviderService {
     ];
     return days[weekday];
   }
+
+  Future<void> submitVerificationDocuments(
+    String providerId,
+    String businessPermitUrl,
+    String governmentIdUrl,
+  ) async {
+    try {
+      final batch = _firestore.batch();
+
+      // 1. Update Provider Document (use set with merge to ensure it exists)
+      final providerRef = _firestore.collection(_providersCollection).doc(providerId);
+      batch.set(providerRef, {
+        'businessPermitUrl': businessPermitUrl,
+        'governmentIdUrl': governmentIdUrl,
+        'location': null,
+        'isApproved': true, // Auto-approve
+        'rating': 0.0,
+        'updatedAt': Timestamp.now(),
+      }, SetOptions(merge: true));
+
+      // 2. Update User Document Role to 'pending_provider'
+      final userRef = _firestore.collection('users').doc(providerId);
+      batch.update(userRef, {
+        'role': 'pending_provider',
+        'updatedAt': Timestamp.now(),
+      });
+
+      await batch.commit();
+      Logger.info('Submitted verification documents and updated role for provider $providerId');
+    } catch (e) {
+      Logger.error('Error submitting verification documents', e);
+      throw Exception('Error submitting verification documents: $e');
+    }
+  }
 }

@@ -6,6 +6,7 @@ enum BookingStatus {
   rejected,
   converted_to_task,
   cancelled,
+  completed,
 }
 
 enum TruckType {
@@ -19,6 +20,7 @@ class Booking {
   final String id;
   final String customerId;
   final String? assignedProviderId;
+  final String? assignedDriverId;
   final String serviceType;
   final String address;
   final double? latitude;
@@ -33,6 +35,15 @@ class Booking {
   final double? estimatedCost;
   final int? estimatedDurationMinutes;
   final String? specificService; // E.g. "Flatbed", "Emergency Tow", "Jump Start"
+  final Map<String, int>? selectedSubServices; // { "Deep Cleaning": 1, "Aircon Cleaning": 2 }
+  final Map<String, dynamic>? serviceDetails; // Complex service configuration (e.g. sqm, selected addons)
+  // New fields for address & issue details
+  final String? barangay;
+  final String? zone;
+  final String? landmarkDescription;
+  final String? problemCategory;
+  final String? issueCategory;
+  final double? adminFee;
   // New fields for asset management
   final TruckType? assignedTruckType;
   final String? assignedTruckId; // Asset ID of the assigned truck
@@ -40,11 +51,13 @@ class Booking {
   final Map<String, int> assignedAssets; // assetId: quantity
   final String? assignedTruckName;
   final List<String> assignedPersonnelNames;
+  final bool isReviewed;
 
   Booking({
     required this.id,
     required this.customerId,
     this.assignedProviderId,
+    this.assignedDriverId,
     required this.serviceType,
     required this.address,
     this.latitude,
@@ -59,12 +72,21 @@ class Booking {
     this.estimatedCost,
     this.estimatedDurationMinutes,
     this.specificService,
+    this.selectedSubServices,
+    this.serviceDetails,
+    this.barangay,
+    this.zone,
+    this.landmarkDescription,
+    this.problemCategory,
+    this.issueCategory,
+    this.adminFee,
     this.assignedTruckType,
     this.assignedTruckId,
     this.assignedPersonnelIds = const [],
     this.assignedAssets = const {},
     this.assignedTruckName,
     this.assignedPersonnelNames = const [],
+    this.isReviewed = false,
   });
 
   // Convert from Firestore document
@@ -74,6 +96,7 @@ class Booking {
       id: doc.id,
       customerId: data['customerId'] ?? '',
       assignedProviderId: data['assignedProviderId'],
+      assignedDriverId: data['assignedDriverId'],
       serviceType: data['serviceType'] ?? '',
       address: data['address'] ?? '',
       latitude: (data['latitude'] as num?)?.toDouble(),
@@ -88,18 +111,33 @@ class Booking {
       estimatedCost: (data['estimatedCost'] as num?)?.toDouble(),
       estimatedDurationMinutes: data['estimatedDurationMinutes'] as int?,
       specificService: data['specificService'],
+      selectedSubServices: data['selectedSubServices'] is Map
+          ? (data['selectedSubServices'] as Map).map((k, v) => MapEntry(k.toString(), (v as num).toInt()))
+          : null,
+      serviceDetails: data['serviceDetails'] as Map<String, dynamic>?,
+      barangay: data['barangay'],
+      zone: data['zone'],
+      landmarkDescription: data['landmarkDescription'],
+      problemCategory: data['problemCategory'],
+      issueCategory: data['issueCategory'],
+      adminFee: (data['adminFee'] as num?)?.toDouble(),
       assignedTruckType: data['assignedTruckType'] != null
           ? TruckType.values.asNameMap()[data['assignedTruckType']]
           : null,
       assignedTruckId: data['assignedTruckId'],
-      assignedPersonnelIds: List<String>.from(data['assignedPersonnelIds'] ?? []),
-      assignedAssets: data['assignedAssets'] != null
+      assignedPersonnelIds: data['assignedPersonnelIds'] is List 
+          ? List<String>.from(data['assignedPersonnelIds']) 
+          : [],
+      assignedAssets: data['assignedAssets'] is Map
           ? (data['assignedAssets'] as Map).map(
               (k, v) => MapEntry(k.toString(), (v as num).toInt()),
             )
           : {},
       assignedTruckName: data['assignedTruckName'],
-      assignedPersonnelNames: List<String>.from(data['assignedPersonnelNames'] ?? []),
+      assignedPersonnelNames: data['assignedPersonnelNames'] is List 
+          ? List<String>.from(data['assignedPersonnelNames']) 
+          : [],
+      isReviewed: data['isReviewed'] ?? false,
     );
   }
 
@@ -108,6 +146,7 @@ class Booking {
     return {
       'customerId': customerId,
       'assignedProviderId': assignedProviderId,
+      'assignedDriverId': assignedDriverId,
       'serviceType': serviceType,
       'address': address,
       'latitude': latitude,
@@ -122,12 +161,21 @@ class Booking {
       'estimatedCost': estimatedCost,
       'estimatedDurationMinutes': estimatedDurationMinutes,
       'specificService': specificService,
+      'selectedSubServices': selectedSubServices,
+      'serviceDetails': serviceDetails,
+      'barangay': barangay,
+      'zone': zone,
+      'landmarkDescription': landmarkDescription,
+      'problemCategory': problemCategory,
+      'issueCategory': issueCategory,
+      'adminFee': adminFee,
       'assignedTruckType': assignedTruckType?.name,
       'assignedTruckId': assignedTruckId,
       'assignedPersonnelIds': assignedPersonnelIds,
       'assignedAssets': assignedAssets,
       'assignedTruckName': assignedTruckName,
       'assignedPersonnelNames': assignedPersonnelNames,
+      'isReviewed': isReviewed,
     };
   }
 
@@ -136,6 +184,7 @@ class Booking {
     String? id,
     String? customerId,
     String? assignedProviderId,
+    String? assignedDriverId,
     String? serviceType,
     String? address,
     double? latitude,
@@ -150,17 +199,27 @@ class Booking {
     double? estimatedCost,
     int? estimatedDurationMinutes,
     String? specificService,
+    Map<String, int>? selectedSubServices,
+    Map<String, dynamic>? serviceDetails,
+    String? barangay,
+    String? zone,
+    String? landmarkDescription,
+    String? problemCategory,
+    String? issueCategory,
+    double? adminFee,
     TruckType? assignedTruckType,
     String? assignedTruckId,
     List<String>? assignedPersonnelIds,
     Map<String, int>? assignedAssets,
     String? assignedTruckName,
     List<String>? assignedPersonnelNames,
+    bool? isReviewed,
   }) {
     return Booking(
       id: id ?? this.id,
       customerId: customerId ?? this.customerId,
       assignedProviderId: assignedProviderId ?? this.assignedProviderId,
+      assignedDriverId: assignedDriverId ?? this.assignedDriverId,
       serviceType: serviceType ?? this.serviceType,
       address: address ?? this.address,
       latitude: latitude ?? this.latitude,
@@ -175,12 +234,21 @@ class Booking {
       estimatedCost: estimatedCost ?? this.estimatedCost,
       estimatedDurationMinutes: estimatedDurationMinutes ?? this.estimatedDurationMinutes,
       specificService: specificService ?? this.specificService,
+      selectedSubServices: selectedSubServices ?? this.selectedSubServices,
+      serviceDetails: serviceDetails ?? this.serviceDetails,
+      barangay: barangay ?? this.barangay,
+      zone: zone ?? this.zone,
+      landmarkDescription: landmarkDescription ?? this.landmarkDescription,
+      problemCategory: problemCategory ?? this.problemCategory,
+      issueCategory: issueCategory ?? this.issueCategory,
+      adminFee: adminFee ?? this.adminFee,
       assignedTruckType: assignedTruckType ?? this.assignedTruckType,
       assignedTruckId: assignedTruckId ?? this.assignedTruckId,
       assignedPersonnelIds: assignedPersonnelIds ?? this.assignedPersonnelIds,
       assignedAssets: assignedAssets ?? this.assignedAssets,
       assignedTruckName: assignedTruckName ?? this.assignedTruckName,
       assignedPersonnelNames: assignedPersonnelNames ?? this.assignedPersonnelNames,
+      isReviewed: isReviewed ?? this.isReviewed,
     );
   }
 

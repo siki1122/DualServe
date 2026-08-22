@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/service_action_card.dart';
 import 'booking_screen.dart';
+import '../../widgets/customer_drawer.dart';
 
 class CustomerServicesScreen extends StatelessWidget {
   const CustomerServicesScreen({super.key});
@@ -10,12 +11,12 @@ class CustomerServicesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
+      drawer: const CustomerDrawer(),
       appBar: AppBar(
         title: const Text('Book a Service'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppTheme.textSlateDark,
-        automaticallyImplyLeading: false, // Since it's a bottom nav tab
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -58,31 +59,6 @@ class CustomerServicesScreen extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) =>
                             const BookingScreen(serviceType: 'Towing'),
-                      ),
-                    );
-                  },
-                ),
-                // Placeholders for future services
-                ServiceActionCard(
-                  title: 'Plumbing',
-                  icon: Icons.plumbing,
-                  backgroundColor: const Color(0xFF0EA5E9), // Sky Blue
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Plumbing services coming soon!'),
-                      ),
-                    );
-                  },
-                ),
-                ServiceActionCard(
-                  title: 'Electrical',
-                  icon: Icons.electrical_services,
-                  backgroundColor: const Color(0xFFEAB308), // Yellow
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Electrical services coming soon!'),
                       ),
                     );
                   },

@@ -8,6 +8,8 @@ class Message {
   final String text;
   final DateTime timestamp;
   final bool isRead;
+  final String? imageUrl;
+  final String? senderRole; // Add senderRole to distinguish between Driver, Customer, Provider
 
   Message({
     required this.id,
@@ -17,6 +19,8 @@ class Message {
     required this.text,
     required this.timestamp,
     this.isRead = false,
+    this.imageUrl,
+    this.senderRole,
   });
 
   factory Message.fromFirestore(DocumentSnapshot doc) {
@@ -29,6 +33,8 @@ class Message {
       text: data['text'] ?? '',
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isRead: data['isRead'] ?? false,
+      imageUrl: data['imageUrl'],
+      senderRole: data['senderRole'],
     );
   }
 
@@ -40,6 +46,8 @@ class Message {
       'text': text,
       'timestamp': Timestamp.fromDate(timestamp),
       'isRead': isRead,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+      if (senderRole != null) 'senderRole': senderRole,
     };
   }
 
@@ -51,6 +59,8 @@ class Message {
     String? text,
     DateTime? timestamp,
     bool? isRead,
+    String? imageUrl,
+    String? senderRole,
   }) {
     return Message(
       id: id ?? this.id,
@@ -60,6 +70,8 @@ class Message {
       text: text ?? this.text,
       timestamp: timestamp ?? this.timestamp,
       isRead: isRead ?? this.isRead,
+      imageUrl: imageUrl ?? this.imageUrl,
+      senderRole: senderRole ?? this.senderRole,
     );
   }
 }

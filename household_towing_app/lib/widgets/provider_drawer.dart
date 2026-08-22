@@ -10,7 +10,8 @@ import 'package:household_towing_app/screens/provider/provider_asset_inventory_s
 import 'package:household_towing_app/screens/provider/provider_services_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_history_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_earnings_screen.dart';
-import 'package:household_towing_app/screens/provider/provider_pricing_settings_screen.dart';
+import 'package:household_towing_app/screens/provider/provider_ratings_screen.dart';
+import 'package:household_towing_app/screens/provider/provider_team_screen.dart';
 
 class ProviderDrawer extends StatelessWidget {
   const ProviderDrawer({super.key});
@@ -59,24 +60,29 @@ class ProviderDrawer extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 10),
+
+
                   _buildDrawerItem(
                     context,
-                    icon: Icons.task_alt,
-                    title: 'My Assigned Tasks',
+                    icon: Icons.group,
+                    title: 'My Team (Drivers)',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderTasksScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderTeamScreen()));
                     },
                   ),
+                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
+
                   _buildDrawerItem(
                     context,
-                    icon: Icons.search,
-                    title: 'Browse Available Tasks',
+                    icon: Icons.star_outline,
+                    title: 'My Ratings',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AvailableTasksScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderRatingsScreen()));
                     },
                   ),
+                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
                   _buildDrawerItem(
                     context,
                     icon: Icons.calendar_month,
@@ -86,25 +92,8 @@ class ProviderDrawer extends StatelessWidget {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderScheduleScreen()));
                     },
                   ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.inventory_2,
-                    title: 'Asset Inventory',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderAssetInventoryScreen()));
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.handyman,
-                    title: 'My Services',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderServicesScreen()));
-                    },
-                  ),
-                  Divider(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]),
+
+                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
                   _buildDrawerItem(
                     context,
                     icon: Icons.history,
@@ -123,16 +112,8 @@ class ProviderDrawer extends StatelessWidget {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderEarningsScreen()));
                     },
                   ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.sell_outlined,
-                    title: 'Pricing Config',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderPricingSettingsScreen()));
-                    },
-                  ),
-                  Divider(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]),
+
+                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
                   _buildDrawerItem(
                     context,
                     icon: Icons.settings,
@@ -146,7 +127,7 @@ class ProviderDrawer extends StatelessWidget {
               ),
             ),
           ),
-          Divider(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]),
+          Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
           _buildDrawerItem(
             context,
             icon: Icons.logout,

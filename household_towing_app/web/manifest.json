@@ -1,6 +1,6 @@
 {
-    "name": "household_towing_app",
-    "short_name": "household_towing_app",
+    "name": "DualServ",
+    "short_name": "DualServ",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

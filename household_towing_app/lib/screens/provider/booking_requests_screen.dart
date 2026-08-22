@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'booking_detail_screen.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/provider_drawer.dart';
+import '../../widgets/shimmer_loading.dart';
 
 class BookingRequestsScreen extends StatefulWidget {
   const BookingRequestsScreen({super.key});
@@ -16,10 +17,11 @@ class _BookingRequestsScreenState extends State<BookingRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: AppTheme.background,
+      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
       drawer: const ProviderDrawer(),
       appBar: AppBar(
         title: const Text(
@@ -36,7 +38,7 @@ class _BookingRequestsScreenState extends State<BookingRequestsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             width: double.infinity,
-            color: Colors.white,
+            color: isDark ? AppTheme.surfaceDark : Colors.white,
             child: Row(
               children: [
                 Icon(Icons.info_outline, size: 18, color: AppTheme.primaryBlue),
@@ -57,7 +59,10 @@ class _BookingRequestsScreenState extends State<BookingRequestsScreen> {
               stream: _getStream(uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: ShimmerLoading.cardPlaceholder(count: 3, isDark: isDark),
+                  );
                 }
 
                 if (snapshot.hasError) {
@@ -186,7 +191,7 @@ class _BookingCardState extends State<_BookingCard> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

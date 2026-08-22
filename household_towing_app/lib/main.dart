@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/provider/provider_main_layout.dart';
-import 'screens/admin/admin_home.dart';
+import 'screens/driver/driver_main_layout.dart';
 import 'utils/app_theme.dart';
 import 'screens/customer/customer_main_layout.dart';
 import 'package:provider/provider.dart';
@@ -14,7 +14,9 @@ import 'services/notification_service.dart';
 import 'services/notification_service_local.dart';
 import 'screens/auth/profile_setup_screen.dart';
 import 'widgets/error_boundary.dart';
+import 'widgets/global_message_overlay.dart';
 
+import 'package:flutter/foundation.dart';
 import 'screens/auth/pending_approval_screen.dart';
 import 'services/logging_service.dart';
 
@@ -22,11 +24,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Enable Offline Persistence
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
+  // Enable Offline Persistence ONLY on Mobile (Web causes IndexedDB locking issues across multiple tabs)
+  if (!kIsWeb) {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  }
   FirebaseFirestore.instance.enableNetwork().catchError((e) => Logger.error('Failed to enable network', e));
 
   runApp(
@@ -45,7 +49,7 @@ class MyApp extends StatelessWidget {
     return Consumer<UserProvider>(
       builder: (context, userProvider, child) {
         return MaterialApp(
-          title: 'Household & Towing Services',
+          title: 'DualServ',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
@@ -81,7 +85,7 @@ class AuthWrapper extends StatelessWidget {
             NotificationService().initialize(); // INIT FCM
             LocalNotificationService().initialize(); // INIT LOCAL FALLBACK
           });
-          return const RoleBasedHome();
+          return const GlobalMessageOverlay(child: RoleBasedHome());
         }
 
         // Clear user data when logged out
@@ -108,10 +112,7 @@ class RoleBasedHome extends StatelessWidget {
         }
 
         final role = userProvider.role?.toLowerCase();
-        if (role == 'admin') {
-          return const AdminHome();
-        }
-
+        
         // Check if profile is incomplete (missing name or role)
         final profile = userProvider.userProfile;
         if (profile == null ||
@@ -125,6 +126,8 @@ class RoleBasedHome extends StatelessWidget {
           return const ProviderMainLayout();
         } else if (role == 'pending_provider') {
           return const PendingApprovalScreen();
+        } else if (role == 'driver') {
+          return const DriverMainLayout();
         }
         return const CustomerMainLayout();
       },

@@ -10,6 +10,30 @@ class BookingService {
   static const String _tasksCollection = 'tasks';
   static const int _pageSize = 20; // Pagination size
 
+  Future<void> cleanupExpiredBookings({int timeoutMinutes = 15}) async {
+    try {
+      final now = DateTime.now();
+      final threshold = now.subtract(Duration(minutes: timeoutMinutes));
+
+      final snapshot = await _firestore
+          .collection('bookings')
+          .where('status', isEqualTo: 'pending')
+          .where('createdAt', isLessThan: Timestamp.fromDate(threshold))
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final batch = _firestore.batch();
+        for (var doc in snapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+        Logger.info('Cleaned up ${snapshot.docs.length} expired pending bookings.');
+      }
+    } catch (e) {
+      Logger.error('Failed to cleanup expired bookings', e);
+    }
+  }
+
   // CREATE - Add new booking
   Future<String> createBooking(Booking booking) async {
     try {
@@ -20,12 +44,44 @@ class BookingService {
 
       Logger.debug('Booking data prepared: ${bookingData.keys.join(', ')}');
 
-      final docRef = await _firestore
-          .collection(_bookingsCollection)
-          .add(bookingData);
+      String newBookingId = '';
 
-      Logger.info('Booking created with ID: ${docRef.id}');
-      return docRef.id;
+      if (booking.assignedProviderId != null && booking.assignedProviderId!.isNotEmpty) {
+        // Run as transaction to atomic-lock the time slot
+        final String slotId = '${booking.assignedProviderId}_${booking.scheduledDate.toIso8601String().split('T')[0]}_${booking.scheduledTime}';
+        final slotRef = _firestore.collection('provider_slots').doc(slotId);
+        final bookingRef = _firestore.collection(_bookingsCollection).doc();
+        newBookingId = bookingRef.id;
+
+        await _firestore.runTransaction((transaction) async {
+          final slotSnap = await transaction.get(slotRef);
+          if (slotSnap.exists) {
+            throw Exception('This time slot was just booked by someone else. Please choose a different time.');
+          }
+
+
+
+          // Write slot lock and booking
+          transaction.set(slotRef, {
+            'bookedAt': Timestamp.now(),
+            'customerId': booking.customerId,
+            'providerId': booking.assignedProviderId,
+            'scheduledDate': Timestamp.fromDate(booking.scheduledDate),
+            'scheduledTime': booking.scheduledTime,
+          });
+
+          transaction.set(bookingRef, bookingData);
+        });
+      } else {
+        // No assigned provider (unassigned pool booking)
+        final docRef = await _firestore
+            .collection(_bookingsCollection)
+            .add(bookingData);
+        newBookingId = docRef.id;
+      }
+
+      Logger.info('Booking created with ID: $newBookingId');
+      return newBookingId;
     } catch (e) {
       Logger.error('Error creating booking', e);
       throw Exception('Error creating booking: $e');
@@ -114,77 +170,133 @@ class BookingService {
   }
 
   // UPDATE - Accept booking by provider
-  Future<void> acceptBooking(String bookingId, String providerId) async {
+  Future<String> acceptBooking(
+    String bookingId, 
+    String providerId, {
+    String? truckId,
+    String? truckName,
+    String? driverId,
+    String? driverName,
+  }) async {
     try {
+      String? innerErrorDetails;
+      String? createdTaskId;
       await _firestore.runTransaction((transaction) async {
-        final bookingRef = _firestore
-            .collection(_bookingsCollection)
-            .doc(bookingId);
-        final bookingSnapshot = await transaction.get(bookingRef);
+        try {
+          final bookingRef = _firestore
+              .collection(_bookingsCollection)
+              .doc(bookingId);
+          final bookingSnapshot = await transaction.get(bookingRef);
 
-        if (!bookingSnapshot.exists) {
-          throw Exception('Booking not found');
-        }
+          if (!bookingSnapshot.exists) {
+            throw Exception('Booking not found');
+          }
 
-        final status = bookingSnapshot.get('status');
-        if (status != 'pending') {
-          throw Exception(
-            'Booking is no longer pending (current status: $status)',
+          final status = bookingSnapshot.get('status');
+          if (status != 'pending') {
+            throw Exception(
+              'Booking is no longer pending (current status: $status)',
+            );
+          }
+
+          // 1. Prepare task data
+          final booking = Booking.fromFirestore(bookingSnapshot);
+          final taskRef = _firestore.collection(_tasksCollection).doc();
+
+          final task = Task(
+            id: taskRef.id,
+            customerId: booking.customerId,
+            assignedProviderId: providerId,
+            assignedDriverId: driverId, // Assigned to specific driver
+            assignedDriverName: driverName,
+            serviceType: booking.serviceType,
+            location: booking.address,
+            latitude: booking.latitude ?? 0.0,
+            longitude: booking.longitude ?? 0.0,
+            scheduledDate: booking.scheduledDate,
+            description: booking.notes,
+            priority: TaskPriority.medium,
+            status: TaskStatus.assigned,
+            createdAt: DateTime.now(),
+            estimatedCost: booking.estimatedCost,
+            estimatedDurationMinutes: booking.estimatedDurationMinutes,
+            bookingId: bookingId,
+            assignedTruckId: truckId ?? booking.assignedTruckId,
+            assignedTruckName: truckName ?? booking.assignedTruckName,
+            assignedPersonnelIds: driverId != null ? [driverId] : booking.assignedPersonnelIds,
+            assignedPersonnelNames: driverName != null ? [driverName] : booking.assignedPersonnelNames,
+            assignedAssets: booking.assignedAssets,
           );
+
+          // 2. Create task document
+          transaction.set(taskRef, task.toFirestore());
+
+          // 3. Update booking status to converted_to_task IN ONE GO
+          transaction.update(bookingRef, {
+            'assignedProviderId': providerId,
+            'status': 'converted_to_task',
+            'acceptedAt': Timestamp.now(),
+            'taskId': taskRef.id,
+          });
+
+          // 4. Update the assigned truck's asset status to inUse if a truck was selected
+          if (truckId != null && driverId != null) {
+            final assetRef = _firestore.collection('assets').doc(truckId);
+            transaction.update(assetRef, {
+              'assignedTo': driverId,
+              'providerName': driverName, // Name of the person holding the asset
+              'status': 'inUse',
+              'currentTaskId': taskRef.id,
+              'currentTaskLabel': booking.serviceType,
+            });
+          }
+
+          Logger.info(
+            'Transaction: Booking $bookingId accepted and converted to task ${taskRef.id}',
+          );
+          createdTaskId = taskRef.id;
+        } catch (innerE, innerStack) {
+          innerErrorDetails = 'INNER EXCEPTION: $innerE\n$innerStack';
         }
-
-        // 1. Prepare task data
-        final booking = Booking.fromFirestore(bookingSnapshot);
-        final taskRef = _firestore.collection(_tasksCollection).doc();
-
-        final task = Task(
-          id: taskRef.id,
-          customerId: booking.customerId,
-          assignedProviderId: providerId,
-          serviceType: booking.serviceType,
-          location: booking.address,
-          latitude: booking.latitude ?? 0.0,
-          longitude: booking.longitude ?? 0.0,
-          scheduledDate: booking.scheduledDate,
-          description: booking.notes,
-          priority: TaskPriority.medium,
-          status: TaskStatus.assigned,
-          createdAt: DateTime.now(),
-          estimatedCost: booking.estimatedCost,
-          estimatedDurationMinutes: booking.estimatedDurationMinutes,
-          bookingId: bookingId,
-          assignedTruckId: booking.assignedTruckId,
-          assignedTruckName: booking.assignedTruckName,
-          assignedPersonnelIds: booking.assignedPersonnelIds,
-          assignedPersonnelNames: booking.assignedPersonnelNames,
-          assignedAssets: booking.assignedAssets,
-        );
-
-        // 2. Create task document
-        transaction.set(taskRef, task.toFirestore());
-
-        // 3. Update booking status to converted_to_task IN ONE GO
-        // This avoids multiple evaluations of the same document in the same transaction
-        transaction.update(bookingRef, {
-          'assignedProviderId': providerId,
-          'status': 'converted_to_task',
-          'acceptedAt': Timestamp.now(),
-          'taskId': taskRef.id,
-        });
-
-        Logger.info(
-          'Transaction: Booking $bookingId accepted and converted to task ${taskRef.id}',
-        );
       });
+      
+      if (innerErrorDetails != null) {
+        throw Exception(innerErrorDetails);
+      }
+      return createdTaskId!;
+    } catch (e, stack) {
+      Logger.error('Error in acceptBooking transaction', e, stack);
+      throw Exception('Error accepting booking: $e\nStack: $stack');
+    }
+  }
+
+  // HELPER - Release provider slot lock
+  Future<void> _freeProviderSlot(String? providerId, DateTime? date, String? time) async {
+    if (providerId == null || providerId.isEmpty || date == null || time == null || time.isEmpty) return;
+    try {
+      final slotId = '${providerId}_${date.toIso8601String().split('T')[0]}_$time';
+      await _firestore.collection('provider_slots').doc(slotId).delete();
+      Logger.info('Released provider slot lock: $slotId');
     } catch (e) {
-      Logger.error('Error in acceptBooking transaction', e);
-      throw Exception('Error accepting booking: $e');
+      Logger.error('Failed to release provider slot lock', e);
     }
   }
 
   // UPDATE - Reject booking
   Future<void> rejectBooking(String bookingId) async {
     try {
+      final doc = await _firestore.collection(_bookingsCollection).doc(bookingId).get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        final providerId = data['assignedProviderId'] as String?;
+        final Timestamp? scheduledDateStamp = data['scheduledDate'] as Timestamp?;
+        final String? scheduledTime = data['scheduledTime'] as String?;
+        
+        if (providerId != null && scheduledDateStamp != null && scheduledTime != null) {
+          await _freeProviderSlot(providerId, scheduledDateStamp.toDate(), scheduledTime);
+        }
+      }
+
       await _firestore.collection(_bookingsCollection).doc(bookingId).update({
         'status': 'rejected',
       });
@@ -226,6 +338,13 @@ class BookingService {
         Logger.info(
           'Applying ${PricingConfig.formatPrice(PricingConfig.cancellationFee)} cancellation fee to booking $bookingId',
         );
+      }
+
+      // Release slot lock
+      if (providerId != null && data['scheduledDate'] != null && data['scheduledTime'] != null) {
+        final DateTime scheduledDate = (data['scheduledDate'] as Timestamp).toDate();
+        final String scheduledTime = data['scheduledTime'] as String;
+        await _freeProviderSlot(providerId, scheduledDate, scheduledTime);
       }
 
       await _firestore
@@ -392,8 +511,9 @@ class BookingService {
       double totalEarnings = 0;
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        totalEarnings += (data['estimatedCost'] ?? 0.0).toDouble();
-        totalEarnings += (data['cancellationFee'] ?? 0.0).toDouble();
+        final costToUse = (data['finalCost'] as num?) ?? (data['estimatedCost'] as num?) ?? 0.0;
+        totalEarnings += costToUse.toDouble();
+        totalEarnings += (data['cancellationFee'] as num? ?? 0.0).toDouble();
       }
       return totalEarnings;
     } catch (e) {
@@ -442,11 +562,12 @@ class BookingService {
             if (isToday) {
               if (status == 'completed') {
                 todayJobs++;
-                todayEarnings += (data['estimatedCost'] ?? 0.0).toDouble();
+                final costToUse = (data['finalCost'] as num?) ?? (data['estimatedCost'] as num?) ?? 0.0;
+                todayEarnings += costToUse.toDouble();
               } else if (['accepted', 'converted_to_task'].contains(status)) {
                 todayJobs++;
               }
-              todayEarnings += (data['cancellationFee'] ?? 0.0).toDouble();
+              todayEarnings += (data['cancellationFee'] as num? ?? 0.0).toDouble();
             }
           }
 

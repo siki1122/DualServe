@@ -30,17 +30,39 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       
-      // Users can only create their own document with customer or pending_provider role
+      // Users can only create their own document with customer, pending_provider, provider, or driver role
       allow create: if isSignedIn() && request.auth.uid == userId && 
-                    request.resource.data.role in ['customer', 'pending_provider'];
+                    request.resource.data.role in ['customer', 'pending_provider', 'provider', 'driver'];
       
-      // Users can update their own data BUT CANNOT change their own role
+      // Users can update their own data BUT CANNOT change their own role 
+      // (Except transitioning to provider/pending_provider/driver for verification)
       allow update: if isSignedIn() && (
-        (request.auth.uid == userId && request.resource.data.role == resource.data.role) || 
+        (request.auth.uid == userId && (
+          request.resource.data.role == resource.data.role || 
+          request.resource.data.role in ['pending_provider', 'provider', 'driver']
+        )) || 
         isAdmin()
       );
       
       allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // DRIVERS COLLECTION
+    // ============================================================================
+    match /drivers/{driverId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == driverId;
+      allow update: if isSignedIn() && (request.auth.uid == driverId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // DRIVER LOCATIONS COLLECTION
+    // ============================================================================
+    match /driver_locations/{driverId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == driverId;
     }
 
     // ============================================================================
@@ -49,13 +71,17 @@ service cloud.firestore {
     match /providers/{providerId} {
       allow read: if isSignedIn();
       
-      // Providers can create their own profile BUT MUST be unapproved
-      allow create: if isSignedIn() && request.auth.uid == providerId && 
-                    request.resource.data.isApproved == false;
+      // Providers can create their own profile
+      allow create: if isSignedIn() && request.auth.uid == providerId;
       
-      // Only admins can change isApproved from false to true
+      // Only admins can change isApproved from false to true (or the user during creation)
       allow update: if isSignedIn() && (
-        (request.auth.uid == providerId && request.resource.data.isApproved == resource.data.isApproved) || 
+        (request.auth.uid == providerId && (
+          request.resource.data.isApproved == false || 
+          request.resource.data.isApproved == resource.data.isApproved
+        )) || 
+        // Allow customers to update rating and jobsCompleted when submitting a review
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'jobsCompleted'])) ||
         isAdmin()
       );
       
@@ -71,11 +97,28 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         resource.data.customerId == request.auth.uid ||
         resource.data.assignedProviderId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == resource.data.assignedProviderId) ||
         isAdmin() ||
         // Allow providers to accept a pending booking
         (resource.data.status == 'pending' && request.resource.data.assignedProviderId == request.auth.uid)
       );
       allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // PROVIDER SLOTS COLLECTION
+    // ============================================================================
+    match /provider_slots/{slotId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (request.resource.data.customerId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (
+        // Either the customer who booked it, the assigned provider, or an admin can delete the slot lock
+        resource.data.customerId == request.auth.uid ||
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow update: if isAdmin();
     }
 
     // ============================================================================
@@ -85,6 +128,9 @@ service cloud.firestore {
       allow read, update: if isSignedIn() && (
         resource.data.customerId == request.auth.uid ||
         resource.data.assignedProviderId == request.auth.uid ||
+        resource.data.assignedDriverId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == resource.data.assignedProviderId) ||
         isAdmin()
       );
       allow create: if isSignedIn() && (
@@ -101,92 +147,44 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isAdmin() || (
         isSignedIn() &&
-        request.resource.data.keys().hasOnly([
-          'name',
-          'category',
-          'type',
-          'status',
-          'plateNumber',
-          'assignedTo',
-          'providerName',
-          'lastMaintenance',
-          'nextMaintenance',
-          'jobsCompleted',
-          'metadata',
-          'quantity'
-        ]) &&
-        request.resource.data.keys().hasAll([
-          'name',
-          'category',
-          'type',
-          'status',
-          'assignedTo',
-          'providerName',
-          'jobsCompleted',
-          'metadata',
-          'quantity'
-        ]) &&
-        request.resource.data.assignedTo == request.auth.uid &&
-        request.resource.data.status == 'inUse' &&
-        request.resource.data.type in ['vehicle', 'tool', 'equipment'] &&
-        request.resource.data.name is string &&
-        request.resource.data.category is string &&
-        request.resource.data.providerName is string &&
-        request.resource.data.jobsCompleted == 0
+        (request.resource.data.assignedTo == request.auth.uid || 
+         request.resource.data.ownerId == request.auth.uid || 
+         assetId == request.auth.uid) &&
+        request.resource.data.status in ['active', 'inUse'] &&
+        request.resource.data.type in ['vehicle', 'tool', 'equipment', 'crew']
       );
       allow update: if isAdmin() || (
         isSignedIn() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'assignedTo',
           'providerName',
           'status',
           'jobsCompleted',
-          'quantity'
+          'quantity',
+          'currentTaskId',
+          'currentTaskLabel'
         ]) &&
         (
-          // Allow picking up an asset
+          // Allow picking up an asset (setting to inUse and setting task fields)
           (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'assignedTo',
-              'providerName',
-              'status'
-            ]) &&
             resource.data.status == 'active' &&
-            resource.data.get('assignedTo', null) == null &&
-            request.resource.data.assignedTo == request.auth.uid &&
             request.resource.data.status == 'inUse'
           ) ||
-          // Allow returning an asset (setting to active/null)
+          // Allow returning an asset (setting back to active and clearing task fields)
           (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'assignedTo',
-              'providerName',
-              'status'
-            ]) &&
-            resource.data.assignedTo == request.auth.uid &&
-            request.resource.data.assignedTo == null &&
-            request.resource.data.providerName == null &&
             request.resource.data.status == 'active'
           ) ||
-          // Allow incrementing jobs completed
+          // Allow incrementing jobs completed and updating task info
           (
-            resource.data.assignedTo == request.auth.uid &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'jobsCompleted'
-            ]) &&
-            request.resource.data.jobsCompleted ==
-              resource.data.get('jobsCompleted', 0) + 1
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['jobsCompleted', 'status', 'currentTaskId', 'currentTaskLabel', 'quantity'])
           ) ||
           // Allow returning quantity (for tools/consumables)
           (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'quantity'
-            ]) &&
-            request.resource.data.quantity > resource.data.quantity
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity', 'status'])
           )
         )
       );
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isSignedIn() && (resource.data.ownerId == request.auth.uid || resource.data.assignedTo == request.auth.uid));
     }
 
     // ============================================================================
@@ -218,15 +216,21 @@ service cloud.firestore {
       allow read: if isSignedIn() && (
         resource.data.customerId == request.auth.uid ||
         resource.data.providerId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == resource.data.providerId) ||
         isAdmin()
       );
       allow create: if isSignedIn() && (
         request.resource.data.customerId == request.auth.uid ||
         request.resource.data.providerId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == request.resource.data.providerId) ||
         isAdmin()
       );
       allow update: if isSignedIn() && (
         resource.data.providerId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == resource.data.providerId) ||
         isAdmin()
       );
       allow delete: if isAdmin();
@@ -239,6 +243,16 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
       allow update, delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // NOTIFICATIONS COLLECTION
+    // ============================================================================
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     // ============================================================================

@@ -3,7 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:household_towing_app/models/task_model.dart';
 import 'package:household_towing_app/services/task_service.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
-import 'package:household_towing_app/providers/user_provider.dart';
+import '../../widgets/primary_async_button.dart';
+import '../../widgets/shimmer_loading.dart';
+import '../../widgets/provider_drawer.dart';
 
 class AvailableTasksScreen extends StatefulWidget {
   const AvailableTasksScreen({super.key});
@@ -15,7 +17,6 @@ class AvailableTasksScreen extends StatefulWidget {
 class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
   final TaskService _taskService = TaskService();
   late String _providerId;
-  bool _isAccepting = false;
   int _refreshKey = 0;
 
   @override
@@ -30,6 +31,7 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+      drawer: const ProviderDrawer(),
       appBar: AppBar(
         title: Text(
           'Available Tasks',
@@ -52,7 +54,10 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
           stream: _taskService.getUnassignedTasks(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ShimmerLoading.cardPlaceholder(count: 3, isDark: isDark),
+              );
             }
 
             final tasks = snapshot.data ?? [];
@@ -69,7 +74,7 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
                           Icon(
                             Icons.inbox_outlined,
                             size: 64,
-                            color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[300],
+                            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[300],
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -162,24 +167,7 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getPriorityBgColor(task.priority, isDark),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        task.priority.toString().split('.').last.toUpperCase(),
-                        style: TextStyle(
-                          color: _getPriorityTextColor(task.priority, isDark),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -231,7 +219,7 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
                       child: OutlinedButton(
                         onPressed: () => _showTaskDetail(task),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade300),
+                          side: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300),
                           foregroundColor: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -242,26 +230,9 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isAccepting ? null : () => _acceptTask(task),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.towingOrange,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: Colors.grey,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isAccepting
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text('Accept Task', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: PrimaryAsyncButton(
+                        text: 'Accept Task',
+                        onPressed: () => _acceptTask(task, context),
                       ),
                     ),
                   ],
@@ -313,10 +284,7 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
                   _buildDetailRow('Service Type', task.serviceType),
                   _buildDetailRow('Location', task.location),
                   _buildDetailRow('Scheduled', _formatDateTime(task.scheduledDate)),
-                  _buildDetailRow(
-                    'Priority',
-                    task.priority.toString().split('.').last.toUpperCase(),
-                  ),
+
                   if (task.estimatedDurationMinutes != null)
                     _buildDetailRow(
                       'Est. Duration',
@@ -330,27 +298,10 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
                   if (task.description != null && task.description!.isNotEmpty)
                     _buildDetailRow('Details', task.description!),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: _isAccepting ? null : () => _acceptTask(task),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.towingOrange,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.check_circle),
-                      label: const Text(
-                        'Accept Task',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                  PrimaryAsyncButton(
+                    text: 'Accept Task',
+                    icon: Icons.check_circle,
+                    onPressed: () => _acceptTask(task, context),
                   ),
                 ],
               ),
@@ -393,15 +344,13 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
     );
   }
 
-  Future<void> _acceptTask(Task task) async {
-    setState(() => _isAccepting = true);
-
+  Future<void> _acceptTask(Task task, BuildContext btnContext) async {
     try {
       // Assign task to this provider immediately (Instant Claim)
       await _taskService.assignTask(task.id, _providerId);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(btnContext).showSnackBar(
           const SnackBar(
             content: Text('✓ Task claimed! You can assign assets from "My Tasks".'),
             backgroundColor: Colors.green,
@@ -409,53 +358,23 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
         );
 
         // Close bottom sheet if open
-        if (Navigator.of(context).canPop()) {
-          // Check if we are in the bottom sheet (the builder's context)
-          // or the main screen context.
-          Navigator.pop(context);
+        if (Navigator.of(btnContext).canPop()) {
+          Navigator.pop(btnContext);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(btnContext).showSnackBar(
           SnackBar(
             content: Text('Error claiming task: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isAccepting = false);
-      }
     }
   }
 
-  Color _getPriorityBgColor(TaskPriority priority, bool isDark) {
-    switch (priority) {
-      case TaskPriority.low:
-        return isDark ? Colors.blue.withOpacity(0.1) : Colors.blue.shade50;
-      case TaskPriority.medium:
-        return isDark ? Colors.orange.withOpacity(0.1) : Colors.orange.shade50;
-      case TaskPriority.high:
-        return isDark ? Colors.red.withOpacity(0.1) : Colors.red.shade50;
-      case TaskPriority.urgent:
-        return isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade100;
-    }
-  }
 
-  Color _getPriorityTextColor(TaskPriority priority, bool isDark) {
-    switch (priority) {
-      case TaskPriority.low:
-        return isDark ? Colors.blueAccent : Colors.blue.shade700;
-      case TaskPriority.medium:
-        return isDark ? Colors.orangeAccent : Colors.orange.shade700;
-      case TaskPriority.high:
-        return isDark ? Colors.redAccent : Colors.red.shade700;
-      case TaskPriority.urgent:
-        return isDark ? Colors.red.shade300 : Colors.red.shade900;
-    }
-  }
 
   String _formatTime(DateTime date) {
     final hour = date.hour.toString().padLeft(2, '0');

@@ -60,6 +60,34 @@ class UserService {
     throw lastError ?? Exception('Failed to fetch provider profile after $maxRetries retries');
   }
 
+  /// Fetch driver profile from 'drivers' collection with retry logic
+  Future<Map<String, dynamic>?> getDriverProfile(String uid) async {
+    int retryCount = 0;
+    const int maxRetries = 3;
+    dynamic lastError;
+
+    while (retryCount < maxRetries) {
+      try {
+        final doc = await _firestore.collection('drivers').doc(uid).get();
+        if (!doc.exists) return null;
+        return doc.data();
+      } catch (e) {
+        lastError = e;
+        if (e.toString().contains('unavailable') || e.toString().contains('offline')) {
+          retryCount++;
+          Logger.warn('Firestore unavailable, retrying ($retryCount/$maxRetries) for driver $uid...');
+          await _firestore.enableNetwork().catchError((_) {});
+          await Future.delayed(Duration(seconds: 1 * retryCount));
+          continue;
+        }
+        Logger.error('Failed to fetch driver profile for $uid', e);
+        rethrow;
+      }
+    }
+    Logger.error('Max retries reached for driver profile $uid', lastError);
+    throw lastError ?? Exception('Failed to fetch driver profile after $maxRetries retries');
+  }
+
   /// Update availability status for provider
   Future<void> updateProviderAvailability(String uid, bool isAvailable) async {
     try {
@@ -70,7 +98,7 @@ class UserService {
       Logger.info('Updated availability for provider $uid: $isAvailable');
     } catch (e) {
       Logger.error('Failed to update provider availability', e);
-      throw e;
+      rethrow;
     }
   }
 

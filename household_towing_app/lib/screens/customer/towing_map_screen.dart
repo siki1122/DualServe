@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' as ll;
+import 'package:latlong2/latlong.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/location_service.dart';
+import '../../services/routing_service.dart';
 import '../../utils/app_theme.dart';
 import 'booking_screen.dart';
 
@@ -18,12 +19,13 @@ class TowingMapScreen extends StatefulWidget {
 class _TowingMapScreenState extends State<TowingMapScreen> {
   final MapController _mapController = MapController();
   Position? _currentPosition;
-  List<Marker> _markers = [];
   bool _isLoading = true;
   Map<String, dynamic>? _selectedProvider;
   double? _selectedDistance;
   String? _noProvidersMessage;
   List<Map<String, dynamic>> _availableProvidersData = [];
+  List<LatLng> _routePoints = [];
+  final RoutingService _routingService = RoutingService();
 
   @override
   void initState() {
@@ -40,6 +42,16 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
           _isLoading = false;
         });
         _fetchProviders();
+        
+        // Center map on user - wrap in try-catch to avoid issues if map is not ready
+        try {
+          _mapController.move(
+            LatLng(position.latitude, position.longitude),
+            14.0,
+          );
+        } catch (e) {
+          // Map might not be ready yet
+        }
       }
     } else {
       if (mounted) {
@@ -83,34 +95,11 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
           _availableProvidersData = providers;
           _noProvidersMessage = null;
         });
-        _createMarkers(providers);
       }
     } catch (e) {
       setState(() {
-        _noProvidersMessage = 'Error loading providers. Please try again.';
+        _noProvidersMessage = 'Error: ${e.toString()}';
       });
-    }
-  }
-
-  void _createMarkers(List<Map<String, dynamic>> providers) {
-    final markers = providers.map((p) {
-      return Marker(
-        point: ll.LatLng(p['latitude'], p['longitude']),
-        width: 40,
-        height: 40,
-        child: GestureDetector(
-          onTap: () => _onProviderSelected(p),
-          child: const Icon(
-            Icons.location_on,
-            color: AppTheme.towingOrange,
-            size: 40,
-          ),
-        ),
-      );
-    }).toList();
-
-    if (mounted) {
-      setState(() => _markers = markers);
     }
   }
 
@@ -127,9 +116,37 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
     setState(() {
       _selectedProvider = provider;
       _selectedDistance = distance;
+      _routePoints = []; // clear old route
     });
 
+    _fetchRoute(provider);
     _showProviderDetails();
+  }
+
+  Future<void> _fetchRoute(Map<String, dynamic> provider) async {
+    if (_currentPosition == null) return;
+    
+    final customerLatLng = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+    final providerLatLng = LatLng(provider['latitude'], provider['longitude']);
+    
+    final routeData = await _routingService.getRoute(customerLatLng, providerLatLng);
+    if (routeData != null && mounted) {
+      setState(() {
+        _routePoints = routeData['points'];
+      });
+      
+      try {
+        final bounds = LatLngBounds.fromPoints([customerLatLng, providerLatLng, ..._routePoints]);
+        _mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: bounds,
+            padding: const EdgeInsets.all(80.0),
+          ),
+        );
+      } catch (e) {
+        // Map controller might not be ready
+      }
+    }
   }
 
   void _showProviderDetails() {
@@ -170,7 +187,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                           const Icon(Icons.star, color: Colors.amber, size: 18),
                           const SizedBox(width: 4),
                           Text(
-                            '${_selectedProvider!['rating']}',
+                            (_selectedProvider!['rating'] as num?)?.toStringAsFixed(1) ?? '0.0',
                             style: const TextStyle(
                               color: AppTheme.textSlateMedium,
                               fontWeight: FontWeight.bold,
@@ -187,7 +204,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.towingOrange.withOpacity(0.1),
+                    color: AppTheme.towingOrange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -202,54 +219,35 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
               ],
             ),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _callSelectedProvider,
-                    icon: const Icon(Icons.phone),
-                    label: const Text('Contact'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.textSlateMedium,
-                      side: BorderSide(color: Colors.grey[300]!),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookingScreen(
+                        serviceType: 'Towing',
+                        preSelectedProviderId: _selectedProvider!['id'],
                       ),
                     ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.towingOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 0,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BookingScreen(
-                            serviceType: 'Towing',
-                            preSelectedProviderId: _selectedProvider!['id'],
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.towingOrange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Book Now',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                child: const Text(
+                  'Book Now',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -284,50 +282,86 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                   mapController: _mapController,
                   options: MapOptions(
                     initialCenter: _currentPosition != null
-                        ? ll.LatLng(
-                            _currentPosition!.latitude,
-                            _currentPosition!.longitude,
-                          )
-                        : ll.LatLng(10.6667, 122.9500),
-                    initialZoom: 14,
+                        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+                        : const LatLng(10.6667, 122.9500),
+                    initialZoom: 14.0,
+                    cameraConstraint: CameraConstraint.contain(
+                      bounds: LatLngBounds(
+                        const LatLng(9.0, 122.3),
+                        const LatLng(11.1, 123.6),
+                      ),
+                    ),
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all,
+                    ),
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.household_towing_app',
+                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                      subdomains: const ['a', 'b', 'c', 'd'],
+                      userAgentPackageName: 'com.dualserve.app',
                     ),
-                    MarkerLayer(markers: _markers),
                     if (_currentPosition != null)
                       MarkerLayer(
                         markers: [
                           Marker(
-                            point: ll.LatLng(
-                              _currentPosition!.latitude,
-                              _currentPosition!.longitude,
-                            ),
-                            width: 20,
-                            height: 20,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.blue,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.blue.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
+                            point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                            width: 60,
+                            height: 60,
+                            child: const Icon(
+                              Icons.my_location,
+                              color: AppTheme.primaryBlue,
+                              size: 32,
                             ),
                           ),
                         ],
                       ),
+                    if (_routePoints.isNotEmpty)
+                      PolylineLayer(
+                        polylines: <Polyline<Object>>[
+                          Polyline<Object>(
+                            points: _routePoints,
+                            color: AppTheme.towingOrange,
+                            strokeWidth: 4.0,
+                          ),
+                        ],
+                      ),
+                    MarkerLayer(
+                      markers: _availableProvidersData.map((p) {
+                        return Marker(
+                          point: LatLng(p['latitude'], p['longitude']),
+                          width: 80,
+                          height: 80,
+                          child: GestureDetector(
+                            onTap: () => _onProviderSelected(p),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.towingOrange,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.2),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.local_shipping,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ],
                 ),
                 if (_currentPosition == null && !_isLoading)
@@ -340,7 +374,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -372,7 +406,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            'To find the nearest towing services, we need access to your location. Please enable location permissions in your settings.',
+                            'To find the nearest towing services, we need access to your location.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: AppTheme.textSlateMedium,
@@ -391,28 +425,12 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primaryBlue,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Retry Access',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextButton(
-                            onPressed: () => Geolocator.openAppSettings(),
-                            child: const Text(
-                              'Open App Settings',
-                              style: TextStyle(
-                                color: AppTheme.textSlateMedium,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              child: const Text('Retry Access'),
                             ),
                           ),
                         ],
@@ -430,7 +448,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
@@ -438,24 +456,19 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.info_outline,
-                            color: AppTheme.towingOrange,
-                          ),
+                          const Icon(Icons.info_outline, color: AppTheme.towingOrange),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               _noProvidersMessage!,
-                              style: const TextStyle(
-                                color: AppTheme.textSlateMedium,
-                              ),
+                              style: const TextStyle(color: AppTheme.textSlateMedium),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                if (_markers.isNotEmpty && _currentPosition != null)
+                if (_availableProvidersData.isNotEmpty && _currentPosition != null)
                   _buildDraggableProviderList(),
               ],
             ),
@@ -464,11 +477,8 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
         onPressed: () {
           if (_currentPosition != null) {
             _mapController.move(
-              ll.LatLng(
-                _currentPosition!.latitude,
-                _currentPosition!.longitude,
-              ),
-              14,
+              LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+              14.0,
             );
           }
         },
@@ -480,19 +490,44 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
   Future<void> _callSelectedProvider() async {
     final phone = _selectedProvider?['phone']?.toString();
     if (phone == null || phone.isEmpty) {
+      // Close the modal bottom sheet first, then show snackbar on main screen
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Provider phone number is unavailable')),
+        const SnackBar(
+          content: Text('Provider phone number is unavailable'),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
 
-    final uri = Uri(scheme: 'tel', path: phone);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open phone dialer')),
-      );
+    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    final uri = Uri(scheme: 'tel', path: cleanPhone);
+    try {
+      final canLaunch = await canLaunchUrl(uri);
+      if (canLaunch) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open phone dialer. Please dial manually.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error launching dialer: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -511,7 +546,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.12),
+                color: Colors.black.withValues(alpha: 0.12),
                 blurRadius: 25,
                 offset: const Offset(0, -8),
               ),
@@ -519,7 +554,6 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
           ),
           child: Column(
             children: [
-              // Drag Handle
               Container(
                 margin: const EdgeInsets.only(top: 14, bottom: 10),
                 width: 45,
@@ -537,7 +571,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Towing providers found',
                           style: TextStyle(
                             fontSize: 18,
@@ -547,20 +581,12 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                         ),
                         Text(
                           '${_availableProvidersData.length} available nearby',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             color: AppTheme.textSlateMedium,
                           ),
                         ),
                       ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.check, size: 14, color: Colors.green),
                     ),
                   ],
                 ),
@@ -588,7 +614,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                         border: Border.all(color: Colors.grey.shade100),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 12,
                             offset: const Offset(0, 5),
                           ),
@@ -600,8 +626,8 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                           borderRadius: BorderRadius.circular(20),
                           onTap: () {
                             _mapController.move(
-                              ll.LatLng(p['latitude'], p['longitude']),
-                              15,
+                              LatLng(p['latitude'], p['longitude']),
+                              15.0,
                             );
                             _onProviderSelected(p);
                           },
@@ -613,7 +639,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                                   width: 52,
                                   height: 52,
                                   decoration: BoxDecoration(
-                                    color: AppTheme.towingOrange.withOpacity(0.1),
+                                    color: AppTheme.towingOrange.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(15),
                                   ),
                                   child: const Icon(
@@ -625,8 +651,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         p['name'],
@@ -636,21 +661,13 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                                           color: AppTheme.textSlateDark,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Professional Towing • Available',
-                                        style: TextStyle(
-                                          color: AppTheme.textSlateMedium,
-                                          fontSize: 12,
-                                        ),
-                                      ),
                                       const SizedBox(height: 6),
                                       Row(
                                         children: [
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                             decoration: BoxDecoration(
-                                              color: AppTheme.primaryBlue.withOpacity(0.1),
+                                              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                                               borderRadius: BorderRadius.circular(6),
                                             ),
                                             child: Text(
@@ -666,7 +683,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                                           const Icon(Icons.star, color: Colors.amber, size: 14),
                                           const SizedBox(width: 4),
                                           Text(
-                                            '${p['rating'] ?? '5.0'}',
+                                            (p['rating'] as num?)?.toStringAsFixed(1) ?? '0.0',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 11,
@@ -678,20 +695,7 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
                                     ],
                                   ),
                                 ),
-                                IconButton(
-                                  onPressed: () => _onProviderSelected(p),
-                                  icon: const Icon(
-                                    Icons.arrow_forward_ios,
-                                    color: AppTheme.textSlateMedium,
-                                    size: 16,
-                                  ),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.grey.shade50,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
+                                const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
                               ],
                             ),
                           ),

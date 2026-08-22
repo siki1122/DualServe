@@ -29,8 +29,15 @@ class Provider {
   final String profileImageUrl;
   final bool documentsVerified;
   final bool backgroundCheckPassed;
+  final String? businessPermitUrl;
+  final String? governmentIdUrl;
+  final String verificationStatus; // 'pending', 'verified', 'rejected'
+  final String? rejectionReason;
+  final String inviteCode;
 
-  final Map<String, double> offeredServices; // Specific services and their prices: {"Flatbed": 1500.0}
+  final String serviceArea; // 'All Areas' by default, or e.g., 'Quezon City only'
+  final Map<String, String> serviceAreas; // Specific service availability areas: {"Wheel lift": "Quezon City only"}
+  final Map<String, dynamic> offeredServices; // Can be a double (flat rate) or a Map (complex ServiceDefinition)
 
   Provider({
     required this.id,
@@ -44,6 +51,7 @@ class Provider {
     required this.serviceType,
     this.serviceTypes = const [],
     this.offeredServices = const {},
+    this.serviceAreas = const {},
     this.weeklySchedule = const {},
     this.blockOutDates = const [],
     this.maxTasksPerDay = 10,
@@ -60,6 +68,12 @@ class Provider {
     this.profileImageUrl = '',
     this.documentsVerified = false,
     this.backgroundCheckPassed = false,
+    this.businessPermitUrl,
+    this.governmentIdUrl,
+    this.verificationStatus = 'pending',
+    this.rejectionReason,
+    this.serviceArea = 'All Areas',
+    this.inviteCode = '',
   });
 
   // Convert from Firestore document
@@ -72,10 +86,23 @@ class Provider {
       (key, value) => MapEntry(key, List<String>.from(value ?? [])),
     );
 
-    // Parse offered services (Map of name -> price)
+    // Parse offered services (Map of name -> dynamic)
     final servicesData = data['offeredServices'] as Map<String, dynamic>? ?? {};
     final offeredServices = servicesData.map(
-      (key, value) => MapEntry(key, (value as num).toDouble()),
+      (key, value) {
+        if (value is num) {
+          return MapEntry(key, value.toDouble());
+        } else if (value is Map) {
+          return MapEntry(key, Map<String, dynamic>.from(value));
+        }
+        return MapEntry(key, 0.0);
+      },
+    );
+
+    // Parse specific service areas (Map of name -> area)
+    final areasData = data['serviceAreas'] as Map<String, dynamic>? ?? {};
+    final serviceAreas = areasData.map(
+      (key, value) => MapEntry(key, value.toString()),
     );
 
     return Provider(
@@ -92,6 +119,7 @@ class Provider {
       serviceType: data['serviceType'] ?? '',
       serviceTypes: List<String>.from(data['serviceTypes'] ?? []),
       offeredServices: offeredServices,
+      serviceAreas: serviceAreas,
       weeklySchedule: weeklySchedule,
       blockOutDates: List<String>.from(data['blockOutDates'] ?? []),
       maxTasksPerDay: data['maxTasksPerDay'] as int? ?? 10,
@@ -103,6 +131,12 @@ class Provider {
       licenseNumber: data['licenseNumber'] ?? '',
       yearsOfExperience: data['yearsOfExperience'] ?? 0,
       profileImageUrl: data['profileImageUrl'] ?? '',
+      businessPermitUrl: data['businessPermitUrl'],
+      governmentIdUrl: data['governmentIdUrl'],
+      verificationStatus: data['verificationStatus'] ?? 'pending',
+      rejectionReason: data['rejectionReason'],
+      serviceArea: data['serviceArea'] ?? 'All Areas',
+      inviteCode: data['inviteCode'] ?? '',
     );
   }
 
@@ -119,6 +153,7 @@ class Provider {
       'serviceType': serviceType,
       'serviceTypes': serviceTypes,
       'offeredServices': offeredServices,
+      'serviceAreas': serviceAreas,
       'weeklySchedule': weeklySchedule,
       'blockOutDates': blockOutDates,
       'maxTasksPerDay': maxTasksPerDay,
@@ -130,6 +165,12 @@ class Provider {
       'licenseNumber': licenseNumber,
       'yearsOfExperience': yearsOfExperience,
       'profileImageUrl': profileImageUrl,
+      'businessPermitUrl': businessPermitUrl,
+      'governmentIdUrl': governmentIdUrl,
+      'verificationStatus': verificationStatus,
+      'rejectionReason': rejectionReason,
+      'serviceArea': serviceArea,
+      'inviteCode': inviteCode,
     };
   }
 
@@ -145,12 +186,19 @@ class Provider {
     int? jobsCompleted,
     String? serviceType,
     List<String>? serviceTypes,
-    Map<String, double>? offeredServices,
+    Map<String, dynamic>? offeredServices,
+    Map<String, String>? serviceAreas,
     Map<String, List<String>>? weeklySchedule,
     List<String>? blockOutDates,
     int? maxTasksPerDay,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? businessPermitUrl,
+    String? governmentIdUrl,
+    String? verificationStatus,
+    String? rejectionReason,
+    String? serviceArea,
+    String? inviteCode,
   }) {
     return Provider(
       id: id ?? this.id,
@@ -164,11 +212,18 @@ class Provider {
       serviceType: serviceType ?? this.serviceType,
       serviceTypes: serviceTypes ?? this.serviceTypes,
       offeredServices: offeredServices ?? this.offeredServices,
+      serviceAreas: serviceAreas ?? this.serviceAreas,
       weeklySchedule: weeklySchedule ?? this.weeklySchedule,
       blockOutDates: blockOutDates ?? this.blockOutDates,
       maxTasksPerDay: maxTasksPerDay ?? this.maxTasksPerDay,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      businessPermitUrl: businessPermitUrl ?? this.businessPermitUrl,
+      governmentIdUrl: governmentIdUrl ?? this.governmentIdUrl,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      serviceArea: serviceArea ?? this.serviceArea,
+      inviteCode: inviteCode ?? this.inviteCode,
     );
   }
 

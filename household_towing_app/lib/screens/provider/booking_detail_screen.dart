@@ -6,9 +6,9 @@ import 'package:household_towing_app/services/provider_service.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
 import 'package:household_towing_app/utils/error_handler.dart';
 import 'package:household_towing_app/services/logging_service.dart';
+import 'package:household_towing_app/services/in_app_notification_service.dart';
 import '../chat/chat_screen.dart';
-import 'provider_tracking_screen.dart';
-import 'booking_asset_assignment_screen.dart';
+import '../../widgets/asset_selection_dialog.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final String bookingId;
@@ -103,23 +103,29 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
   Future<void> _acceptBooking(String providerId, Booking booking) async {
-    setState(() => _isLoading = true);
-    try {
-      await _bookingService.acceptBooking(widget.bookingId, providerId);
+    showDialog(
+      context: context,
+      builder: (context) => AssetSelectionDialog(
+        providerId: providerId,
+        providerName: 'Provider',
+        preselectedBooking: booking,
+      ),
+    ).then((_) async {
+      // Notify customer that booking was accepted
+      await InAppNotificationService().sendNotification(
+        userId: booking.customerId,
+        title: 'Booking Accepted',
+        message: 'A provider has accepted your ${booking.serviceType.toLowerCase()} booking.',
+        type: 'booking_update',
+        actionData: {'bookingId': widget.bookingId},
+      );
+
       if (mounted) {
         ErrorHandler.showSuccess(
             context, '✓ Booking accepted! Task added to "My Tasks"');
         Navigator.pop(context);
       }
-    } catch (e) {
-      if (mounted) {
-        ErrorHandler.showError(context, e, title: 'Failed to accept booking');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    });
   }
 
   Future<void> _rejectBooking() async {
@@ -166,11 +172,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 const SizedBox(height: 12),
                 InkWell(
                   onTap: () async {
+                    final now = DateTime.now();
+                    final todayStart = DateTime(now.year, now.month, now.day);
+                    final initial = selectedDate.isBefore(todayStart) ? todayStart : selectedDate;
+
                     final date = await showDatePicker(
                       context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 30)),
+                      initialDate: initial,
+                      firstDate: todayStart,
+                      lastDate: todayStart.add(const Duration(days: 30)),
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(

@@ -44,6 +44,9 @@ class ProviderPricingService {
     double? towingMultiplier,
     bool? useNightDifferential,
     String? notes,
+    int? nightSurchargeStartHour,
+    int? nightSurchargeEndHour,
+    double? nightSurchargePercent,
   }) async {
     try {
       final currentPricing = await getProviderPricing(providerId);
@@ -53,6 +56,9 @@ class ProviderPricingService {
         towingMultiplier: towingMultiplier,
         useNightDifferential: useNightDifferential,
         notes: notes,
+        nightSurchargeStartHour: nightSurchargeStartHour,
+        nightSurchargeEndHour: nightSurchargeEndHour,
+        nightSurchargePercent: nightSurchargePercent,
         updatedAt: DateTime.now(),
       );
 

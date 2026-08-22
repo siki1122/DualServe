@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum AssetType { vehicle, tool, equipment }
+enum AssetType { vehicle, tool, equipment, crew }
 
 enum AssetStatus { active, maintenance, inactive, inUse }
 
@@ -21,6 +21,7 @@ class AssetModel {
   final bool isConsumable;
   final String? currentTaskId;
   final String? currentTaskLabel;
+  final String? ownerId; // The provider or company that owns this asset
 
   AssetModel({
     required this.id,
@@ -39,6 +40,7 @@ class AssetModel {
     this.isConsumable = false,
     this.currentTaskId,
     this.currentTaskLabel,
+    this.ownerId,
   });
 
   factory AssetModel.fromFirestore(DocumentSnapshot doc) {
@@ -68,10 +70,11 @@ class AssetModel {
       metadata: data['metadata'] ?? {},
       quantity: data['quantity'] ?? 1,
       isConsumable: data['isConsumable'] ?? false,
-      currentTaskId: data['currentTaskId'],
-      currentTaskLabel: data['currentTaskLabel'],
-    );
-  }
+       currentTaskId: data['currentTaskId'],
+       currentTaskLabel: data['currentTaskLabel'],
+       ownerId: data['ownerId'],
+     );
+   }
 
   Map<String, dynamic> toFirestore() {
     return {
@@ -88,10 +91,11 @@ class AssetModel {
       'metadata': metadata,
       'quantity': quantity,
       'isConsumable': isConsumable,
-      'currentTaskId': currentTaskId,
-      'currentTaskLabel': currentTaskLabel,
-    };
-  }
+       'currentTaskId': currentTaskId,
+       'currentTaskLabel': currentTaskLabel,
+       'ownerId': ownerId,
+     };
+   }
 }
 
 class AssetUsageLog {
@@ -109,6 +113,8 @@ class AssetUsageLog {
   final List<String> equipmentNames;
   final String? driverId;
   final String? driverName;
+  final List<String> crewAssetIds;
+  final List<String> crewNames;
   final String? notes;
   final DateTime createdAt;
 
@@ -127,6 +133,8 @@ class AssetUsageLog {
     this.toolNames = const [],
     this.equipmentAssetIds = const [],
     this.equipmentNames = const [],
+    this.crewAssetIds = const [],
+    this.crewNames = const [],
     this.notes,
     required this.createdAt,
   });
@@ -150,6 +158,8 @@ class AssetUsageLog {
         data['equipmentAssetIds'] ?? const [],
       ),
       equipmentNames: List<String>.from(data['equipmentNames'] ?? const []),
+      crewAssetIds: List<String>.from(data['crewAssetIds'] ?? const []),
+      crewNames: List<String>.from(data['crewNames'] ?? const []),
       notes: data['notes'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

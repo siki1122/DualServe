@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' as ll;
-import 'package:geolocator/geolocator.dart';
-import '../../services/location_service.dart';
+import 'package:latlong2/latlong.dart';
 import '../../utils/app_theme.dart';
 
 class LocationPickerScreen extends StatefulWidget {
-  final ll.LatLng? initialLocation;
+  final LatLng? initialLocation;
 
   const LocationPickerScreen({super.key, this.initialLocation});
 
@@ -15,7 +13,7 @@ class LocationPickerScreen extends StatefulWidget {
 }
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
-  ll.LatLng? _pickedLocation;
+  LatLng? _pickedLocation;
   final MapController _mapController = MapController();
 
   @override
@@ -42,9 +40,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter:
-                  widget.initialLocation ?? ll.LatLng(10.6667, 122.9500),
-              initialZoom: 15,
+              initialCenter: widget.initialLocation ?? LatLng(10.6667, 122.9500),
+              initialZoom: 15.0,
               onTap: (tapPosition, point) {
                 setState(() {
                   _pickedLocation = point;
@@ -53,16 +50,17 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.household_towing_app',
+                urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c', 'd'],
+                userAgentPackageName: 'com.dualserve.app',
               ),
               if (_pickedLocation != null)
                 MarkerLayer(
                   markers: [
                     Marker(
                       point: _pickedLocation!,
-                      width: 40,
-                      height: 40,
+                      width: 80,
+                      height: 80,
                       child: const Icon(
                         Icons.location_on,
                         color: Colors.red,
@@ -77,18 +75,26 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             Center(
               child: Container(
                 padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.symmetric(horizontal: 24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
                 child: const Text(
                   'Tap on the map to set your shop location',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSlateDark),
                 ),
               ),
             ),
           Positioned(
-            bottom: 24,
+            bottom: 32,
             left: 24,
             right: 24,
             child: ElevatedButton(
@@ -97,16 +103,18 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   : () => Navigator.pop(context, _pickedLocation),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                elevation: 4,
               ),
               child: const Text(
                 'Confirm Location',
                 style: TextStyle(
-                  color: Colors.white,
                   fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
             ),

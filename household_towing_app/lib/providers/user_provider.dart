@@ -8,7 +8,8 @@ class UserProvider with ChangeNotifier {
 
   Map<String, dynamic>? _userProfile;
   Map<String, dynamic>? _providerProfile;
-  bool _isLoading = false;
+  Map<String, dynamic>? _driverProfile;
+  bool _isLoading = true;
   String? _role;
   bool _isDarkMode = false;
   String? _errorMessage;
@@ -19,6 +20,7 @@ class UserProvider with ChangeNotifier {
 
   Map<String, dynamic>? get userProfile => _userProfile;
   Map<String, dynamic>? get providerProfile => _providerProfile;
+  Map<String, dynamic>? get driverProfile => _driverProfile;
   bool get isLoading => _isLoading;
   String? get role => _role;
   bool get isDarkMode => _isDarkMode;
@@ -26,6 +28,7 @@ class UserProvider with ChangeNotifier {
 
   bool get isProvider => _role?.toLowerCase() == 'provider';
   bool get isAdmin => _role?.toLowerCase() == 'admin';
+  bool get isDriver => _role?.toLowerCase() == 'driver';
   String get uid => FirebaseAuth.instance.currentUser?.uid ?? "";
 
   Future<void> _loadTheme() async {
@@ -47,7 +50,9 @@ class UserProvider with ChangeNotifier {
     if (user == null) {
       _userProfile = null;
       _providerProfile = null;
+      _driverProfile = null;
       _role = null;
+      _isLoading = false;
       notifyListeners();
       return;
     }
@@ -63,9 +68,11 @@ class UserProvider with ChangeNotifier {
         _userProfile = profile;
         _role = profile['role'];
 
-        // If provider, also fetch provider-specific data
-        if (_role == 'provider') {
+        // If provider or pending provider, also fetch provider-specific data
+        if (_role == 'provider' || _role == 'pending_provider') {
           _providerProfile = await _userService.getProviderProfile(user.uid);
+        } else if (_role == 'driver') {
+          _driverProfile = await _userService.getDriverProfile(user.uid);
         }
       } else {
         _errorMessage = "User profile not found";
@@ -103,7 +110,9 @@ class UserProvider with ChangeNotifier {
   void clear() {
     _userProfile = null;
     _providerProfile = null;
+    _driverProfile = null;
     _role = null;
+    _isLoading = true;
     notifyListeners();
   }
 }

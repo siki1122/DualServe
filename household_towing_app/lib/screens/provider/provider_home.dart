@@ -11,6 +11,9 @@ import '../../widgets/new_job_overlay.dart';
 import '../../services/provider_service.dart';
 import '../../models/provider_model.dart';
 
+import '../../widgets/dashboard_shimmer.dart';
+import 'provider_verification_screen.dart';
+
 class ProviderHome extends StatefulWidget {
   const ProviderHome({super.key});
 
@@ -54,8 +57,23 @@ class _ProviderHomeState extends State<ProviderHome> {
 
           if (userProvider.isLoading || userProvider.providerProfile == null) {
             return Scaffold(
-              appBar: AppBar(title: const Text('Provider Dashboard')),
-              body: const Center(child: CircularProgressIndicator()),
+              backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+              appBar: AppBar(
+                title: Text(
+                  'Dashboard',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                  ),
+                ),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                foregroundColor: isDark ? Colors.white : AppTheme.textSlateDark,
+              ),
+              body: const SingleChildScrollView(
+                padding: EdgeInsets.all(24),
+                child: DashboardShimmer(),
+              ),
             );
           }
 
@@ -67,7 +85,13 @@ class _ProviderHomeState extends State<ProviderHome> {
                 : AppTheme.background,
             drawer: const ProviderDrawer(),
             appBar: AppBar(
-              title: const Text('Dashboard'),
+              title: Text(
+                'Dashboard',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                ),
+              ),
               backgroundColor: Colors.transparent,
               elevation: 0,
               actions: [
@@ -89,6 +113,8 @@ class _ProviderHomeState extends State<ProviderHome> {
                     ),
                     children: [
                       _buildHeader(profile['name'] ?? 'Provider', isDark, profile['status'] == 'available'),
+                      const SizedBox(height: 16),
+                      _buildVerificationBanner(profile, userProvider.uid),
                       const SizedBox(height: 32),
                       _buildStatsGrid(userProvider.uid, isDark),
                       const SizedBox(height: 32),
@@ -100,6 +126,97 @@ class _ProviderHomeState extends State<ProviderHome> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildVerificationBanner(Map<String, dynamic> profile, String providerId) {
+    final status = profile['verificationStatus'] ?? 'pending';
+    final hasDocs = profile['businessPermitUrl'] != null && profile['governmentIdUrl'] != null;
+
+    if (status == 'verified') return const SizedBox.shrink();
+
+    Color bannerColor = Colors.orange[50]!;
+    Color textColor = Colors.orange[900]!;
+    IconData icon = Icons.warning_amber_rounded;
+    String message = 'Verification Required';
+    String subMessage = 'Please upload your business documents to start accepting jobs.';
+    String buttonText = 'Verify Now';
+
+    if (status == 'pending' && hasDocs) {
+      bannerColor = Colors.blue[50]!;
+      textColor = Colors.blue[900]!;
+      icon = Icons.hourglass_empty_rounded;
+      message = 'Verification Pending';
+      subMessage = 'Your documents are currently being reviewed by our team.';
+      buttonText = 'View Status';
+    } else if (status == 'rejected') {
+      bannerColor = Colors.red[50]!;
+      textColor = Colors.red[900]!;
+      icon = Icons.error_outline_rounded;
+      message = 'Verification Failed';
+      subMessage = profile['rejectionReason'] ?? 'Some documents were invalid. Please re-upload.';
+      buttonText = 'Re-upload';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bannerColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: textColor.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: textColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      message,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      subMessage,
+                      style: TextStyle(color: textColor.withValues(alpha: 0.8), fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (status != 'pending' || !hasDocs) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProviderVerificationScreen(providerId: providerId),
+                    ),
+                  ).then((_) => context.read<UserProvider>().loadCurrentUserData());
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: textColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(buttonText),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -124,10 +241,10 @@ class _ProviderHomeState extends State<ProviderHome> {
           child: Switch(
             value: isAvailable,
             onChanged: _isToggling ? null : (val) => _toggleStatus(providerId, val),
-            activeColor: Colors.green,
-            activeTrackColor: Colors.green.withOpacity(0.3),
+            activeThumbColor: Colors.green,
+            activeTrackColor: Colors.green.withValues(alpha: 0.3),
             inactiveThumbColor: Colors.grey,
-            inactiveTrackColor: Colors.grey.withOpacity(0.3),
+            inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
           ),
         ),
       ],
@@ -136,63 +253,32 @@ class _ProviderHomeState extends State<ProviderHome> {
 
   Widget _buildHeader(String name, bool isDark, bool isAvailable) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Welcome back,',
-              style: TextStyle(
-                fontSize: 16,
-                color: isDark
-                    ? AppTheme.textDarkSecondary
-                    : AppTheme.textSlateMedium,
-              ),
-            ),
-            Text(
-              name,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
-              ),
-            ),
-          ],
-        ),
-        if (isAvailable)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(color: Colors.green, blurRadius: 4, spreadRadius: 1),
-                    ],
-                  ),
+
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome back',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Available',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+              ),
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
                 ),
-              ],
-            ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
+        ),
       ],
     );
   }
@@ -205,89 +291,86 @@ class _ProviderHomeState extends State<ProviderHome> {
             snapshot.data ??
             {'pending': 0, 'active': 0, 'todayEarnings': 0.0, 'todayJobs': 0};
 
-        return GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.5,
-          children: [
-            _buildStatCard(
-              'Pending',
-              stats['pending'].toString(),
-              Icons.timer,
-              Colors.orange,
-              isDark,
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF7061FA), Color(0xFF4B3CFA)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            _buildStatCard(
-              'Active',
-              stats['active'].toString(),
-              Icons.running_with_errors,
-              Colors.blue,
-              isDark,
-            ),
-            _buildStatCard(
-              'Today',
-              '₱${(stats['todayEarnings'] as double).toStringAsFixed(2)}',
-              Icons.payments,
-              Colors.green,
-              isDark,
-            ),
-            _buildStatCard(
-              'Jobs',
-              stats['todayJobs'].toString(),
-              Icons.task_alt,
-              Colors.purple,
-              isDark,
-            ),
-          ],
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF4B3CFA).withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              )
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "TODAY'S EARNINGS",
+                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.white, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${stats['todayJobs']} Jobs',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '₱${(stats['todayEarnings'] as num).toStringAsFixed(2)}',
+                style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMiniStat(Icons.timer, 'Pending', stats['pending'].toString()),
+                  ),
+                  Container(width: 1, height: 40, color: Colors.white.withValues(alpha: 0.2)),
+                  Expanded(
+                    child: _buildMiniStat(Icons.running_with_errors, 'Active', stats['active'].toString()),
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-    bool isDark,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: AppTheme.cardDecoration(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon, color: color, size: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppTheme.textDarkPrimary
-                      : AppTheme.textSlateDark,
-                ),
-              ),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark
-                      ? AppTheme.textDarkSecondary
-                      : AppTheme.textSlateMedium,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+  Widget _buildMiniStat(IconData icon, String label, String value) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white70, size: 24),
+        const SizedBox(height: 8),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+      ],
     );
   }
 
@@ -342,21 +425,31 @@ class _ProviderHomeState extends State<ProviderHome> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(24),
       child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: AppTheme.cardDecoration(context),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.surfaceDark : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,16 +458,17 @@ class _ProviderHomeState extends State<ProviderHome> {
                     title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 18,
                       color: isDark
                           ? AppTheme.textDarkPrimary
                           : AppTheme.textSlateDark,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
                       color: isDark
                           ? AppTheme.textDarkSecondary
                           : AppTheme.textSlateMedium,
@@ -383,11 +477,19 @@ class _ProviderHomeState extends State<ProviderHome> {
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: isDark
-                  ? AppTheme.textDarkSecondary
-                  : AppTheme.textSlateMedium,
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: isDark
+                    ? AppTheme.textDarkSecondary
+                    : AppTheme.textSlateMedium,
+              ),
             ),
           ],
         ),

@@ -1,0 +1,159 @@
+# Capstone ERD Diagram
+
+This Entity Relationship Diagram matches the exact schema design from your Sprint Meetings document for the Automated Cost-Estimation, Scheduling and Geomapping system.
+
+```mermaid
+erDiagram
+    USER {
+        string user_id PK
+        string full_name
+        string email
+        string password
+        string phone
+        string address
+        string role
+        string status
+        datetime created_at
+    }
+
+    CUSTOMER {
+        string customer_id PK
+        string user_id FK
+        string preferred_payment
+    }
+
+    SERVICE_PROVIDER {
+        string provider_id PK
+        string user_id FK
+        string service_types
+        float rating
+        string availability_status
+        string current_location
+    }
+
+    SERVICE_CATEGORY {
+        string category_id PK
+        string name
+        string description
+        float base_rate
+        float rate_per_km
+    }
+
+    ADMIN {
+        string admin_id PK
+        string user_id FK
+        string access_level
+    }
+
+    SERVICE_REQUEST {
+        string request_id PK
+        string category_id FK
+        string customer_id FK
+        string description
+        string location_address
+        float location_lat
+        float location_lng
+        datetime preferred_schedule
+        string status
+        datetime created_at
+    }
+
+    REPORT {
+        string report_id PK
+        string admin_id FK
+        string report_type
+        date date_from
+        date date_to
+        string filters
+        string file_url
+        datetime generated_at
+    }
+
+    JOB_ASSIGNMENT {
+        string job_id PK
+        string provider_id FK
+        string request_id FK
+        string status
+        datetime accepted_at
+        datetime completed_at
+        string completion_note
+        string completion_photo_url
+    }
+
+    COST_ESTIMATE {
+        string estimate_id PK
+        string request_id FK
+        float base_cost
+        float travel_fee
+        float surcharge
+        float total_amount
+        string status
+        datetime generated_at
+    }
+
+    REVIEW {
+        string review_id PK
+        string job_id FK
+        string customer_id FK
+        string provider_id FK
+        float rating
+        string comment
+        datetime created_at
+    }
+
+    SERVICE_HISTORY {
+        string history_id PK
+        string customer_id FK
+        string provider_id FK
+        string job_id FK
+        datetime recorded_at
+        string summary
+    }
+
+    TRACKING {
+        string tracking_id PK
+        string job_id FK
+        string provider_id FK
+        float lat
+        float lng
+        int eta_minutes
+        datetime recorded_at
+    }
+
+    INVOICE {
+        string invoice_id PK
+        string job_id FK
+        string customer_id FK
+        float amount
+        string payment_status
+        string payment_method
+        datetime issued_at
+    }
+
+    %% Relationships
+    USER ||--o{ CUSTOMER : "has"
+    USER ||--o{ SERVICE_PROVIDER : "has"
+    USER ||--o{ ADMIN : "has"
+    
+    SERVICE_CATEGORY ||--o{ SERVICE_REQUEST : "categorizes"
+    CUSTOMER ||--o{ SERVICE_REQUEST : "makes"
+    
+    ADMIN ||--o{ REPORT : "generates"
+    
+    SERVICE_REQUEST ||--o{ JOB_ASSIGNMENT : "results in"
+    SERVICE_REQUEST ||--o{ COST_ESTIMATE : "has"
+    
+    JOB_ASSIGNMENT ||--o{ REVIEW : "receives"
+    CUSTOMER ||--o{ REVIEW : "writes"
+    SERVICE_PROVIDER ||--o{ REVIEW : "receives"
+    
+    JOB_ASSIGNMENT ||--o{ TRACKING : "has"
+    SERVICE_PROVIDER ||--o{ TRACKING : "updates"
+    
+    JOB_ASSIGNMENT ||--o{ INVOICE : "generates"
+    CUSTOMER ||--o{ INVOICE : "pays"
+    
+    JOB_ASSIGNMENT ||--o{ SERVICE_HISTORY : "recorded in"
+    CUSTOMER ||--o{ SERVICE_HISTORY : "has"
+    SERVICE_PROVIDER ||--o{ SERVICE_HISTORY : "has"
+```

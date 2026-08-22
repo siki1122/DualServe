@@ -4,16 +4,32 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:household_towing_app/models/task_model.dart';
 import 'package:household_towing_app/services/task_service.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
-import '../../widgets/success_dialog.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../services/storage_service.dart';
-import '../chat/chat_screen.dart';
-import '../../utils/map_utils.dart';
+import '../../widgets/app_task_card.dart';
+import '../../screens/chat/chat_screen.dart';
+import '../../screens/provider/transaction_completion_screen.dart';
+import '../../screens/driver/signature_capture_screen.dart';
 import '../../services/location_service.dart';
-import 'transaction_completion_screen.dart';
 import '../../widgets/asset_selection_dialog.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/shimmer_loading.dart';
+import '../../widgets/provider_drawer.dart';
 import 'package:provider/provider.dart' as provider_pkg;
+import '../../widgets/app_booking_request_card.dart';
+import '../../screens/provider/booking_detail_screen.dart';
+import '../../services/booking_service.dart';
+import '../../models/booking_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import '../../providers/user_provider.dart';
+import '../../widgets/asset_selection_dialog.dart';
+
+enum ProviderTaskFilter {
+  requests,
+  assigned,
+  inProgress,
+  completed
+}
 
 class ProviderTasksScreen extends StatefulWidget {
   const ProviderTasksScreen({super.key});
@@ -24,11 +40,15 @@ class ProviderTasksScreen extends StatefulWidget {
 
 class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
   final TaskService _taskService = TaskService();
+  final BookingService _bookingService = BookingService();
   final StorageService _storageService = StorageService();
   late String _providerId;
-  TaskStatus _filterStatus = TaskStatus.assigned;
-  bool _isUploading = false;
+  ProviderTaskFilter _filterStatus = ProviderTaskFilter.assigned;
+  final bool _isUploading = false;
   final Map<TaskStatus, Stream<List<Task>>> _taskStreams = {};
+  
+  // Track accepting/rejecting state
+  String? _processingBookingId;
 
   @override
   void initState() {
@@ -47,6 +67,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+      drawer: const ProviderDrawer(),
       appBar: AppBar(
         title: Text(
           'My Tasks',
@@ -65,85 +86,27 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildFilterChip('Assigned', TaskStatus.assigned),
+                  _buildFilterChip('Requests', ProviderTaskFilter.requests),
                   const SizedBox(width: 8),
-                  _buildFilterChip('In Progress', TaskStatus.inProgress),
+                  _buildFilterChip('Assigned', ProviderTaskFilter.assigned),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Completed', TaskStatus.completed),
+                  _buildFilterChip('In Progress', ProviderTaskFilter.inProgress),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Completed', ProviderTaskFilter.completed),
                 ],
               ),
             ),
           ),
           // Task list
           Expanded(
-            child: StreamBuilder<List<Task>>(
-              stream: _taskStreams[_filterStatus]!,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Error loading tasks:\n${snapshot.error}',
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  );
-                }
-
-                final tasks = snapshot.data ?? [];
-
-                if (tasks.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.task_outlined,
-                          size: 64,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No ${_filterStatus.toString().split('.').last} tasks',
-                          style: const TextStyle(
-                            color: AppTheme.textSlateMedium,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: tasks.length,
-                  itemBuilder: (context, index) {
-                    final task = tasks[index];
-                    return _buildTaskCard(task);
-                  },
-                );
-              },
-            ),
+            child: _buildContent(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, TaskStatus status) {
+  Widget _buildFilterChip(String label, ProviderTaskFilter status) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _filterStatus == status;
     return GestureDetector(
@@ -158,12 +121,12 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
           border: Border.all(
             color: isSelected 
               ? (isDark ? AppTheme.towingOrange : AppTheme.textSlateDark) 
-              : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade300),
+              : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300),
           ),
           boxShadow: isSelected && !isDark
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   )
@@ -182,201 +145,245 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
     );
   }
 
-  Widget _buildTaskCard(Task task) {
+  Widget _buildContent() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: AppTheme.cardDecoration(context),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showTaskDetail(task),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
+
+    if (_filterStatus == ProviderTaskFilter.requests) {
+      return StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('bookings')
+            .where('assignedProviderId', isEqualTo: _providerId)
+            .where('status', whereIn: ['pending', 'rejected'])
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ShimmerLoading.cardPlaceholder(count: 3, isDark: isDark),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          final bookingsDocs = snapshot.data?.docs ?? [];
+          final bookings = bookingsDocs.map((doc) => Booking.fromFirestore(doc)).toList();
+          
+          // Sort by createdAt descending so newest requests are at the top
+          bookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+          if (bookings.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.notifications_none,
+                    size: 64,
+                    color: Colors.grey[300],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No new requests',
+                    style: TextStyle(
+                      color: AppTheme.textSlateMedium,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
+            itemCount: bookings.length,
+            itemBuilder: (context, index) {
+              final booking = bookings[index];
+              return AppBookingRequestCard(
+                booking: booking,
+                isProcessing: _processingBookingId == booking.id,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookingDetailScreen(bookingId: booking.id),
+                    ),
+                  );
+                },
+                onAcceptPressed: () => _handleAcceptBooking(booking),
+                onDeclinePressed: () => _handleDeclineBooking(booking),
+              );
+            },
+          );
+        },
+      );
+    }
+
+    TaskStatus currentTaskStatus;
+    switch (_filterStatus) {
+      case ProviderTaskFilter.inProgress:
+        currentTaskStatus = TaskStatus.inProgress;
+        break;
+      case ProviderTaskFilter.completed:
+        currentTaskStatus = TaskStatus.completed;
+        break;
+      default:
+        currentTaskStatus = TaskStatus.assigned;
+    }
+
+    return StreamBuilder<List<Task>>(
+      stream: _taskStreams[currentTaskStatus]!,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ShimmerLoading.cardPlaceholder(count: 3, isDark: isDark),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Error loading tasks:\n${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final tasks = snapshot.data ?? [];
+
+        if (tasks.isEmpty) {
+          return Center(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Header with status
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            task.serviceType,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.location_on_outlined, size: 14, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  task.location,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(task.status, isDark)[0],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        task.status.toString().split('.').last.toUpperCase(),
-                        style: TextStyle(
-                          color: _getStatusColor(task.status, isDark)[1],
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Divider(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
-                const SizedBox(height: 12),
-                // Schedule and priority
-                Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Icon(Icons.schedule, size: 16, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
-                          const SizedBox(width: 6),
-                            Text(
-                              _formatDate(task.scheduledDate),
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getPriorityBgColor(task.priority, isDark),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        task.priority.toString().split('.').last.toUpperCase(),
-                        style: TextStyle(
-                          color: _getPriorityTextColor(task.priority, isDark),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                Icon(
+                  Icons.task_outlined,
+                  size: 64,
+                  color: Colors.grey[300],
                 ),
                 const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    if (task.status == TaskStatus.assigned || task.status == TaskStatus.inProgress)
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatScreen(
-                                  bookingId: task.bookingId ?? task.id,
-                                  receiverId: task.customerId,
-                                  receiverName: 'Customer',
-                                ),
-                              ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.primaryBlue,
-                            side: const BorderSide(color: AppTheme.primaryBlue),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                          label: const Text('Message', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    const SizedBox(width: 8),
-                    if (task.status == TaskStatus.assigned)
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (task.assignedTruckId == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please assign Assets (Truck & Personnel) before starting.'),
-                                  backgroundColor: AppTheme.towingOrange,
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                              _showAssetAssignment(task);
-                            } else {
-                              _updateStatus(task, TaskStatus.inProgress);
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.towingOrange,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Start Task',
-                            style: TextStyle(fontWeight: FontWeight.bold)
-                          ),
-                        ),
-                      )
-                    else if (task.status == TaskStatus.inProgress)
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _updateStatus(task, TaskStatus.completed),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text('Complete Task', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                  ],
+                Text(
+                  'No ${currentTaskStatus.toString().split('.').last} tasks',
+                  style: const TextStyle(
+                    color: AppTheme.textSlateMedium,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
-          ),
-        ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: tasks.length,
+          itemBuilder: (context, index) {
+            final task = tasks[index];
+            return _buildTaskCard(task);
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _handleAcceptBooking(Booking booking) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final providerName = userProvider.providerProfile?['name'] ?? userProvider.userProfile?['name'] ?? 'Provider';
+
+    showDialog(
+      context: context,
+      builder: (context) => AssetSelectionDialog(
+        providerId: _providerId,
+        providerName: providerName,
+        preselectedBooking: booking,
       ),
+    ).then((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking accepted and dispatched!'), backgroundColor: Colors.green),
+        );
+      }
+    });
+  }
+
+  Future<void> _handleDeclineBooking(Booking booking) async {
+    setState(() => _processingBookingId = booking.id);
+    try {
+      await _bookingService.rejectBooking(booking.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking declined'), backgroundColor: Colors.orange),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error declining booking: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _processingBookingId = null);
+      }
+    }
+  }
+
+  Widget _buildTaskCard(Task task) {
+    return AppTaskCard(
+      task: task,
+      onTap: () => _showTaskDetail(task),
+      onMilestoneToggle: (milestone) {
+        _taskService.updateTaskMilestone(task.id, milestone.id, !milestone.isCompleted);
+        HapticFeedback.lightImpact();
+      },
+      onMessagePressed: (task.status == TaskStatus.assigned || task.status == TaskStatus.inProgress)
+          ? () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    bookingId: task.bookingId ?? task.id,
+                    receiverId: task.customerId,
+                    receiverName: 'Customer',
+                  ),
+                ),
+              )
+          : null,
+      actionLabel: (task.assignedDriverId != null && task.assignedDriverId!.isNotEmpty)
+          ? 'View Details'
+          : (task.status == TaskStatus.assigned 
+              ? 'Start Task' 
+              : (task.status == TaskStatus.inProgress ? 'Complete Task' : 'View Details')),
+      onActionPressed: () {
+        if (task.assignedDriverId != null && task.assignedDriverId!.isNotEmpty) {
+          _showTaskDetail(task);
+        } else if (task.status == TaskStatus.assigned) {
+          if (task.assignedTruckId == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please assign Assets (Truck & Personnel) before starting.'),
+                backgroundColor: AppTheme.towingOrange,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            _showAssetAssignment(task);
+          } else {
+            _updateStatus(task, TaskStatus.inProgress);
+          }
+        } else if (task.status == TaskStatus.inProgress) {
+          _updateStatus(task, TaskStatus.completed);
+        } else {
+          _showTaskDetail(task);
+        }
+      },
     );
   }
 
@@ -413,89 +420,147 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
       ),
       backgroundColor: AppTheme.background,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Task Details',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textSlateDark,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: AppTheme.textSlateMedium),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildDetailRow('Service Type', task.serviceType),
-              _buildDetailRow('Location', task.location),
-              _buildDetailRow('Scheduled', _formatDate(task.scheduledDate)),
-              _buildDetailRow('Priority', task.priority.toString().split('.').last.toUpperCase()),
-              _buildDetailRow('Status', task.status.toString().split('.').last.toUpperCase()),
-              if (task.description != null && task.description!.isNotEmpty)
-                _buildDetailRow('Notes', task.description!),
-              if (task.estimatedDurationMinutes != null)
-                _buildDetailRow(
-                  'Est. Duration',
-                  '${task.estimatedDurationMinutes} minutes',
-                ),
-              if (task.completedImageUrl != null) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Completion Proof',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textSlateMedium,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    task.completedImageUrl!,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ],
-              if (task.status == TaskStatus.assigned) ...[
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showAssetAssignment(task);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo[600],
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+        return SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Task Details',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textSlateDark,
                       ),
                     ),
-                    icon: const Icon(Icons.inventory_2_outlined),
-                    label: const Text(
-                      'Edit Assigned Assets',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: AppTheme.textSlateMedium),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildDetailRow('Service Type', task.serviceType),
+                _buildDetailRow('Location', task.location),
+                _buildDetailRow('Scheduled', _formatDate(task.scheduledDate)),
+
+                _buildDetailRow('Status', task.status.toString().split('.').last.toUpperCase()),
+                if (task.description != null && task.description!.isNotEmpty)
+                  _buildDetailRow('Notes', task.description!),
+                if (task.estimatedDurationMinutes != null)
+                  _buildDetailRow(
+                    'Est. Duration',
+                    '${task.estimatedDurationMinutes} minutes',
+                  ),
+                
+                // NEW: Progress & Milestones Section
+                if (task.milestones.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Divider(),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Milestones',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textSlateDark,
+                        ),
+                      ),
+                      Text(
+                        '${(task.progress * 100).toInt()}%',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: task.progress,
+                      minHeight: 8,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  // Interactive Checklist for Milestones
+                  ...task.milestones.map((milestone) {
+                    return CheckboxListTile(
+                      title: Text(
+                        milestone.title,
+                        style: TextStyle(
+                          decoration: milestone.isCompleted ? TextDecoration.lineThrough : null,
+                          color: milestone.isCompleted ? Colors.grey : AppTheme.textSlateDark,
+                        ),
+                      ),
+                      value: milestone.isCompleted,
+                      onChanged: (task.status == TaskStatus.completed || task.assignedDriverId != null)
+                          ? null 
+                          : (bool? value) async {
+                              if (value != null) {
+                                await _taskService.updateTaskMilestone(task.id, milestone.id, value);
+                                HapticFeedback.mediumImpact();
+                              }
+                            },
+                      activeColor: Colors.green,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      controlAffinity: ListTileControlAffinity.leading,
+                    );
+                  }),
+                ],
+
+                if (task.completedImageUrl != null) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Completion Proof',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textSlateMedium,
+                    ),
+                  ),
+                ],
+                if (task.status == TaskStatus.assigned) ...[
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showAssetAssignment(task);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo[600],
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.inventory_2_outlined),
+                      label: const Text(
+                        'Edit Assigned Assets',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
               ],
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
         );
       },
@@ -531,7 +596,61 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
 
   Future<void> _updateStatus(Task task, TaskStatus newStatus) async {
     if (newStatus == TaskStatus.completed) {
-      _showCompletionDialog(task);
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      try {
+        final position = await LocationService().getCurrentLocation();
+
+        if (mounted) {
+          Navigator.pop(context); // Close loading
+
+          if (position == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not detect your location. GPS is required for distance surcharge calculation.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
+          }
+
+          final success = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TransactionCompletionScreen(
+                taskId: task.id,
+                bookingId: task.bookingId ?? task.id,
+                customerId: task.customerId,
+                providerId: task.assignedProviderId ?? _providerId,
+                serviceType: task.serviceType,
+                startLatitude: position.latitude,
+                startLongitude: position.longitude,
+                endLatitude: task.latitude,
+                endLongitude: task.longitude,
+              ),
+            ),
+          );
+
+          if (success == true) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Task completed and transaction recorded!'), backgroundColor: Colors.green),
+              );
+            }
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context); // Close loading
+          ScaffoldMessenger.of(context).showSnackBar( // Use screen context
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
       return;
     }
 
@@ -554,127 +673,29 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
     }
   }
 
-  void _showCompletionDialog(Task task) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Complete Task'),
-        content: const Text('Are you sure you want to mark this task as completed? You will be directed to the billing screen to finalize the transaction.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext); // Close dialog
-
-              // Show loading overlay while fetching GPS
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (_) => const Center(child: CircularProgressIndicator()),
-              );
-
-              try {
-                final position = await LocationService().getCurrentLocation();
-
-                if (mounted) {
-                  Navigator.pop(context); // Close loading
-
-                  if (position == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Could not detect your location. GPS is required for distance surcharge calculation.'),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
-                    return;
-                  }
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TransactionCompletionScreen(
-                        taskId: task.id,
-                        bookingId: task.bookingId ?? task.id,
-                        customerId: task.customerId,
-                        providerId: task.assignedProviderId ?? _providerId,
-                        serviceType: task.serviceType,
-                        startLatitude: position.latitude,
-                        startLongitude: position.longitude,
-                        endLatitude: task.latitude,
-                        endLongitude: task.longitude,
-                      ),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context); // Close loading
-                  ScaffoldMessenger.of(context).showSnackBar( // Use screen context
-                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Continue to Billing'),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // _showCompletionDialog removed since drivers now handle billing
   List<Color> _getStatusColor(TaskStatus status, bool isDark) {
     switch (status) {
       case TaskStatus.assigned:
-        return [AppTheme.primaryBlue.withOpacity(0.15), AppTheme.primaryBlue];
+        return [AppTheme.primaryBlue.withValues(alpha: 0.15), AppTheme.primaryBlue];
       case TaskStatus.inProgress:
-        return [AppTheme.towingOrange.withOpacity(0.15), AppTheme.towingOrange];
+        return [AppTheme.towingOrange.withValues(alpha: 0.15), AppTheme.towingOrange];
       case TaskStatus.completed:
         return [
-          isDark ? Colors.green.withOpacity(0.2) : AppTheme.statusCompletedBg, 
+          isDark ? Colors.green.withValues(alpha: 0.2) : AppTheme.statusCompletedBg, 
           isDark ? Colors.greenAccent : AppTheme.statusCompletedText
         ];
       case TaskStatus.cancelled:
-        return [Colors.red.withOpacity(0.15), Colors.red.shade400];
+        return [Colors.red.withValues(alpha: 0.15), Colors.red.shade400];
       default:
         return [
-          isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100, 
+          isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100, 
           isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium
         ];
     }
   }
 
-  Color _getPriorityBgColor(TaskPriority priority, bool isDark) {
-    switch (priority) {
-      case TaskPriority.low:
-        return isDark ? Colors.blue.withOpacity(0.1) : Colors.blue.shade50;
-      case TaskPriority.medium:
-        return isDark ? Colors.orange.withOpacity(0.1) : Colors.orange.shade50;
-      case TaskPriority.high:
-        return isDark ? Colors.red.withOpacity(0.1) : Colors.red.shade50;
-      case TaskPriority.urgent:
-        return isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade100;
-    }
-  }
 
-  Color _getPriorityTextColor(TaskPriority priority, bool isDark) {
-    switch (priority) {
-      case TaskPriority.low:
-        return isDark ? Colors.blueAccent : Colors.blue.shade700;
-      case TaskPriority.medium:
-        return isDark ? Colors.orangeAccent : Colors.orange.shade700;
-      case TaskPriority.high:
-        return isDark ? Colors.redAccent : Colors.red.shade700;
-      case TaskPriority.urgent:
-        return isDark ? Colors.red.shade300 : Colors.red.shade900;
-    }
-  }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();

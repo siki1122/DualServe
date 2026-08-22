@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../utils/app_theme.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/shimmer_loading.dart';
 
 class ProviderEarningsScreen extends StatefulWidget {
   const ProviderEarningsScreen({super.key});
@@ -89,7 +90,10 @@ class _ProviderEarningsScreenState extends State<ProviderEarningsScreen> {
         foregroundColor: isDark ? Colors.white : AppTheme.textSlateDark,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ShimmerLoading.cardPlaceholder(count: 3, isDark: isDark),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -124,7 +128,7 @@ class _ProviderEarningsScreenState extends State<ProviderEarningsScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryBlue.withOpacity(0.3),
+            color: AppTheme.primaryBlue.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -144,18 +148,6 @@ class _ProviderEarningsScreenState extends State<ProviderEarningsScreen> {
               color: Colors.white,
               fontSize: 32,
               fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              '✓ Payout Available',
-              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
         ],

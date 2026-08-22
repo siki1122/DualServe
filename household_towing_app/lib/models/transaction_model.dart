@@ -11,11 +11,16 @@ class Transaction {
   final String customerId;
   final String providerId;
   final String serviceType;
+  final String? specificService;
+  final Map<String, int>? selectedSubServices;
+  final Map<String, dynamic>? serviceDetails;
   final double basePrice;
   final double distanceTraveled; // in kilometers
   final double costPerKm;
   final double distanceSurcharge; // calculated: distanceTraveled * costPerKm
-  final double finalCost; // basePrice + distanceSurcharge
+  final double finalCost; // basePrice + distanceSurcharge + additionalCost
+  final double adminFee; // portion of finalCost that goes to admin
+  final double additionalCost;
   final TransactionStatus status;
   final PaymentStatus paymentStatus;
   final String? providerNotes;
@@ -30,11 +35,16 @@ class Transaction {
     required this.customerId,
     required this.providerId,
     required this.serviceType,
+    this.specificService,
+    this.selectedSubServices,
+    this.serviceDetails,
     required this.basePrice,
     required this.distanceTraveled,
     required this.costPerKm,
     required this.distanceSurcharge,
     required this.finalCost,
+    this.adminFee = 0.0,
+    this.additionalCost = 0.0,
     this.status = TransactionStatus.pending,
     this.paymentStatus = PaymentStatus.pending,
     this.providerNotes,
@@ -53,11 +63,20 @@ class Transaction {
       customerId: data['customerId'] ?? '',
       providerId: data['providerId'] ?? '',
       serviceType: data['serviceType'] ?? '',
+      specificService: data['specificService'],
+      selectedSubServices: data['selectedSubServices'] is Map
+          ? (data['selectedSubServices'] as Map).map(
+              (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+            )
+          : null,
+      serviceDetails: data['serviceDetails'] as Map<String, dynamic>?,
       basePrice: (data['basePrice'] as num?)?.toDouble() ?? 0.0,
       distanceTraveled: (data['distanceTraveled'] as num?)?.toDouble() ?? 0.0,
       costPerKm: (data['costPerKm'] as num?)?.toDouble() ?? 0.0,
       distanceSurcharge: (data['distanceSurcharge'] as num?)?.toDouble() ?? 0.0,
       finalCost: (data['finalCost'] as num?)?.toDouble() ?? 0.0,
+      adminFee: (data['adminFee'] as num?)?.toDouble() ?? 0.0,
+      additionalCost: (data['additionalCost'] as num?)?.toDouble() ?? 0.0,
       status:
           TransactionStatus.values.asNameMap()[data['status']] ??
           TransactionStatus.pending,
@@ -80,11 +99,16 @@ class Transaction {
       'customerId': customerId,
       'providerId': providerId,
       'serviceType': serviceType,
+      'specificService': specificService,
+      'selectedSubServices': selectedSubServices,
+      'serviceDetails': serviceDetails,
       'basePrice': basePrice,
       'distanceTraveled': distanceTraveled,
       'costPerKm': costPerKm,
       'distanceSurcharge': distanceSurcharge,
       'finalCost': finalCost,
+      'adminFee': adminFee,
+      'additionalCost': additionalCost,
       'status': status.toString().split('.').last,
       'paymentStatus': paymentStatus.toString().split('.').last,
       'providerNotes': providerNotes,
@@ -102,11 +126,16 @@ class Transaction {
     String? customerId,
     String? providerId,
     String? serviceType,
+    String? specificService,
+    Map<String, int>? selectedSubServices,
+    Map<String, dynamic>? serviceDetails,
     double? basePrice,
     double? distanceTraveled,
     double? costPerKm,
     double? distanceSurcharge,
     double? finalCost,
+    double? adminFee,
+    double? additionalCost,
     TransactionStatus? status,
     PaymentStatus? paymentStatus,
     String? providerNotes,
@@ -121,11 +150,16 @@ class Transaction {
       customerId: customerId ?? this.customerId,
       providerId: providerId ?? this.providerId,
       serviceType: serviceType ?? this.serviceType,
+      specificService: specificService ?? this.specificService,
+      selectedSubServices: selectedSubServices ?? this.selectedSubServices,
+      serviceDetails: serviceDetails ?? this.serviceDetails,
       basePrice: basePrice ?? this.basePrice,
       distanceTraveled: distanceTraveled ?? this.distanceTraveled,
       costPerKm: costPerKm ?? this.costPerKm,
       distanceSurcharge: distanceSurcharge ?? this.distanceSurcharge,
       finalCost: finalCost ?? this.finalCost,
+      adminFee: adminFee ?? this.adminFee,
+      additionalCost: additionalCost ?? this.additionalCost,
       status: status ?? this.status,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       providerNotes: providerNotes ?? this.providerNotes,

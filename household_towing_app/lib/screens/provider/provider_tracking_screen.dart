@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' as ll;
+import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/location_service.dart';
@@ -8,6 +8,7 @@ import '../../utils/app_theme.dart';
 import '../../utils/error_handler.dart';
 import '../../utils/map_utils.dart';
 import '../../services/logging_service.dart';
+import '../../services/task_service.dart';
 import 'dart:async';
 
 class ProviderTrackingScreen extends StatefulWidget {
@@ -27,9 +28,7 @@ class ProviderTrackingScreen extends StatefulWidget {
 class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
   final MapController _mapController = MapController();
   Position? _currentPosition;
-  List<Marker> _markers = [];
-  List<Polyline> _polylines = [];
-  ll.LatLng? _customerLocation;
+  LatLng? _customerLocation;
   double _distance = 0;
   int _eta = 0;
   bool _isLoading = true;
@@ -46,7 +45,7 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
 
   void _initializeTracking() async {
     await _getCurrentLocation();
-    await _setupMarkers();
+    await _setupCustomerLocation();
     _startLocationUpdates();
   }
 
@@ -74,9 +73,7 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
     }
   }
 
-  Future<void> _setupMarkers() async {
-    if (_currentPosition == null) return;
-
+  Future<void> _setupCustomerLocation() async {
     try {
       final customerAddress = widget.bookingData['address'] ?? '';
       final locations = await LocationService.getCoordinatesFromAddress(
@@ -87,63 +84,33 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
         final customerLat = locations[0].latitude;
         final customerLng = locations[0].longitude;
 
-        // Calculate distance and ETA
-        final distanceKm = LocationService.calculateDistance(
-          _currentPosition!.latitude,
-          _currentPosition!.longitude,
-          customerLat,
-          customerLng,
-        );
-
-        final eta = LocationService.calculateETA(distanceKm);
-
         setState(() {
-          _customerLocation = ll.LatLng(customerLat, customerLng);
-          _distance = distanceKm;
-          _eta = eta;
-          _markers = [
-            Marker(
-              point: ll.LatLng(
-                _currentPosition!.latitude,
-                _currentPosition!.longitude,
-              ),
-              width: 40,
-              height: 40,
-              child: const Icon(
-                Icons.my_location,
-                color: Colors.blue,
-                size: 30,
-              ),
-            ),
-            Marker(
-              point: ll.LatLng(customerLat, customerLng),
-              width: 40,
-              height: 40,
-              child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-            ),
-          ];
-
-          _polylines = [
-            Polyline(
-              points: [
-                ll.LatLng(
-                  _currentPosition!.latitude,
-                  _currentPosition!.longitude,
-                ),
-                _customerLocation!,
-              ],
-              color: AppTheme.primaryBlue,
-              strokeWidth: 5,
-            ),
-          ];
+          _customerLocation = LatLng(customerLat, customerLng);
         });
+        
+        _updateDistanceAndETA();
       }
     } catch (e) {
-      Logger.error('Failed to setup markers', e);
-      if (mounted) {
-        ErrorHandler.showError(context, e);
-      }
+      Logger.error('Failed to setup customer location', e);
     }
+  }
+
+  void _updateDistanceAndETA() {
+    if (_currentPosition == null || _customerLocation == null) return;
+
+    final distanceKm = LocationService.calculateDistance(
+      _currentPosition!.latitude,
+      _currentPosition!.longitude,
+      _customerLocation!.latitude,
+      _customerLocation!.longitude,
+    );
+
+    final eta = LocationService.calculateETA(distanceKm);
+
+    setState(() {
+      _distance = distanceKm;
+      _eta = eta;
+    });
   }
 
   void _startLocationUpdates() {
@@ -157,13 +124,11 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
               final now = DateTime.now();
 
               // Smart Throttling Logic:
-              // If moving slow (< 1m/s or ~3.6km/h), only update DB every 20 seconds
-              // If moving fast, update every 5 seconds
               int throttleSeconds = (position.speed < 1.0) ? 20 : 5;
 
               if (_lastUpdate != null &&
                   now.difference(_lastUpdate!).inSeconds < throttleSeconds) {
-                return; // Skip this update to save battery
+                return;
               }
 
               _lastUpdate = now;
@@ -189,7 +154,7 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
                     .doc(widget.bookingId)
                     .update(locationData);
 
-                // If this has been converted to a task, update the task document too
+                // Update Task document if it exists
                 final taskQuery = await FirebaseFirestore.instance
                     .collection('tasks')
                     .where('bookingId', isEqualTo: widget.bookingId)
@@ -200,22 +165,15 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
                   await taskQuery.docs.first.reference.update(locationData);
                 }
 
-                // Refresh markers and polyline
-                await _setupMarkers();
+                _updateDistanceAndETA();
 
-                // Check if arrived
-                final customerAddress = widget.bookingData['address'] ?? '';
-                final locations =
-                    await LocationService.getCoordinatesFromAddress(
-                      customerAddress,
-                    );
-
-                if (locations.isNotEmpty && mounted) {
+                // Check for arrival
+                if (_customerLocation != null) {
                   final isArrived = LocationService.isWithinRadius(
                     position.latitude,
                     position.longitude,
-                    locations[0].latitude,
-                    locations[0].longitude,
+                    _customerLocation!.latitude,
+                    _customerLocation!.longitude,
                     100, // 100 meters radius
                   );
 
@@ -229,22 +187,16 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
             },
             onError: (e) {
               Logger.error('Location stream error', e);
-              if (mounted) {
-                ErrorHandler.showError(context, e);
-              }
             },
           );
     } catch (e) {
       Logger.error('Failed to start location updates', e);
-      if (mounted) {
-        ErrorHandler.showError(context, e);
-      }
     }
   }
 
   void _showArrivalDialog() {
     if (!mounted) return;
-
+    // Basic dialog to avoid multiple triggers
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -261,18 +213,89 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
     );
   }
 
-  void _animateToLocation() {
-    if (_currentPosition == null) return;
-
-    _mapController.move(
-      ll.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-      15,
+  void _showCancelDialog() {
+    if (!mounted) return;
+    
+    String reason = 'Breakdown';
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Emergency Abort', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Are you sure you need to abort this job? This will cancel the task and notify the customer.'),
+              const SizedBox(height: 16),
+              const Text('Reason:', style: TextStyle(fontWeight: FontWeight.bold)),
+              DropdownButton<String>(
+                value: reason,
+                isExpanded: true,
+                items: ['Breakdown', 'Accident', 'Severe Traffic', 'Customer Unresponsive', 'Other'].map((String val) {
+                  return DropdownMenuItem<String>(
+                    value: val,
+                    child: Text(val),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setDialogState(() => reason = val);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Go Back'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _executeEmergencyAbort(reason);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              child: const Text('Abort Job'),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<void> _executeEmergencyAbort(String reason) async {
+    setState(() => _isLoading = true);
+    try {
+      final taskQuery = await FirebaseFirestore.instance
+          .collection('tasks')
+          .where('bookingId', isEqualTo: widget.bookingId)
+          .limit(1)
+          .get();
+      
+      if (taskQuery.docs.isNotEmpty) {
+        final taskId = taskQuery.docs.first.id;
+        await TaskService().cancelTask(taskId, bookingId: widget.bookingId, reason: reason);
+        
+        if (mounted) {
+          ErrorHandler.showSuccess(context, 'Job safely aborted. Assets released.');
+          Navigator.pop(context); // Go back to tasks screen
+        }
+      } else {
+        throw Exception('Active task not found');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ErrorHandler.showError(context, e, title: 'Failed to abort job');
+      }
+    }
   }
 
   @override
   void dispose() {
-    // Cancel location subscription to prevent memory leaks
     _locationSubscription?.cancel();
     super.dispose();
   }
@@ -291,176 +314,168 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _currentPosition == null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.location_off,
-                    size: 64,
-                    color: AppTheme.textSlateMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Location Required',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textSlateDark,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Enable location services and grant permissions',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.textSlateMedium),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      _getCurrentLocation();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
-                    ),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            )
+          ? _buildLocationRequired()
           : Stack(
               children: [
                 FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
-                    initialCenter: ll.LatLng(
-                      _currentPosition!.latitude,
-                      _currentPosition!.longitude,
-                    ),
-                    initialZoom: 15,
+                    initialCenter: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                    initialZoom: 15.0,
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.household_towing_app',
+                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                      subdomains: const ['a', 'b', 'c', 'd'],
+                      userAgentPackageName: 'com.dualserve.app',
                     ),
-                    PolylineLayer(polylines: _polylines),
-                    MarkerLayer(markers: _markers),
+                    if (_customerLocation != null)
+                      PolylineLayer(
+                        polylines: [
+                          Polyline(
+                            points: [
+                              LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                              _customerLocation!,
+                            ],
+                            color: AppTheme.primaryBlue,
+                            strokeWidth: 5,
+                          ),
+                        ],
+                      ),
+                    MarkerLayer(
+                      markers: [
+                        // Provider Marker
+                        Marker(
+                          point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                          width: 60,
+                          height: 60,
+                          child: const Icon(
+                            Icons.local_shipping,
+                            color: AppTheme.primaryBlue,
+                            size: 32,
+                          ),
+                        ),
+                        // Customer Marker
+                        if (_customerLocation != null)
+                          Marker(
+                            point: _customerLocation!,
+                            width: 60,
+                            height: 60,
+                            child: const Icon(
+                              Icons.person_pin_circle,
+                              color: Colors.red,
+                              size: 40,
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
                 Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppTheme.surfaceDark : Colors.white,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.textSlateMedium.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, -2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Distance',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textSlateMedium,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${_distance.toStringAsFixed(1)} km',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryBlue,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'ETA',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textSlateMedium,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '$_eta min',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryBlue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {
-                              final customerLocation = _customerLocation;
-                              if (customerLocation == null) {
-                                ErrorHandler.showInfo(
-                                  context,
-                                  'Customer location is still loading',
-                                );
-                                return;
-                              }
-                              MapUtils.openMapWithCoords(
-                                customerLocation.latitude,
-                                customerLocation.longitude,
-                              );
-                            },
-                            child: const Text(
-                              'Open in Navigation',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: _buildInfoCard(isDark),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildLocationRequired() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.location_off, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text('Location Required', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('Enable location services to track your route', textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _getCurrentLocation,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Distance', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text('${_distance.toStringAsFixed(1)} km', 
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('ETA', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text('$_eta min', 
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                if (_customerLocation != null) {
+                  MapUtils.openMapWithCoords(
+                    _customerLocation!.latitude,
+                    _customerLocation!.longitude,
+                  );
+                }
+              },
+              child: const Text('Open in Navigation', 
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _showCancelDialog,
+            icon: const Icon(Icons.warning_rounded, color: Colors.red),
+            label: const Text('Emergency Abort', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.red.withValues(alpha: 0.1),
+              minimumSize: const Size(double.infinity, 48),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -8,6 +8,10 @@ class ProviderPricing {
   final String? notes; // e.g., "Premium service", "Express service"
   final DateTime createdAt;
   final DateTime? updatedAt;
+  
+  final int nightSurchargeStartHour; // Default 23 (11 PM)
+  final int nightSurchargeEndHour; // Default 5 (5 AM)
+  final double nightSurchargePercent; // Default 30.0 (30%)
 
   ProviderPricing({
     required this.providerId,
@@ -17,6 +21,9 @@ class ProviderPricing {
     this.notes,
     required this.createdAt,
     this.updatedAt,
+    this.nightSurchargeStartHour = 23,
+    this.nightSurchargeEndHour = 5,
+    this.nightSurchargePercent = 30.0,
   });
 
   /// Create from Firestore document
@@ -31,6 +38,9 @@ class ProviderPricing {
       notes: data['notes'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+      nightSurchargeStartHour: data['nightSurchargeStartHour'] as int? ?? 23,
+      nightSurchargeEndHour: data['nightSurchargeEndHour'] as int? ?? 5,
+      nightSurchargePercent: (data['nightSurchargePercent'] as num?)?.toDouble() ?? 30.0,
     );
   }
 
@@ -44,7 +54,32 @@ class ProviderPricing {
       'notes': notes,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'nightSurchargeStartHour': nightSurchargeStartHour,
+      'nightSurchargeEndHour': nightSurchargeEndHour,
+      'nightSurchargePercent': nightSurchargePercent,
     };
+  }
+
+  /// Check if a given hour is within custom night time
+  bool isNightTime(DateTime dateTime) {
+    if (!useNightDifferential) return false;
+    final hour = dateTime.hour;
+    if (nightSurchargeStartHour > nightSurchargeEndHour) {
+      // Overnight (e.g. 23 to 5)
+      return hour >= nightSurchargeStartHour || hour < nightSurchargeEndHour;
+    } else {
+      // Daytime span (e.g. 8 to 17)
+      return hour >= nightSurchargeStartHour && hour < nightSurchargeEndHour;
+    }
+  }
+
+  /// Calculate custom night differential surcharge
+  /// Applied as percentage of base price
+  double calculateNightDifferential(double basePrice, DateTime serviceTime) {
+    if (isNightTime(serviceTime)) {
+      return basePrice * (nightSurchargePercent / 100.0);
+    }
+    return 0.0;
   }
 
   /// Get multiplier for service type
@@ -69,6 +104,9 @@ class ProviderPricing {
     String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? nightSurchargeStartHour,
+    int? nightSurchargeEndHour,
+    double? nightSurchargePercent,
   }) {
     return ProviderPricing(
       providerId: providerId ?? this.providerId,
@@ -78,6 +116,9 @@ class ProviderPricing {
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      nightSurchargeStartHour: nightSurchargeStartHour ?? this.nightSurchargeStartHour,
+      nightSurchargeEndHour: nightSurchargeEndHour ?? this.nightSurchargeEndHour,
+      nightSurchargePercent: nightSurchargePercent ?? this.nightSurchargePercent,
     );
   }
 

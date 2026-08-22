@@ -82,6 +82,25 @@ class LocalNotificationService {
             }
           }
         });
+
+    // Listen for new tasks where I am the assigned driver
+    FirebaseFirestore.instance
+        .collection('tasks')
+        .where('assignedDriverId', isEqualTo: user.uid)
+        .where('status', isEqualTo: 'assigned')
+        .snapshots()
+        .listen((snapshot) {
+          for (var change in snapshot.docChanges) {
+            if (change.type == DocumentChangeType.added) {
+              final data = change.doc.data() as Map<String, dynamic>;
+              _showNotification(
+                id: change.doc.id.hashCode,
+                title: 'New Job Assigned!',
+                body: 'You have been assigned a new ${data['serviceType'] ?? 'towing'} job at ${data['location'] ?? 'a new location'}.',
+              );
+            }
+          }
+        });
   }
 
   Future<void> _showNotification({

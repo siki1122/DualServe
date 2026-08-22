@@ -15,6 +15,7 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _inviteCodeController = TextEditingController();
   bool _isLoading = false;
   String _selectedRole = 'customer';
 
@@ -22,6 +23,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    if (_selectedRole == 'driver' && _inviteCodeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a company invite code')),
       );
       return;
     }
@@ -40,6 +48,48 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
 
+        if (_selectedRole == 'driver') {
+          // Verify provider exists with this invite code
+          final inviteCode = _inviteCodeController.text.trim();
+          final providerSnapshot = await FirebaseFirestore.instance
+              .collection('providers')
+              .where('inviteCode', isEqualTo: inviteCode)
+              .limit(1)
+              .get();
+
+          if (providerSnapshot.docs.isEmpty) {
+            throw Exception('Invalid Company Invite Code');
+          }
+
+          final providerId = providerSnapshot.docs.first.id;
+
+          await FirebaseFirestore.instance.collection('drivers').doc(user.uid).set({
+            'uid': user.uid,
+            'providerId': providerId,
+            'name': _nameController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'email': user.email,
+            'status': 'available',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+          // Also auto-add them to the company's asset inventory
+          await FirebaseFirestore.instance.collection('assets').doc(user.uid).set({
+            'name': _nameController.text.trim(),
+            'category': 'Driver',
+            'type': 'crew',
+            'status': 'active',
+            'ownerId': providerId,
+            'quantity': 1,
+            'isConsumable': false,
+            'jobsCompleted': 0,
+            'metadata': {
+              'email': user.email,
+              'phone': _phoneController.text.trim(),
+            }
+          });
+        }
+
         // If provider, create provider doc too
         if (_selectedRole == 'provider') {
           await FirebaseFirestore.instance.collection('providers').doc(user.uid).set({
@@ -49,7 +99,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             'email': user.email,
             'serviceType': 'Towing', // Default
             'status': 'available',
-            'rating': 5.0,
+            'services': ['Towing'],
+            'isApproved': true, // Auto-approve
             'createdAt': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
         }
@@ -106,8 +157,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               Row(
                 children: [
                   _buildRoleCard('customer', Icons.person, 'Customer'),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   _buildRoleCard('provider', Icons.home_repair_service, 'Provider'),
+                  const SizedBox(width: 8),
+                  _buildRoleCard('driver', Icons.local_shipping, 'Driver'),
                 ],
               ),
               const SizedBox(height: 32),
@@ -134,6 +187,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   fillColor: Colors.white,
                 ),
               ),
+              if (_selectedRole == 'driver') ...[
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _inviteCodeController,
+                  decoration: InputDecoration(
+                    labelText: 'Company Invite Code',
+                    prefixIcon: const Icon(Icons.business),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                ),
+              ],
               const SizedBox(height: 40),
               
               SizedBox(
@@ -175,7 +241,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       child: GestureDetector(
         onTap: () => setState(() => _selectedRole = role),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: isSelected ? AppTheme.primaryBlue : Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -184,13 +250,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               width: 2,
             ),
             boxShadow: isSelected
-                ? [BoxShadow(color: AppTheme.primaryBlue.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
+                ? [BoxShadow(color: AppTheme.primaryBlue.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))]
                 : [],
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? Colors.white : Colors.grey, size: 32),
-              const SizedBox(height: 8),
+              Icon(icon, color: isSelected ? Colors.white : Colors.grey, size: 24),
+              const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(

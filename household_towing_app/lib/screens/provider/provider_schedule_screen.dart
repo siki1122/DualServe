@@ -25,19 +25,17 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
     'Sunday': [],
   };
 
+  final Map<String, bool> _isAvailable = {};
+  final Map<String, String> _startTimes = {};
+  final Map<String, String> _endTimes = {};
+
   bool _hasChanges = false;
 
   final List<String> _availableSlots = [
-    '08:00 AM',
-    '09:00 AM',
-    '10:00 AM',
-    '11:00 AM',
-    '12:00 PM',
-    '01:00 PM',
-    '02:00 PM',
-    '03:00 PM',
-    '04:00 PM',
-    '05:00 PM',
+    '12:00 AM', '01:00 AM', '02:00 AM', '03:00 AM', '04:00 AM', '05:00 AM',
+    '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
+    '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM',
+    '06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM', '10:00 PM', '11:00 PM',
   ];
 
   late ProviderService _providerService;
@@ -51,6 +49,11 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
   @override
   void initState() {
     super.initState();
+    for (var day in _weeklySchedule.keys) {
+      _isAvailable[day] = false;
+      _startTimes[day] = '09:00 AM';
+      _endTimes[day] = '05:00 PM';
+    }
     _providerService = ProviderService();
     _tabController = TabController(length: 2, vsync: this);
     _loadScheduleAndBlockOutDates();
@@ -71,13 +74,24 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
         setState(() {
           _weeklySchedule.clear();
           // Initialize with empty lists first to ensure all days exist
-          ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].forEach((day) {
+          for (var day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']) {
             _weeklySchedule[day] = [];
-          });
+          }
           
           provider.weeklySchedule.forEach((day, slots) {
             if (_weeklySchedule.containsKey(day)) {
-              _weeklySchedule[day] = List<String>.from(slots);
+              final sortedSlots = List<String>.from(slots)..sort((a, b) => _compareTimes(a, b));
+              _weeklySchedule[day] = sortedSlots;
+              
+              if (sortedSlots.isNotEmpty) {
+                _isAvailable[day] = true;
+                _startTimes[day] = sortedSlots.first;
+                _endTimes[day] = sortedSlots.last;
+              } else {
+                _isAvailable[day] = false;
+                _startTimes[day] = '09:00 AM';
+                _endTimes[day] = '05:00 PM';
+              }
             }
           });
           _blockOutDates = provider.blockOutDates;
@@ -87,17 +101,41 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
     }
   }
 
-  void _toggleSlot(String day, String time) {
+  void _updateSlotsFromRange(String day) {
+    if (_isAvailable[day] == false) {
+      _weeklySchedule[day] = [];
+      return;
+    }
+    
+    final startIdx = _availableSlots.indexOf(_startTimes[day]!);
+    final endIdx = _availableSlots.indexOf(_endTimes[day]!);
+    
+    if (startIdx != -1 && endIdx != -1 && startIdx <= endIdx) {
+      _weeklySchedule[day] = _availableSlots.sublist(startIdx, endIdx + 1);
+    } else {
+      _weeklySchedule[day] = [];
+    }
+  }
+
+  void _applyMondayToWeekdays() {
     setState(() {
       _hasChanges = true;
-      if (_weeklySchedule[day]!.contains(time)) {
-        _weeklySchedule[day]!.remove(time);
-      } else {
-        _weeklySchedule[day]!.add(time);
-        // Sort chronologically using a helper
-        _weeklySchedule[day]!.sort((a, b) => _compareTimes(a, b));
+      final isAvail = _isAvailable['Monday']!;
+      final start = _startTimes['Monday']!;
+      final end = _endTimes['Monday']!;
+
+      final weekdays = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      for (var day in weekdays) {
+        _isAvailable[day] = isAvail;
+        _startTimes[day] = start;
+        _endTimes[day] = end;
+        _updateSlotsFromRange(day);
       }
     });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Monday's schedule applied to Tuesday-Friday")),
+    );
   }
 
   int _compareTimes(String a, String b) {
@@ -336,7 +374,7 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
           const SizedBox(height: 24),
           ..._weeklySchedule.entries.map((entry) {
             final day = entry.key;
-            final selectedTimes = entry.value;
+            final isAvailable = _isAvailable[day] ?? false;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +384,7 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
                   decoration: BoxDecoration(
                     color: isDark ? AppTheme.surfaceDark : Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade200),
+                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,74 +392,144 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            day,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
-                            ),
+                          Row(
+                            children: [
+                              Switch(
+                                value: isAvailable,
+                                activeColor: AppTheme.primaryBlue,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _hasChanges = true;
+                                    _isAvailable[day] = value;
+                                    _updateSlotsFromRange(day);
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                day,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                                ),
+                              ),
+                            ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selectedTimes.isEmpty 
-                                ? (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200)
-                                : AppTheme.towingOrange.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${selectedTimes.length} slots',
-                              style: TextStyle(
-                                color: selectedTimes.isEmpty 
-                                  ? (isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium)
-                                  : AppTheme.towingOrange,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                          if (day == 'Monday')
+                            TextButton.icon(
+                              onPressed: _applyMondayToWeekdays,
+                              icon: const Icon(Icons.copy, size: 16),
+                              label: const Text('Apply to Mon-Fri', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.primaryBlue,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                             ),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _availableSlots.map((time) {
-                          final isSelected = selectedTimes.contains(time);
-                          return GestureDetector(
-                            onTap: () => _toggleSlot(day, time),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppTheme.towingOrange : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppTheme.towingOrange
-                                      : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade300),
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                time,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : (isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
+                      if (isAvailable) ...[
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Start Time',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300),
+                                    ),
+                                    child: DropdownButtonHideUnderline(
+                                      child: DropdownButton<String>(
+                                        value: _startTimes[day],
+                                        isExpanded: true,
+                                        dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+                                        style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
+                                        items: _availableSlots.map((String value) {
+                                          return DropdownMenuItem<String>(
+                                            value: value,
+                                            child: Text(value, style: const TextStyle(fontSize: 14)),
+                                          );
+                                        }).toList(),
+                                        onChanged: (newValue) {
+                                          if (newValue != null) {
+                                            setState(() {
+                                              _hasChanges = true;
+                                              _startTimes[day] = newValue;
+                                              _updateSlotsFromRange(day);
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          );
-                        }).toList(),
-                      ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'End Time',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300),
+                                    ),
+                                    child: DropdownButtonHideUnderline(
+                                      child: DropdownButton<String>(
+                                        value: _endTimes[day],
+                                        isExpanded: true,
+                                        dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+                                        style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
+                                        items: _availableSlots.map((String value) {
+                                          return DropdownMenuItem<String>(
+                                            value: value,
+                                            child: Text(value, style: const TextStyle(fontSize: 14)),
+                                          );
+                                        }).toList(),
+                                        onChanged: (newValue) {
+                                          if (newValue != null) {
+                                            setState(() {
+                                              _hasChanges = true;
+                                              _endTimes[day] = newValue;
+                                              _updateSlotsFromRange(day);
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -540,7 +648,7 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
             decoration: BoxDecoration(
               color: isDark ? AppTheme.surfaceDark : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade200),
+              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200),
             ),
             child: Column(
               children: [
@@ -602,7 +710,7 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
                               color: isBlocked
                                   ? Colors.red[400]
                                   : isToday
-                                  ? AppTheme.primaryBlue.withOpacity(0.1)
+                                  ? AppTheme.primaryBlue.withValues(alpha: 0.1)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
@@ -620,7 +728,7 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
                                       color: isBlocked
                                           ? Colors.white
                                           : isPast
-                                          ? (isDark ? Colors.white.withOpacity(0.2) : Colors.grey[300])
+                                          ? (isDark ? Colors.white.withValues(alpha: 0.2) : Colors.grey[300])
                                           : (isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark),
                                       fontSize: 13,
                                     ),
@@ -676,14 +784,14 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
                     decoration: BoxDecoration(
                       color: isDark ? AppTheme.surfaceDark : Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isDark ? Colors.red.withOpacity(0.2) : Colors.red.shade100),
+                      border: Border.all(color: isDark ? Colors.red.withValues(alpha: 0.2) : Colors.red.shade100),
                     ),
                     child: ListTile(
                       leading: Container(
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.red.withOpacity(0.1) : Colors.red[50],
+                          color: isDark ? Colors.red.withValues(alpha: 0.1) : Colors.red[50],
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
@@ -715,7 +823,7 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    Icon(Icons.calendar_today, size: 48, color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade300),
+                    Icon(Icons.calendar_today, size: 48, color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300),
                     const SizedBox(height: 16),
                     Text(
                       'No block-out dates set',

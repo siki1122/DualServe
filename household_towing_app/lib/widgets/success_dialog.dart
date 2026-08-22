@@ -23,7 +23,9 @@ class SuccessDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Dialog(
+      backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -32,8 +34,8 @@ class SuccessDialog extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Color(0xFFE8F5E9), // Light green background
+              decoration: BoxDecoration(
+                color: isDark ? Colors.green.withValues(alpha: 0.15) : const Color(0xFFE8F5E9),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -45,19 +47,19 @@ class SuccessDialog extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.textSlateDark,
+                color: isDark ? Colors.white : AppTheme.textSlateDark,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: AppTheme.textSlateMedium,
+                color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium,
               ),
               textAlign: TextAlign.center,
             ),
@@ -67,12 +69,12 @@ class SuccessDialog extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onPressed ?? () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                 ),
-                child: const Text('Great!', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text('Great!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
           ],

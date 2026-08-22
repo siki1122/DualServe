@@ -143,9 +143,9 @@ class _ProviderPricingSettingsScreenState
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.primaryBlue.withOpacity(0.1),
+        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -189,7 +189,7 @@ class _ProviderPricingSettingsScreenState
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -253,7 +253,7 @@ class _ProviderPricingSettingsScreenState
           Switch(
             value: _tempUseNightDifferential!,
             onChanged: (val) => setState(() => _tempUseNightDifferential = val),
-            activeColor: AppTheme.primaryBlue,
+            activeThumbColor: AppTheme.primaryBlue,
           ),
         ],
       ),
@@ -271,7 +271,7 @@ class _ProviderPricingSettingsScreenState
         color: isDark ? AppTheme.surfaceDark : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: AppTheme.primaryBlue.withOpacity(0.3),
+          color: AppTheme.primaryBlue.withValues(alpha: 0.3),
           width: 2,
         ),
       ),

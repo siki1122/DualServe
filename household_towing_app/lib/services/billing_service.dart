@@ -2,7 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:household_towing_app/models/transaction_model.dart';
 import 'package:household_towing_app/services/location_service.dart';
 import 'package:household_towing_app/services/provider_pricing_service.dart';
+import 'package:household_towing_app/services/provider_service.dart';
 import 'package:household_towing_app/utils/pricing_constants.dart';
+import 'package:household_towing_app/utils/service_templates.dart';
+import 'package:household_towing_app/models/service_definition_model.dart';
 import 'logging_service.dart';
 
 class BillingService {
@@ -36,6 +39,9 @@ class BillingService {
   /// Calculate cost with provider pricing and night differential
   Future<Map<String, double>> calculateCostWithProviderPricing({
     required String serviceType,
+    String? specificService,
+    Map<String, int>? selectedSubServices,
+    Map<String, dynamic>? serviceDetails,
     required double distanceTraveled,
     required String providerId,
     required DateTime completionTime,
@@ -46,9 +52,41 @@ class BillingService {
         providerId,
       );
 
-      final multiplier = providerPricing.getMultiplier(serviceType);
-      final basePrice = PricingConfig.getBasePrice(serviceType);
-      final adjustedBasePrice = basePrice * multiplier;
+      final providerService = ProviderService();
+      final provider = await providerService.getProvider(providerId);
+
+      double basePrice = 0.0;
+      if (provider != null) {
+        if (serviceType == PricingConfig.householdService && selectedSubServices != null && selectedSubServices.isNotEmpty) {
+          selectedSubServices.forEach((service, quantity) {
+            final providerData = provider.offeredServices[service];
+            final def = ServiceTemplates.getDefinition(service, providerData);
+            final details = serviceDetails?[service] as Map<String, dynamic>?;
+            
+            double servicePrice = ServiceTemplates.calculatePrice(def, details, quantity);
+            if (servicePrice == 0 && def.type == ServicePricingType.flatRate) {
+               servicePrice = PricingConfig.getBasePrice(serviceType) * quantity;
+            }
+            basePrice += servicePrice;
+          });
+        } else if (specificService != null && provider.offeredServices.containsKey(specificService)) {
+          final providerData = provider.offeredServices[specificService];
+          final def = ServiceTemplates.getDefinition(specificService, providerData);
+          basePrice = ServiceTemplates.calculatePrice(def, serviceDetails, 1);
+          if (basePrice == 0) basePrice = PricingConfig.getBasePrice(serviceType);
+        } else if (provider.offeredServices.containsKey(serviceType)) {
+          final providerData = provider.offeredServices[serviceType];
+          final def = ServiceTemplates.getDefinition(serviceType, providerData);
+          basePrice = ServiceTemplates.calculatePrice(def, serviceDetails, 1);
+          if (basePrice == 0) basePrice = PricingConfig.getBasePrice(serviceType);
+        } else {
+          basePrice = PricingConfig.getBasePrice(serviceType);
+        }
+      } else {
+        basePrice = PricingConfig.getBasePrice(serviceType);
+      }
+
+      final adjustedBasePrice = basePrice;
 
       // Calculate night differential only if enabled
       double nightDifferential = 0;
@@ -68,7 +106,7 @@ class BillingService {
       return {
         'basePrice': basePrice,
         'adjustedBasePrice': adjustedBasePrice,
-        'multiplier': multiplier,
+        'multiplier': 1.0,
         'nightDifferential': nightDifferential,
         'distanceSurcharge': distanceSurcharge,
         'finalCost': finalCost,
@@ -92,14 +130,20 @@ class BillingService {
     required String customerId,
     required String providerId,
     required String serviceType,
+    String? specificService,
+    Map<String, int>? selectedSubServices,
+    Map<String, dynamic>? serviceDetails,
     required double distanceTraveled,
     required double basePrice,
     required double distanceSurcharge,
     required double nightDifferential,
     required double finalCost,
+    double additionalCost = 0.0,
     required String? providerNotes,
   }) async {
     try {
+      final adminFee = 0.0; // Admin fee removed
+
       final transaction = Transaction(
         id: '', // Will be set by Firestore
         taskId: taskId,
@@ -107,11 +151,16 @@ class BillingService {
         customerId: customerId,
         providerId: providerId,
         serviceType: serviceType,
+        specificService: specificService,
+        selectedSubServices: selectedSubServices,
+        serviceDetails: serviceDetails,
         basePrice: basePrice,
         distanceTraveled: distanceTraveled,
         costPerKm: PricingConfig.costPerKm,
         distanceSurcharge: distanceSurcharge,
         finalCost: finalCost,
+        adminFee: adminFee,
+        additionalCost: additionalCost,
         status: TransactionStatus.completed,
         paymentStatus: PaymentStatus.pending,
         providerNotes: providerNotes,

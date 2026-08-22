@@ -13,6 +13,9 @@ import '../../services/asset_service.dart';
 import '../../services/task_service.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/provider_drawer.dart';
+import '../../widgets/shimmer_loading.dart';
+import 'package:household_towing_app/widgets/status_badge.dart';
+import 'asset_list_screen.dart';
 
 class ProviderAssetInventoryScreen extends StatefulWidget {
   const ProviderAssetInventoryScreen({super.key});
@@ -82,6 +85,51 @@ class _ProviderAssetInventoryScreenState
           }
         }
       }
+      
+      // Sync drivers to assets for backwards compatibility
+      try {
+        final driversSnap = await FirebaseFirestore.instance
+            .collection('drivers')
+            .where('providerId', isEqualTo: uid)
+            .get();
+            
+        for (var doc in driversSnap.docs) {
+          final driverId = doc.id;
+          final assetDoc = await FirebaseFirestore.instance.collection('assets').doc(driverId).get();
+          if (!assetDoc.exists) {
+            await FirebaseFirestore.instance.collection('assets').doc(driverId).set({
+              'name': doc.data()['name'] ?? 'Driver',
+              'category': 'Driver',
+              'type': 'crew',
+              'status': 'active',
+              'ownerId': uid,
+              'quantity': 1,
+              'isConsumable': false,
+              'jobsCompleted': 0,
+              'metadata': {
+                'email': doc.data()['email'],
+                'phone': doc.data()['phone'],
+              }
+            });
+          }
+          
+          // Add driver to personnel list for assignment
+          if (!personnel.any((p) => p.id == driverId)) {
+            personnel.add(Provider(
+              id: driverId,
+              name: doc.data()['name'] ?? 'Driver',
+              email: doc.data()['email'] ?? '',
+              phone: doc.data()['phone'] ?? '',
+              specialty: 'Driver',
+              serviceType: 'Towing',
+              createdAt: DateTime.now(),
+            ));
+          }
+        }
+      } catch (e) {
+        debugPrint('Error syncing drivers: $e');
+      }
+
       if (mounted) {
         setState(() {
           _teamMembers = personnel;
@@ -109,7 +157,26 @@ class _ProviderAssetInventoryScreenState
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return SingleChildScrollView(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const ShimmerLoading(width: 300, height: 16),
+                      const SizedBox(height: 12),
+                      const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 24),
+                      const SizedBox(height: 20),
+                      ShimmerLoading.gridPlaceholder(count: 6, isDark: isDark),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            );
           }
 
           if (snapshot.hasError) {
@@ -126,19 +193,29 @@ class _ProviderAssetInventoryScreenState
           }
 
           final assets = snapshot.data ?? [];
-          final assignedAssets = assets
+          
+          // Ownership filter: Only show assets belonging to this provider or assigned to them
+          final myPool = assets.where((asset) {
+            return asset.ownerId == providerId || 
+                   asset.assignedTo == providerId ||
+                   (asset.ownerId == null && asset.providerName != null && asset.assignedTo == providerId);
+          }).toList();
+
+          final assignedAssets = myPool
               .where((asset) => asset.assignedTo == providerId)
               .toList();
-          final visibleAssets = _filterAssets(assets, providerId);
+          final visibleAssets = _filterAssets(myPool, providerId);
 
           return DefaultTabController(
-            length: 2,
+            length: 1, // Only Usage Logs now
             child: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
                   SliverAppBar(
                     floating: true,
-                    pinned: true,
+                    pinned: false,
+                    backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+                    surfaceTintColor: Colors.transparent,
                     title: Text(
                       'Asset Inventory',
                       style: TextStyle(
@@ -148,16 +225,40 @@ class _ProviderAssetInventoryScreenState
                     ),
                     actions: [
                       IconButton(
-                        tooltip: 'Register asset',
-                        onPressed: () => _openRegisterAssetDialog(providerId, providerName),
-                        icon: const Icon(Icons.add_box_outlined),
-                      ),
-                      IconButton(
-                        tooltip: 'Log resource usage',
-                        onPressed: () => _openUsageDialog(providerId, providerName, const []),
-                        icon: const Icon(Icons.assignment_add),
+                        icon: const Icon(Icons.build_circle_outlined, color: AppTheme.primaryBlue),
+                        tooltip: 'Fix Stuck Assets',
+                        onPressed: () async {
+                          final batch = FirebaseFirestore.instance.batch();
+                          final stuckAssets = await FirebaseFirestore.instance
+                              .collection('assets')
+                              .where('status', isEqualTo: 'inUse')
+                              .get();
+                          for (var doc in stuckAssets.docs) {
+                            batch.update(doc.reference, {
+                              'status': 'active',
+                              'currentTaskId': FieldValue.delete(),
+                              'currentTaskLabel': FieldValue.delete(),
+                            });
+                          }
+                          await batch.commit();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('All stuck assets have been reset to active!'), backgroundColor: Colors.green),
+                            );
+                          }
+                        },
                       ),
                     ],
+                  ),
+                  SliverToBoxAdapter(
+                    child: _buildHeader(myPool, assignedAssets, providerId, providerName),
+                  ),
+                  SliverAppBar(
+                    pinned: true,
+                    primary: false,
+                    automaticallyImplyLeading: false,
+                    toolbarHeight: 0,
+                    backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
                     bottom: TabBar(
                       labelColor: isDark
                           ? AppTheme.textDarkPrimary
@@ -167,25 +268,14 @@ class _ProviderAssetInventoryScreenState
                           : AppTheme.textSlateMedium,
                       indicatorColor: AppTheme.towingOrange,
                       tabs: const [
-                        Tab(text: 'Inventory'),
                         Tab(text: 'Usage Logs'),
                       ],
                     ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildHeader(assets, assignedAssets, providerId, providerName),
                   ),
                 ];
               },
               body: TabBarView(
                 children: [
-                  _buildInventoryTab(
-                    assets,
-                    visibleAssets,
-                    assignedAssets,
-                    providerId,
-                    providerName,
-                  ),
                   _buildUsageLogsTab(providerId),
                 ],
               ),
@@ -197,41 +287,31 @@ class _ProviderAssetInventoryScreenState
   }
 
   Widget _buildHeader(
-    List<AssetModel> assets,
+    List<AssetModel> myPool,
     List<AssetModel> assignedAssets,
     String providerId,
     String providerName,
   ) {
-    final availableCount = assets
-        .where(
-          (asset) => asset.status == AssetStatus.active && asset.assignedTo == null,
-        )
-        .length;
-    final truckCount = assets
-        .where(
-          (asset) =>
-              asset.type == AssetType.vehicle &&
-              (asset.assignedTo == providerId ||
-                  (asset.status == AssetStatus.active &&
-                      asset.assignedTo == null)),
-        )
-        .length;
-    final toolsAndEquipmentCount = assets
-        .where(
-          (asset) =>
-              asset.type != AssetType.vehicle &&
-              (asset.assignedTo == providerId ||
-                  (asset.status == AssetStatus.active &&
-                      asset.assignedTo == null)),
-        )
-        .length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Updated filters for accurate metrics
+    final availableCount = myPool.where((a) => a.status == AssetStatus.active && a.assignedTo == null).length;
+    final assignedCount = assignedAssets.length;
+    final truckCount = myPool.where((a) => a.type == AssetType.vehicle).length;
+    final equipmentCount = myPool.where((a) => a.type == AssetType.equipment).length;
+    final toolsCount = myPool.where((a) => a.type == AssetType.tool).length;
+    final driverCount = myPool.where((a) => a.type == AssetType.crew && a.category == 'Driver').length;
+    final crewCount = myPool.where((a) => a.type == AssetType.crew && a.category != 'Driver').length;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
             'Monitor trucks, tools, equipment, and crew usage',
             style: TextStyle(
               color: _secondaryTextColor(context),
@@ -240,78 +320,48 @@ class _ProviderAssetInventoryScreenState
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () =>
-                      _openRegisterAssetDialog(providerId, providerName),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primaryBlue,
-                    side: const BorderSide(color: AppTheme.primaryBlue),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  icon: const Icon(Icons.add_box_outlined, size: 18),
-                  label: const Text('Register'),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () =>
+                  _openRegisterAssetDialog(providerId, providerName),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
                 ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () =>
-                      _openUsageDialog(providerId, providerName, assignedAssets),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.textSlateDark,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  icon: const Icon(Icons.assignment_add, size: 18),
-                  label: const Text('Log Usage'),
-                ),
-              ),
-            ],
+              icon: const Icon(Icons.add_circle_outline, size: 20),
+              label: const Text('Register Asset', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
           ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 2.25,
-            children: [
-              _buildMetricCard(
-                'Available',
-                availableCount.toString(),
-                Icons.inventory_2_outlined,
-                Colors.green,
-              ),
-              _buildMetricCard(
-                'Assigned',
-                assignedAssets.length.toString(),
-                Icons.assignment_ind_outlined,
-                AppTheme.primaryBlue,
-              ),
-              _buildMetricCard(
-                'Trucks',
-                truckCount.toString(),
-                Icons.local_shipping_outlined,
-                AppTheme.towingOrange,
-              ),
-              _buildMetricCard(
-                'Tools/Equipment',
-                toolsAndEquipmentCount.toString(),
-                Icons.handyman_outlined,
-                Colors.purple,
-              ),
-            ],
-          ),
-        ],
+          const SizedBox(height: 20),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Calculate width to perfectly fit 2 columns with 12px spacing
+                final cardWidth = (constraints.maxWidth - 12) / 2;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.start,
+                  children: [
+                    _buildMetricCard('Available', availableCount.toString(), Icons.inventory_2_outlined, Colors.green, 'available', cardWidth),
+                    _buildMetricCard('Vehicles', truckCount.toString(), Icons.local_shipping_outlined, AppTheme.towingOrange, 'vehicles', cardWidth),
+                    _buildMetricCard('Drivers', driverCount.toString(), Icons.airline_seat_recline_normal, Colors.teal, 'drivers', cardWidth),
+                    _buildMetricCard('Crew', crewCount.toString(), Icons.engineering_outlined, Colors.purple, 'crew', cardWidth),
+                    _buildMetricCard('Equipment', equipmentCount.toString(), Icons.construction, Colors.indigo, 'equipment', cardWidth),
+                    _buildMetricCard('Tools', toolsCount.toString(), Icons.handyman_outlined, Colors.blueGrey, 'tools', cardWidth),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
+    ),
     );
   }
 
@@ -320,53 +370,72 @@ class _ProviderAssetInventoryScreenState
     String value,
     IconData icon,
     Color color,
+    String filterKey,
+    double cardWidth,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: AppTheme.cardDecoration(context),
-      child: Row(
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AssetListScreen(initialFilter: filterKey),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: cardWidth,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+        color: isDark ? AppTheme.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 38,
-            height: 38,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(isDark ? 0.18 : 0.12),
-              borderRadius: BorderRadius.circular(10),
+              color: color.withValues(alpha: isDark ? 0.2 : 0.1),
+              shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    color: isDark
-                        ? AppTheme.textDarkPrimary
-                        : AppTheme.textSlateDark,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _secondaryTextColor(context),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: TextStyle(
+              color: isDark
+                  ? AppTheme.textDarkPrimary
+                  : AppTheme.textSlateDark,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: _secondaryTextColor(context),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -377,68 +446,70 @@ class _ProviderAssetInventoryScreenState
     String providerId,
     String providerName,
   ) {
-    return Column(
-      children: [
-        _buildFilterBar(allAssets, providerId),
-        Expanded(
-          child: visibleAssets.isEmpty
-              ? _buildEmptyState(
-                  Icons.inventory_2_outlined,
-                  'No assets found',
-                  'Try a different filter or ask an admin to register assets.',
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                  itemCount: visibleAssets.length,
-                  itemBuilder: (context, index) {
-                    final asset = visibleAssets[index];
-                    return _buildAssetCard(asset, providerId, providerName);
-                  },
-                ),
-        ),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildFilterBar(allAssets, providerId),
+          if (visibleAssets.isEmpty)
+            _buildEmptyState(
+              Icons.inventory_2_outlined,
+              'No assets found',
+              'Try a different filter or ask an admin to register assets.',
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+              itemCount: visibleAssets.length,
+              itemBuilder: (context, index) {
+                final asset = visibleAssets[index];
+                return _buildAssetCard(asset, providerId, providerName);
+              },
+            ),
+        ],
+      ),
     );
   }
 
-  Widget _buildFilterBar(List<AssetModel> allAssets, String providerId) {
+  Widget _buildFilterBar(List<AssetModel> myAssets, String providerId) {
     final filters = [
-      ('all', 'All', allAssets.length),
-      ('mine', 'Mine', allAssets.where((a) => a.assignedTo == providerId).length),
-      ('available', 'Available', allAssets.where((a) => a.status == AssetStatus.active && a.assignedTo == null).length),
-      ('vehicles', 'Trucks', allAssets.where((a) => a.type == AssetType.vehicle).length),
-      ('tools', 'Tools', allAssets.where((a) => a.type == AssetType.tool).length),
-      ('equipment', 'Equipment', allAssets.where((a) => a.type == AssetType.equipment).length),
-      ('maintenance', 'Maintenance', allAssets.where((a) => a.status == AssetStatus.maintenance).length),
+      ('all', 'All', myAssets.length),
+      ('mine', 'Mine', myAssets.where((a) => a.assignedTo == providerId).length),
+      ('available', 'Available', myAssets.where((a) => a.status == AssetStatus.active && a.assignedTo == null).length),
+      ('vehicles', 'Vehicles', myAssets.where((a) => a.type == AssetType.vehicle).length),
+      ('tools', 'Tools', myAssets.where((a) => a.type == AssetType.tool).length),
+      ('equipment', 'Equipment', myAssets.where((a) => a.type == AssetType.equipment).length),
+      ('drivers', 'Drivers', myAssets.where((a) => a.type == AssetType.crew && a.category == 'Driver').length),
+      ('crew', 'Crew', myAssets.where((a) => a.type == AssetType.crew && a.category != 'Driver').length),
     ];
 
-    return SizedBox(
-      height: 54,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        scrollDirection: Axis.horizontal,
-        itemCount: filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final filter = filters[index];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: filters.map((filter) {
           final selected = _filter == filter.$1;
-
-          return ChoiceChip(
-            label: Text('${filter.$2} (${filter.$3})'),
-            selected: selected,
-            onSelected: (_) => setState(() => _filter = filter.$1),
-            selectedColor: AppTheme.towingOrange.withOpacity(0.15),
-            labelStyle: TextStyle(
-              color: selected ? AppTheme.towingOrange : _secondaryTextColor(context),
-              fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-              fontSize: 12,
-            ),
-            side: BorderSide(
-              color: selected
-                  ? AppTheme.towingOrange
-                  : _secondaryTextColor(context).withOpacity(0.25),
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ChoiceChip(
+              label: Text('${filter.$2} (${filter.$3})'),
+              selected: selected,
+              onSelected: (_) => setState(() => _filter = filter.$1),
+              selectedColor: AppTheme.towingOrange.withValues(alpha: 0.15),
+              labelStyle: TextStyle(
+                color: selected ? AppTheme.towingOrange : _secondaryTextColor(context),
+                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+              ),
+              side: BorderSide(
+                color: selected
+                    ? AppTheme.towingOrange
+                    : _secondaryTextColor(context).withValues(alpha: 0.25),
+              ),
             ),
           );
-        },
+        }).toList(),
       ),
     );
   }
@@ -469,7 +540,7 @@ class _ProviderAssetInventoryScreenState
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: statusInfo.color.withOpacity(isDark ? 0.18 : 0.12),
+                    color: statusInfo.color.withValues(alpha: isDark ? 0.18 : 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(_assetIcon(asset.type), color: statusInfo.color),
@@ -503,6 +574,16 @@ class _ProviderAssetInventoryScreenState
                   ),
                 ),
                 _buildStatusBadge(statusInfo),
+                if (asset.ownerId == providerId || asset.assignedTo == providerId) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                    tooltip: 'Delete Asset',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _confirmDeleteAsset(asset),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 14),
@@ -558,93 +639,6 @@ class _ProviderAssetInventoryScreenState
                 ],
               ),
             ],
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                if (isAvailable) ...[
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _claimAsset(asset, providerId, providerName),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      icon: const Icon(Icons.person_add_alt_1, size: 18),
-                      label: const Text('Claim'),
-                    ),
-                  ),
-                  if (_teamMembers.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _openAssignPersonnelDialog(asset),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.towingOrange,
-                          side: const BorderSide(color: AppTheme.towingOrange),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        icon: const Icon(Icons.people_outline, size: 18),
-                        label: const Text('Assign'),
-                      ),
-                    ),
-                  ],
-                ] else if (isMine && asset.status != AssetStatus.inUse)
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _releaseAsset(asset, providerId),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primaryBlue,
-                        side: const BorderSide(color: AppTheme.primaryBlue),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      icon: const Icon(Icons.logout, size: 18),
-                      label: const Text('Release Asset'),
-                    ),
-                  )
-                else if (isMine && asset.status == AssetStatus.inUse)
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.lock_clock_outlined, size: 16, color: Colors.grey[400]),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Locked (On Task)',
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: null,
-                      icon: const Icon(Icons.lock_outline, size: 18),
-                      label: Text(statusInfo.label),
-                    ),
-                  ),
-              ],
-            ),
           ],
         ),
       ),
@@ -707,13 +701,13 @@ class _ProviderAssetInventoryScreenState
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: color != null 
-          ? color.withOpacity(isDark ? 0.1 : 0.05)
-          : (isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50),
+          ? color.withValues(alpha: isDark ? 0.1 : 0.05)
+          : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade50),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: color != null 
-            ? color.withOpacity(0.3)
-            : (isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade200),
+            ? color.withValues(alpha: 0.3)
+            : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade200),
         ),
       ),
       child: Row(
@@ -741,9 +735,9 @@ class _ProviderAssetInventoryScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: statusInfo.color.withOpacity(0.1),
+        color: statusInfo.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: statusInfo.color.withOpacity(0.35)),
+        border: Border.all(color: statusInfo.color.withValues(alpha: 0.35)),
       ),
       child: Text(
         statusInfo.label,
@@ -757,12 +751,16 @@ class _ProviderAssetInventoryScreenState
   }
 
   Widget _buildUsageLogsTab(String providerId) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return StreamBuilder<List<AssetUsageLog>>(
       stream: _assetService.getProviderUsageLogs(providerId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ShimmerLoading.cardPlaceholder(count: 3, isDark: isDark),
+          );
         }
 
         final logs = snapshot.data ?? [];
@@ -799,7 +797,7 @@ class _ProviderAssetInventoryScreenState
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withOpacity(isDark ? 0.18 : 0.1),
+                  color: AppTheme.primaryBlue.withValues(alpha: isDark ? 0.18 : 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -851,6 +849,11 @@ class _ProviderAssetInventoryScreenState
             'Equipment',
             _formatAssetNames(log.equipmentNames),
           ),
+          _buildUsageLine(
+            Icons.groups_outlined,
+            'Crew',
+            _formatAssetNames(log.crewNames),
+          ),
           if (log.notes?.trim().isNotEmpty == true) ...[
             const SizedBox(height: 8),
             Text(
@@ -870,7 +873,7 @@ class _ProviderAssetInventoryScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.towingOrange.withOpacity(0.12),
+        color: AppTheme.towingOrange.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -932,7 +935,7 @@ class _ProviderAssetInventoryScreenState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 60, color: _secondaryTextColor(context).withOpacity(0.35)),
+            Icon(icon, size: 60, color: _secondaryTextColor(context).withValues(alpha: 0.35)),
             const SizedBox(height: 16),
             Text(
               title,
@@ -978,6 +981,40 @@ class _ProviderAssetInventoryScreenState
     }
   }
 
+  void _confirmDeleteAsset(AssetModel asset) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Asset'),
+          content: Text('Are you sure you want to delete "${asset.name}"? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  await _assetService.deleteAsset(asset.id);
+                  _showSnackBar('${asset.name} deleted successfully');
+                } catch (e) {
+                  _showSnackBar('Unable to delete asset: $e', isError: true);
+                }
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _openRegisterAssetDialog(String providerId, String providerName) {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
@@ -990,8 +1027,11 @@ class _ProviderAssetInventoryScreenState
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             return AlertDialog(
-              title: const Text('Register Asset'),
+              backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Text('Register Asset', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark)),
               content: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 460),
                 child: Form(
@@ -1001,10 +1041,12 @@ class _ProviderAssetInventoryScreenState
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         DropdownButtonFormField<AssetType>(
-                          value: selectedType,
-                          decoration: const InputDecoration(
-                            labelText: 'Asset type',
-                            border: OutlineInputBorder(),
+                          isExpanded: true,
+                          initialValue: selectedType,
+                          decoration: AppTheme.textFieldDecoration(
+                            label: 'Asset type',
+                            prefixIcon: Icons.category_outlined,
+                            isDark: isDark,
                           ),
                           items: AssetType.values
                               .map(
@@ -1022,12 +1064,14 @@ class _ProviderAssetInventoryScreenState
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: nameController,
-                          decoration: InputDecoration(
-                            labelText: selectedType == AssetType.vehicle
-                                ? 'Truck name / unit'
-                                : 'Asset name',
-                            border: const OutlineInputBorder(),
-                            prefixIcon: Icon(_assetIcon(selectedType)),
+                          decoration: AppTheme.textFieldDecoration(
+                            label: selectedType == AssetType.vehicle
+                                ? 'Vehicle name / unit'
+                                : selectedType == AssetType.crew
+                                    ? 'Crew name'
+                                    : 'Asset name',
+                            prefixIcon: _assetIcon(selectedType),
+                            isDark: isDark,
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -1039,14 +1083,19 @@ class _ProviderAssetInventoryScreenState
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: categoryController,
-                          decoration: InputDecoration(
-                            labelText: selectedType == AssetType.vehicle
-                                ? 'Truck type'
-                                : 'Category',
-                            hintText: selectedType == AssetType.vehicle
+                          decoration: AppTheme.textFieldDecoration(
+                            label: selectedType == AssetType.vehicle
+                                ? 'Vehicle type'
+                                : selectedType == AssetType.crew
+                                    ? 'Role / Position'
+                                    : 'Category',
+                            hint: selectedType == AssetType.vehicle
                                 ? 'Flatbed, wheel-lift, service truck'
-                                : 'Hand tool, safety gear, diagnostic kit',
-                            border: const OutlineInputBorder(),
+                                : selectedType == AssetType.crew
+                                    ? 'Driver, Helper, Mechanic'
+                                    : 'Hand tool, safety gear, diagnostic kit',
+                            prefixIcon: Icons.merge_type_outlined,
+                            isDark: isDark,
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -1060,14 +1109,14 @@ class _ProviderAssetInventoryScreenState
                           TextFormField(
                             controller: plateController,
                             textCapitalization: TextCapitalization.characters,
-                            decoration: const InputDecoration(
-                              labelText: 'Plate number',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.confirmation_number_outlined),
+                            decoration: AppTheme.textFieldDecoration(
+                              label: 'Plate number',
+                              prefixIcon: Icons.confirmation_number_outlined,
+                              isDark: isDark,
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Enter the truck plate number';
+                                return 'Enter the vehicle plate number';
                               }
                               return null;
                             },
@@ -1081,9 +1130,20 @@ class _ProviderAssetInventoryScreenState
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: _secondaryTextColor(context),
+                  ),
+                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
                   onPressed: () async {
                     if (!formKey.currentState!.validate()) return;
 
@@ -1098,13 +1158,16 @@ class _ProviderAssetInventoryScreenState
                             ? null
                             : plateController.text.trim().toUpperCase(),
                       );
-
-                      if (mounted) {
-                        Navigator.pop(dialogContext);
-                        _showSnackBar('${_assetTypeLabel(selectedType)} registered');
-                      }
                     } catch (e) {
                       _showSnackBar('Unable to register asset: $e', isError: true);
+                      return;
+                    }
+
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
+                    if (mounted) {
+                      _showSnackBar('${_assetTypeLabel(selectedType)} registered');
                     }
                   },
                   child: const Text('Register'),
@@ -1122,17 +1185,15 @@ class _ProviderAssetInventoryScreenState
     String providerName,
     List<AssetModel> currentAssignedAssets,
   ) {
-    final crewController = TextEditingController(text: '1');
     final notesController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
     String? selectedTaskId;
     String? selectedTaskLabel;
     String? selectedVehicleId;
-    String? selectedDriverId;
-    String? selectedDriverName;
     final selectedToolIds = <String>{};
     final selectedEquipmentIds = <String>{};
+    final selectedCrewIds = <String>{};
 
     showDialog(
       context: context,
@@ -1151,11 +1212,17 @@ class _ProviderAssetInventoryScreenState
             final equipment = assignedAssets
                 .where((asset) => asset.type == AssetType.equipment)
                 .toList();
+            final crew = assignedAssets
+                .where((asset) => asset.type == AssetType.crew)
+                .toList();
 
             return StatefulBuilder(
               builder: (context, setDialogState) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
                 return AlertDialog(
-                  title: const Text('Log Resource Usage'),
+                  backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surface,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  title: Text('Log Resource Usage', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark)),
                   content: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 520),
                     child: Form(
@@ -1170,10 +1237,12 @@ class _ProviderAssetInventoryScreenState
                               builder: (context, taskSnapshot) {
                                 final tasks = taskSnapshot.data ?? [];
                                 return DropdownButtonFormField<String>(
-                                  value: selectedTaskId,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Related active task',
-                                    border: OutlineInputBorder(),
+                          isExpanded: true,
+                                  initialValue: selectedTaskId,
+                                  decoration: AppTheme.textFieldDecoration(
+                                    label: 'Related active task',
+                                    prefixIcon: Icons.assignment_outlined,
+                                    isDark: isDark,
                                   ),
                                   hint: const Text('Optional'),
                                   items: tasks
@@ -1197,61 +1266,20 @@ class _ProviderAssetInventoryScreenState
                                 );
                               },
                             ),
-                            const SizedBox(height: 14),
-                            if (_teamMembers.isNotEmpty) ...[
-                              DropdownButtonFormField<String>(
-                                value: selectedDriverId,
-                                decoration: const InputDecoration(
-                                  labelText: 'Primary driver',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.person_outline),
-                                ),
-                                hint: const Text('Select team member'),
-                                items: _teamMembers
-                                    .map(
-                                      (person) => DropdownMenuItem(
-                                        value: person.id,
-                                        child: Text(person.name),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) {
-                                  setDialogState(() {
-                                    selectedDriverId = value;
-                                    selectedDriverName = _teamMembers
-                                        .firstWhere((p) => p.id == value)
-                                        .name;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 14),
-                            ],
-                            TextFormField(
-                              controller: crewController,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              decoration: const InputDecoration(
-                                labelText: 'How many people/crew members?',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.groups_outlined),
-                              ),
-                              validator: (value) {
-                                final count = int.tryParse(value ?? '');
-                                if (count == null || count < 1) {
-                                  return 'Enter at least 1 crew member';
-                                }
-                                return null;
-                              },
+                            _buildAssetChecklist(
+                              title: 'Assigned Crew',
+                              assets: crew,
+                              selectedIds: selectedCrewIds,
+                              setDialogState: setDialogState,
                             ),
                             const SizedBox(height: 14),
                             DropdownButtonFormField<String>(
-                              value: selectedVehicleId,
-                              decoration: const InputDecoration(
-                                labelText: 'Truck used',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.local_shipping_outlined),
+                          isExpanded: true,
+                              initialValue: selectedVehicleId,
+                              decoration: AppTheme.textFieldDecoration(
+                                label: 'Truck used',
+                                prefixIcon: Icons.local_shipping_outlined,
+                                isDark: isDark,
                               ),
                               hint: vehicles.isEmpty
                                   ? const Text('No truck assigned')
@@ -1288,9 +1316,10 @@ class _ProviderAssetInventoryScreenState
                             TextField(
                               controller: notesController,
                               maxLines: 3,
-                              decoration: const InputDecoration(
-                                labelText: 'Notes',
-                                border: OutlineInputBorder(),
+                              decoration: AppTheme.textFieldDecoration(
+                                label: 'Notes',
+                                prefixIcon: Icons.edit_note_outlined,
+                                isDark: isDark,
                               ),
                             ),
                           ],
@@ -1301,9 +1330,20 @@ class _ProviderAssetInventoryScreenState
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text('Cancel'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: _secondaryTextColor(context),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
                     ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
                       onPressed: () async {
                         if (!formKey.currentState!.validate()) return;
 
@@ -1317,19 +1357,22 @@ class _ProviderAssetInventoryScreenState
                               (asset) => selectedEquipmentIds.contains(asset.id),
                             )
                             .toList();
+                        final selectedCrew = crew
+                            .where(
+                              (asset) => selectedCrewIds.contains(asset.id),
+                            )
+                            .toList();
 
                         try {
                           await _assetService.logResourceUsage(
                             providerId: providerId,
                             providerName: providerName,
-                            driverId: selectedDriverId,
-                            driverName: selectedDriverName,
                             taskId: selectedTaskId,
                             taskLabel: selectedTaskLabel,
-                            crewCount: int.parse(crewController.text),
                             vehicle: vehicle,
                             tools: selectedTools,
                             equipment: selectedEquipment,
+                            crew: selectedCrew,
                             notes: notesController.text.trim().isEmpty
                                 ? null
                                 : notesController.text.trim(),
@@ -1411,8 +1454,8 @@ class _ProviderAssetInventoryScreenState
     );
   }
 
-  List<AssetModel> _filterAssets(List<AssetModel> assets, String providerId) {
-    final filtered = assets.where((asset) {
+  List<AssetModel> _filterAssets(List<AssetModel> myPool, String providerId) {
+    final filtered = myPool.where((asset) {
       switch (_filter) {
         case 'mine':
           return asset.assignedTo == providerId;
@@ -1424,8 +1467,10 @@ class _ProviderAssetInventoryScreenState
           return asset.type == AssetType.tool;
         case 'equipment':
           return asset.type == AssetType.equipment;
-        case 'maintenance':
-          return asset.status == AssetStatus.maintenance;
+        case 'drivers':
+          return asset.type == AssetType.crew && asset.category == 'Driver';
+        case 'crew':
+          return asset.type == AssetType.crew && asset.category != 'Driver';
         default:
           return true;
       }
@@ -1471,11 +1516,11 @@ class _ProviderAssetInventoryScreenState
     if (asset.status == AssetStatus.inactive) {
       return _AssetStatusInfo('Inactive', Colors.red);
     }
-    if (asset.assignedTo == providerId) {
-      return _AssetStatusInfo('Assigned', AppTheme.primaryBlue);
-    }
     if (asset.status == AssetStatus.inUse) {
       return _AssetStatusInfo('In Use', Colors.blueGrey);
+    }
+    if (asset.assignedTo == providerId) {
+      return _AssetStatusInfo('Available', Colors.green);
     }
     return _AssetStatusInfo('Available', Colors.green);
   }
@@ -1488,17 +1533,21 @@ class _ProviderAssetInventoryScreenState
         return Icons.handyman_outlined;
       case AssetType.equipment:
         return Icons.construction_outlined;
+      case AssetType.crew:
+        return Icons.person_outline;
     }
   }
 
   String _assetTypeLabel(AssetType type) {
     switch (type) {
       case AssetType.vehicle:
-        return 'Truck / Vehicle';
+        return 'Vehicle';
       case AssetType.tool:
         return 'Tool';
       case AssetType.equipment:
         return 'Equipment';
+      case AssetType.crew:
+        return 'Crew Member';
     }
   }
 

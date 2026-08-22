@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:household_towing_app/models/task_model.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
-import 'package:household_towing_app/services/logging_service.dart';
 
 class CustomerServiceTrackingScreen extends StatefulWidget {
   final String taskId;
@@ -21,10 +20,10 @@ class _CustomerServiceTrackingScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Service Status'),
-        backgroundColor: Colors.green,
+        title: const Text('Service Status', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<DocumentSnapshot>(
@@ -50,10 +49,7 @@ class _CustomerServiceTrackingScreenState
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: _getStatusBgColor(task.status),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _getStatusBorderColor(task.status),
-                    ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,10 +98,91 @@ class _CustomerServiceTrackingScreenState
                           color: _getStatusTextColor(task.status),
                         ),
                       ),
+                      
+                      // NEW: Progress Section for Customer (Only show In Progress/Completed)
+                      if (task.milestones.isNotEmpty && 
+                          task.status != TaskStatus.assigned && 
+                          task.status != TaskStatus.unassigned) ...[
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Progress',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: _getStatusTextColor(task.status).withValues(alpha: 0.7),
+                              ),
+                            ),
+                            Text(
+                              '${(task.progress * 100).toInt()}%',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: _getStatusTextColor(task.status),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: task.progress,
+                            minHeight: 8,
+                            backgroundColor: Colors.white.withValues(alpha: 0.5),
+                            valueColor: AlwaysStoppedAnimation<Color>(_getStatusColor(task.status)),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
+                
+                // NEW: Granular Milestones Section (Only show In Progress/Completed)
+                if (task.milestones.isNotEmpty && 
+                    task.status != TaskStatus.assigned && 
+                    task.status != TaskStatus.unassigned) ...[
+                  const Text(
+                    'Step-by-Step Updates',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: AppTheme.cardDecoration(context),
+                    child: Column(
+                      children: task.milestones.map((milestone) {
+                        return ListTile(
+                          leading: Icon(
+                            milestone.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                            color: milestone.isCompleted ? Colors.green : Colors.grey[300],
+                            size: 24,
+                          ),
+                          title: Text(
+                            milestone.title,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: milestone.isCompleted ? FontWeight.bold : FontWeight.normal,
+                              color: milestone.isCompleted ? Colors.black87 : Colors.grey[500],
+                              decoration: milestone.isCompleted ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                          trailing: milestone.completedAt != null 
+                            ? Text(
+                                _formatTimeOnly(milestone.completedAt!),
+                                style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                              )
+                            : null,
+                          dense: true,
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
 
                 // Timeline
                 _buildTimeline(task),
@@ -114,7 +191,7 @@ class _CustomerServiceTrackingScreenState
                 // Service Details
                 const Text(
                   'Service Details',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textSlateDark),
                 ),
                 const SizedBox(height: 16),
                 _buildDetailCard(
@@ -138,12 +215,7 @@ class _CustomerServiceTrackingScreenState
                   color: Colors.orange,
                 ),
                 const SizedBox(height: 12),
-                _buildDetailCard(
-                  icon: Icons.priority_high,
-                  title: 'Priority',
-                  value: task.priority.toString().split('.').last,
-                  color: _getPriorityColor(task.priority),
-                ),
+
                 if (task.description != null &&
                     task.description!.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -318,7 +390,7 @@ class _CustomerServiceTrackingScreenState
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: color, width: 2),
           ),
@@ -343,18 +415,14 @@ class _CustomerServiceTrackingScreenState
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.cardDecoration(context),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -403,11 +471,7 @@ class _CustomerServiceTrackingScreenState
 
         return Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green[200]!),
-          ),
+          decoration: AppTheme.cardDecoration(context),
           child: Row(
             children: [
               Container(
@@ -464,61 +528,39 @@ class _CustomerServiceTrackingScreenState
   Color _getStatusColor(TaskStatus status) {
     switch (status) {
       case TaskStatus.unassigned:
-        return Colors.blue;
+        return AppTheme.statusPendingText;
       case TaskStatus.assigned:
-        return Colors.orange;
+        return AppTheme.statusAcceptedText;
       case TaskStatus.inProgress:
-        return Colors.purple;
+        return AppTheme.statusInProgressText;
       case TaskStatus.completed:
-        return Colors.green;
+        return AppTheme.statusCompletedText;
       case TaskStatus.cancelled:
-        return Colors.red;
+        return AppTheme.statusCancelledText;
     }
   }
 
   Color _getStatusBgColor(TaskStatus status) {
     switch (status) {
       case TaskStatus.unassigned:
-        return Colors.blue[50]!;
+        return AppTheme.statusPendingBg;
       case TaskStatus.assigned:
-        return Colors.orange[50]!;
+        return AppTheme.statusAcceptedBg;
       case TaskStatus.inProgress:
-        return Colors.purple[50]!;
+        return AppTheme.statusInProgressBg;
       case TaskStatus.completed:
-        return Colors.green[50]!;
+        return AppTheme.statusCompletedBg;
       case TaskStatus.cancelled:
-        return Colors.red[50]!;
+        return AppTheme.statusCancelledBg;
     }
   }
 
   Color _getStatusBorderColor(TaskStatus status) {
-    switch (status) {
-      case TaskStatus.unassigned:
-        return Colors.blue[200]!;
-      case TaskStatus.assigned:
-        return Colors.orange[200]!;
-      case TaskStatus.inProgress:
-        return Colors.purple[200]!;
-      case TaskStatus.completed:
-        return Colors.green[200]!;
-      case TaskStatus.cancelled:
-        return Colors.red[200]!;
-    }
+    return Colors.transparent; // Simplified design doesn't use borders here
   }
 
   Color _getStatusTextColor(TaskStatus status) {
-    switch (status) {
-      case TaskStatus.unassigned:
-        return Colors.blue[700]!;
-      case TaskStatus.assigned:
-        return Colors.orange[700]!;
-      case TaskStatus.inProgress:
-        return Colors.purple[700]!;
-      case TaskStatus.completed:
-        return Colors.green[700]!;
-      case TaskStatus.cancelled:
-        return Colors.red[700]!;
-    }
+    return _getStatusColor(status);
   }
 
   String _getStatusMessage(TaskStatus status) {
@@ -536,18 +578,7 @@ class _CustomerServiceTrackingScreenState
     }
   }
 
-  Color _getPriorityColor(TaskPriority priority) {
-    switch (priority) {
-      case TaskPriority.low:
-        return Colors.blue;
-      case TaskPriority.medium:
-        return Colors.orange;
-      case TaskPriority.high:
-        return Colors.red;
-      case TaskPriority.urgent:
-        return Colors.red[900]!;
-    }
-  }
+
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
@@ -564,5 +595,9 @@ class _CustomerServiceTrackingScreenState
     }
 
     return '$dateStr at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatTimeOnly(DateTime date) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }
