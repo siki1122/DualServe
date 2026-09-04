@@ -5,6 +5,14 @@ import '../../utils/app_theme.dart';
 import '../../widgets/provider_drawer.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/skeleton_loader.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+import 'package:household_towing_app/models/booking_model.dart';
+import 'package:household_towing_app/models/transaction_model.dart' as tm;
+import 'package:household_towing_app/screens/customer/receipt_screen.dart';
+import 'package:household_towing_app/providers/user_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:household_towing_app/utils/error_handler.dart';
+
 
 class ProviderHistoryScreen extends StatefulWidget {
   const ProviderHistoryScreen({super.key});
@@ -82,43 +90,25 @@ class _ProviderHistoryScreenState extends State<ProviderHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
       drawer: const ProviderDrawer(),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'History',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppTheme.textSlateDark,
+            color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
           ),
         ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: Column(
         children: [
 
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search history by service...',
-                hintStyle: TextStyle(color: Colors.grey.shade400),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: AppTheme.textSlateMedium,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
-            ),
-          ),
 
           // History List
           Expanded(
@@ -189,9 +179,10 @@ class _HistoryCardState extends State<_HistoryCard> {
 
   void _loadReview() async {
     try {
+      final actualBookingId = (widget.booking.data() as Map<String, dynamic>)['bookingId'] ?? widget.booking.id;
       final reviewSnapshot = await FirebaseFirestore.instance
           .collection('reviews')
-          .where('bookingId', isEqualTo: widget.booking.id)
+          .where('bookingId', isEqualTo: actualBookingId)
           .limit(1)
           .get();
 
@@ -250,6 +241,50 @@ class _HistoryCardState extends State<_HistoryCard> {
     }
   }
 
+  void _openReceipt() async {
+    try {
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()));
+      
+      final actualBookingId = (widget.booking.data() as Map<String, dynamic>)['bookingId'] ?? widget.booking.id;
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final transactionSnapshot = await FirebaseFirestore.instance
+          .collection('transactions')
+          .where('bookingId', isEqualTo: actualBookingId)
+          .where('providerId', isEqualTo: uid)
+          .limit(1)
+          .get();
+          
+      if (mounted) Navigator.pop(context); // Close loading dialog
+      
+      if (transactionSnapshot.docs.isNotEmpty) {
+        final bookingDoc = await FirebaseFirestore.instance.collection('bookings').doc(actualBookingId).get();
+        final tm.Transaction transaction = tm.Transaction.fromFirestore(transactionSnapshot.docs.first);
+        final Booking bookingModel = bookingDoc.exists ? Booking.fromFirestore(bookingDoc) : Booking.fromFirestore(widget.booking);
+        final providerName = Provider.of<UserProvider>(context, listen: false).userProfile?['name'] ?? 'Provider';
+        
+        if (mounted) {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (context) => ReceiptScreen(
+              booking: bookingModel,
+              transaction: transaction,
+              providerName: providerName,
+            ),
+          ));
+        }
+      } else {
+        if (mounted) ErrorHandler.showError(context, Exception('Receipt details not found.'));
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ErrorHandler.showError(context, e, title: 'Error');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final booking = widget.booking;
@@ -265,15 +300,17 @@ class _HistoryCardState extends State<_HistoryCard> {
     final rawCost = (booking['finalCost'] as num?) ?? (booking['estimatedCost'] as num?) ?? 0.0;
     final formattedCost = rawCost.toDouble().toStringAsFixed(2);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return GestureDetector(
+      onTap: _openReceipt,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: AppTheme.textSlateDark.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -331,7 +368,7 @@ class _HistoryCardState extends State<_HistoryCard> {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.green,
+                  color: AppTheme.statusCompletedText,
                 ),
               ),
             ],
@@ -373,6 +410,6 @@ class _HistoryCardState extends State<_HistoryCard> {
           ],
         ],
       ),
-    );
+    ));
   }
 }

@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../models/driver_model.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProviderTeamScreen extends StatefulWidget {
   const ProviderTeamScreen({super.key});
@@ -188,11 +190,11 @@ class _ProviderTeamScreenState extends State<ProviderTeamScreen> {
   Color _getStatusColor(DriverStatus status) {
     switch (status) {
       case DriverStatus.available:
-        return Colors.green;
+        return AppTheme.statusCompletedText;
       case DriverStatus.busy:
         return AppTheme.towingOrange;
       case DriverStatus.offline:
-        return Colors.grey;
+        return AppTheme.textSlateMedium;
     }
   }
 }

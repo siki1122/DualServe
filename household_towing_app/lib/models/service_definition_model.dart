@@ -19,6 +19,8 @@ class ServiceDefinition {
   // For subtypeBased
   final List<ServiceSubtype>? subtypes;
 
+  final String? category;
+
   ServiceDefinition({
     required this.type,
     this.flatRatePrice,
@@ -27,6 +29,7 @@ class ServiceDefinition {
     this.minSqm,
     this.addons,
     this.subtypes,
+    this.category,
   });
 
   factory ServiceDefinition.fromMap(Map<String, dynamic> map) {
@@ -47,6 +50,7 @@ class ServiceDefinition {
           ? List<ServiceSubtype>.from(
               (map['subtypes'] as List).map((x) => ServiceSubtype.fromMap(x)))
           : null,
+      category: map['category'] as String?,
     );
   }
 
@@ -59,6 +63,7 @@ class ServiceDefinition {
       if (minSqm != null) 'minSqm': minSqm,
       if (addons != null) 'addons': addons!.map((x) => x.toMap()).toList(),
       if (subtypes != null) 'subtypes': subtypes!.map((x) => x.toMap()).toList(),
+      if (category != null) 'category': category,
     };
   }
 }

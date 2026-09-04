@@ -22,7 +22,7 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
       await _assetService.assignAsset(asset.id, driverId, driverName);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Checked out ${asset.name}'), backgroundColor: Colors.green),
+          SnackBar(content: Text('Checked out ${asset.name}'), backgroundColor: AppTheme.statusCompletedText),
         );
       }
     } catch (e) {
@@ -43,7 +43,7 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Returned ${asset.name}'), backgroundColor: Colors.orange),
+          SnackBar(content: Text('Returned ${asset.name}'), backgroundColor: AppTheme.towingOrange),
         );
       }
     } catch (e) {
@@ -98,13 +98,21 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
 
         return DefaultTabController(
           length: 2,
-          child: Column(
-            children: [
-              Container(
-                color: isDark ? AppTheme.surfaceDark : Colors.white,
-                child: TabBar(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            floatingActionButton: FloatingActionButton(
+              onPressed: () => _openRegisterAssetDialog(providerId, driverName),
+              backgroundColor: AppTheme.primaryBlue,
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  Container(
+                    color: isDark ? AppTheme.surfaceDark : Colors.white,
+                    child: TabBar(
                   labelColor: AppTheme.primaryBlue,
-                  unselectedLabelColor: Colors.grey,
+                  unselectedLabelColor: AppTheme.textSlateMedium,
                   indicatorColor: AppTheme.primaryBlue,
                   tabs: [
                     Tab(text: 'My Equipment (${myEquipment.length})'),
@@ -122,6 +130,8 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
               ),
             ],
           ),
+          ),
+          ),
         );
       },
     );
@@ -137,7 +147,7 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
             const SizedBox(height: 16),
             Text(
               isMine ? 'You haven\'t checked out any equipment' : 'No available equipment right now',
-              style: const TextStyle(color: Colors.grey, fontSize: 16),
+              style: const TextStyle(color: AppTheme.textSlateMedium, fontSize: 16),
             ),
           ],
         ),
@@ -158,7 +168,7 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: AppTheme.textSlateDark.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -178,7 +188,7 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
                   decoration: BoxDecoration(
                     color: isMine 
                       ? AppTheme.primaryBlue.withValues(alpha: 0.1)
-                      : (isDark ? Colors.grey[800] : Colors.grey[100]),
+                      : (isDark ? Colors.grey[800] : AppTheme.surfaceLight),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: isMine ? AppTheme.primaryBlue : Colors.grey[600]),
@@ -213,7 +223,7 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
                       onPressed: () => _returnAsset(asset),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange.withValues(alpha: 0.1),
-                        foregroundColor: Colors.orange,
+                        foregroundColor: AppTheme.towingOrange,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
@@ -248,5 +258,138 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
       case AssetType.crew:
         return Icons.person_outline;
     }
+  }
+
+  void _openRegisterAssetDialog(String providerId, String providerName) {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final categoryController = TextEditingController();
+    AssetType selectedType = AssetType.tool; // Default to tool
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return AlertDialog(
+              backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Text('Add Asset', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark)),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DropdownButtonFormField<AssetType>(
+                          isExpanded: true,
+                          initialValue: selectedType,
+                          decoration: AppTheme.textFieldDecoration(
+                            label: 'Asset type',
+                            prefixIcon: Icons.category_outlined,
+                            isDark: isDark,
+                          ),
+                          items: [AssetType.tool, AssetType.equipment]
+                              .map(
+                                (type) => DropdownMenuItem(
+                                  value: type,
+                                  child: Text(type == AssetType.tool ? 'Tool' : 'Equipment'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setDialogState(() => selectedType = value);
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: nameController,
+                          decoration: AppTheme.textFieldDecoration(
+                            label: 'Asset name',
+                            prefixIcon: _getAssetIcon(selectedType),
+                            isDark: isDark,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Enter an asset name';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: categoryController,
+                          decoration: AppTheme.textFieldDecoration(
+                            label: 'Category',
+                            hint: 'Hand tool, safety gear, etc.',
+                            prefixIcon: Icons.merge_type_outlined,
+                            isDark: isDark,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Enter a category';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  onPressed: () async {
+                    if (!formKey.currentState!.validate()) return;
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(dialogContext);
+                    try {
+                      await _assetService.addProviderAsset(
+                        providerId: providerId,
+                        providerName: providerName,
+                        name: nameController.text.trim(),
+                        category: categoryController.text.trim(),
+                        type: selectedType,
+                      );
+                    } catch (e) {
+                      if (context.mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                      return;
+                    }
+
+                    navigator.pop();
+                    if (context.mounted) {
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Asset registered'), backgroundColor: AppTheme.statusCompletedText),
+                      );
+                    }
+                  },
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

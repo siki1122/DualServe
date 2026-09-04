@@ -1,0 +1,78 @@
+id,title,description,preconditions,postconditions,tags,priority,severity,type,behavior,automation,status,is_flaky,layer,steps_type,steps_actions,steps_result,steps_data,milestone_id,milestone,suite_id,suite_parent_id,suite,suite_without_cases,parameters,is_muted
+,,,,,,,,,,,,,,,,,,,,1,,Use Case Scenario,1,,
+1,Register Account,To allow a new customer and service provider to create an account in the system.,User is on the registration page.,,actor:Customer/Service_Providers,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Taps “Create New Account” button.
+2. Fills in personal information and desired login credentials, then submits.
+3. Taps the ""Register"" button.
+4. Enters the authentication number to confirm the account.","1. Displays the registration form.
+2. Validates all fields for completeness and correctness.
+3. Sends an authentication number to the user for verification.
+4. Creates a new record in the database and redirects the user to the login page.",,,,,,Use Case Scenario,,,no
+2,Register Employee,To allow a new employee to create an account using the access code provided by their service provider.,User is on the registration page and has an access code from their owner or service provider.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Taps “Create New Account” button.
+2. Fills in personal information, desired login credentials, and the access code, then submits.
+3. Taps the “Register” button.
+4. Enters the authentication number to confirm the account.","1. Displays the registration form with an access code field.
+2. Validates the access code and all fields for completeness and correctness.
+3. Sends an authentication number to the user for verification.
+4. Uses the code to associate the new employee record with that specific provider, then redirects the user to the login page.",,,,,,Use Case Scenario,,,no
+3,Authenticate User,To verify the identity of a user attempting to access the system.,User is on the login screen.,,actor:Customer_/_Service_Provider_/_Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Navigates to the login page.
+2. Enters email and password, or taps “Sign in with Google,” then submits.
+3. –","1. Displays the login form with email/password fields and a “Sign in with Google” option.
+2. Validates the entered credentials. And redirects the user to their respective dashboard (Customer or Service Provider).
+3. Redirects the user to their respective dashboard (Customer, Service Provider, or Employee).",,,,,,Use Case Scenario,,,no
+4,Select Service Category,To allow a customer to choose between Household and Towing services after logging in.,Customer is logged in.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Views the service category options.
+2. Selects a category.","1. Displays Household and Towing as selectable categories.
+2. Directs the customer to the map view, depending on the selection.",,,,,,Use Case Scenario,,,no
+5,View Companies on Map,To allow customers to find and view nearby household or towing companies on a map.,Customer has selected either “Household” or “Towing” as the service category and location services are enabled.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Views the towing map.
+2. Selects a company on the map.","1. Retrieves and plots nearby towing companies on the map.
+2. Directs the customer to that company’s profile.",,,,,,Use Case Scenario,,,no
+6,View Provider Profile,"To allow a customer to view a service provider’s profile, including their business permit and customer ratings and comments, before booking.",Customer has selected a service category (Household) or (Towing).,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Views the provider’s profile.
+2. Reviews the profile and proceeds.","1. Displays the business permit, overall rating, and customer comments.
+2. Directs the customer to browse the provider’s services.",,,,,,Use Case Scenario,,,no
+7,Browse Services,To allow customers to view the services and prices offered by a household or towing company.,Customer has viewed the provider’s profile and chosen to proceed.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Views the company’s services.
+2. Selects one or more services.","1. Displays available services with descriptions and prices.
+2. Adds each selection to the list and displays its description and cost.",,,,,,Use Case Scenario,,,no
+8,Submit Service Booking,To allow a customer to submit a booking request for one or more selected services from the same company.,Customer has selected one or more desired services from the same company.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Pins the location and provides a description or landmark.
+2. Review selected services and cost-estimate
+3. The customer selects their preferred schedule and reviews the booking details.","1. Generates a cost estimate for all selected services.
+2. –
+3. The customer taps  “Confirm Booking.”",,,,,,Use Case Scenario,,,no
+9,Accept/Reject Booking,To allow a service provider to accept or decline a submitted booking request.,"A booking request has been 
+submitted
+ and the provider has been notified.",,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,1. The service provider taps “Accept” or “Decline.”,1. The system updates the booking status and notifies the customer accordingly.,,,,,,Use Case Scenario,,,no
+10,Assign Task to Employee,To allow a service provider to assign an accepted task to an employee and allocate the necessary tools or vehicles.,The service provider has accepted a booking.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The service provider reviews the booking details, selects an available employee, allocates the required assets, and messages the customer if necessary.
+2. The service provider confirms the task assignment.","1. The system displays the available employees and assets.
+2. The system saves the assignment and notifies the assigned employee.",,,,,,Use Case Scenario,,,no
+11,View Assigned Task,To allow an employee to view only the tasks assigned to them by their owner or service provider.,Employee is logged in and has at least one assigned task.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Navigates to the task dashboard.
+2. Selects a task.","1. Displays only the tasks assigned to that employee.
+2. Displays the task’s full details, including allocated assets.",,,,,,Use Case Scenario,,,no
+12,View Customer Location,To allow the assigned employee to view a live map guiding them to the customer’s location for navigation.,A task has been assigned to the employee and the customer’s location is shared.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,1. Opens the assigned task.,1. Displays a live map guiding the employee to the customer’s pinned location and landmark description.,,,,,,Use Case Scenario,,,no
+13,Update Job Status,To allow the assigned employee to update the status of a job they are performing.,Employee has an assigned task.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Opens an assigned task.
+2. Selects the appropriate status.","1. Displays status update options (e.g., Provider Assigned, En Route,  etc ).
+2. Updates the job status, timestamps the change, and notifies the customer and owner.",,,,,,Use Case Scenario,,,no
+14,Add Additional Cost / Finalize Job,To allow the assigned employee to add additional charges after completing a task and finalize the job.,The employee has finished performing the assigned task.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Reviews the completed task.
+2. Adds additional cost, if any.
+3. Taps Finish/Done.","1. Displays the original cost estimate.
+2. Calculates and displays the final total to the customer for confirmation.
+3. Marks the job as completed and notifies the owner.",,,,,,Use Case Scenario,,,no
+15,View Service History,To allow customers and service providers to view a record of all past completed service bookings.,User is logged in and has at least one completed booking.,,actor:Customer/Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,1. Navigates to 'Service History'.,1. Retrieves all completed bookings for the customer.,,,,,,Use Case Scenario,,,no
+16,Submit Feedback,To allow customers to rate and review a completed service and service providers.,Customer has a completed booking with no prior feedback submitted.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Selects 'Leave Feedback'.
+2. Provides a star rating and optional written comments, then submits.","1. Displays the feedback form.
+2. Records and displays the feedback.",,,,,,Use Case Scenario,,,no
+17,Generate Report,To allow the owner to view a visual report summarizing,Service provider is logged in and has at least one completed booking.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Navigates to ‘Reports’.
+2. Selects a date range.","1. Displays report options and a date range selector.
+2. Compiles and displays the report as diagrams.",,,,,,Use Case Scenario,,,no
+18,Set Availability Status,"To allow a service provider to toggle their availability between Online and Offline, controlling their visibility to customers.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Navigates to their profile or dashboard.
+2. Toggles the status.","1. Displays the current availability status.
+2. Updates the status and adjusts customer-facing visibility accordingly.",,,,,,Use Case Scenario,,,no
+19,Manage Schedule,"To allow a service provider to set their recurring business hours and block specific dates or time slots when unavailable, restricting customer bookings accordingly.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Navigates to ‘Manage Schedule’.
+2. Sets hours or blocks a date/time.","1. Displays current business hours and any blocked dates.
+2. Saves the schedule and applies it to future bookings.",,,,,,Use Case Scenario,,,no
+20,Manage Asset Inventory,"To allow a service provider to register, edit, or remove vehicles, tools, and equipment, view their crew roster, and see a log of asset usage.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Navigates to ‘Asset Inventory’.
+2. Adds, edits, or removes an asset.","1. Displays registered assets, the crew roster, and the usage log.
+2. Updates the inventory accordingly.",,,,,,Use Case Scenario,,,no
+21,Manage Services,"To allow a service provider to add, edit, or remove the services they offer, including setting an optional night surcharge for the services.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Navigates to ‘Manage Services’.
+2. Adds, edits, or removes a service.","1. Displays current services and pricing, including any night surcharges.
+2. Saves the updated service list.",,,,,,Use Case Scenario,,,no
+22,Manage Account,To allow users to update their personal account information and settings.,User is logged in.,,actor:Customer_/_Service_Provider_/_Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. Navigates to 'Account Settings'.
+2. Edits desired fields (name, contact, address, password), then submits.","1. Displays the account settings form with current information.
+2. Validates the changes. Saves and confirms the updates.",,,,,,Use Case Scenario,,,no

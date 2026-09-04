@@ -7,6 +7,8 @@ import 'package:household_towing_app/services/storage_service.dart';
 import 'package:household_towing_app/services/provider_service.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProviderVerificationScreen extends StatefulWidget {
   final String providerId;
@@ -99,15 +101,15 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Submission Received'),
+        title: const Text('Documents Saved'),
         content: const Text(
-          'Your documents have been submitted successfully. Our team will review them within 24-48 hours.',
+          'Your documents have been uploaded successfully. Customers can now view them on your profile.',
         ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Go back to login/home
+              Navigator.of(context).pop(); // Go back to settings
             },
             child: const Text('Got it'),
           ),
@@ -119,16 +121,16 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppTheme.surfaceLight,
       appBar: AppBar(
         title: Text(
-          'Verification Documents',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black87),
+          'Business Documents',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppTheme.textSlateDark),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textSlateDark),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -138,7 +140,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Proof of Legitimacy',
+              'Upload Documents for Customers',
               style: GoogleFonts.outfit(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -178,7 +180,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
               child: ElevatedButton(
                 onPressed: _isUploading ? null : _submitVerification,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[700],
+                  backgroundColor: AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -200,7 +202,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
             Center(
               child: Text(
                 'Data is encrypted and stored securely.',
-                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
+                style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textSlateMedium),
               ),
             ),
           ],
@@ -224,12 +226,12 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: image != null ? Colors.blue : Colors.grey[300]!,
+            color: image != null ? AppTheme.primaryBlue : AppTheme.textSlateLight,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: AppTheme.textSlateDark.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -241,10 +243,10 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.cloud_upload_outlined, color: Colors.blue[700], size: 32),
+                child: Icon(Icons.cloud_upload_outlined, color: AppTheme.primaryBlue, size: 32),
               ),
               const SizedBox(height: 16),
               Text(
@@ -252,7 +254,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
                 style: GoogleFonts.outfit(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppTheme.textSlateDark,
                 ),
               ),
               const SizedBox(height: 4),
@@ -285,7 +287,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(
-                          color: Colors.blue,
+                          color: AppTheme.primaryBlue,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.check, color: Colors.white, size: 20),
@@ -298,7 +300,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
               Text(
                 'Change Document',
                 style: GoogleFonts.outfit(
-                  color: Colors.blue[700],
+                  color: AppTheme.primaryBlue,
                   fontWeight: FontWeight.bold,
                 ),
               ),

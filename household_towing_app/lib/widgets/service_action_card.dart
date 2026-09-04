@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ServiceActionCard extends StatelessWidget {
   final String title;
@@ -27,7 +29,7 @@ class ServiceActionCard extends StatelessWidget {
           border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : Border.all(color: Colors.transparent),
           boxShadow: isDark ? [] : [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: AppTheme.textSlateDark.withValues(alpha: 0.03),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),

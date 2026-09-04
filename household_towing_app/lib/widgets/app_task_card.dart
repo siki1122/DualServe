@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/task_model.dart';
 import '../utils/app_theme.dart';
 import 'package:intl/intl.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 /// A production-level task card component following senior engineering principles.
 /// 
@@ -15,7 +17,8 @@ class AppTaskCard extends StatelessWidget {
   final Task? task;
   final bool isLoading;
   final VoidCallback? onTap;
-  final VoidCallback? onMessagePressed;
+  final VoidCallback? onMessageCustomerPressed;
+  final VoidCallback? onMessageDriverPressed;
   final VoidCallback? onActionPressed;
   final String? actionLabel;
   final Function(TaskMilestone)? onMilestoneToggle;
@@ -25,7 +28,8 @@ class AppTaskCard extends StatelessWidget {
     this.task,
     this.isLoading = false,
     this.onTap,
-    this.onMessagePressed,
+    this.onMessageCustomerPressed,
+    this.onMessageDriverPressed,
     this.onActionPressed,
     this.actionLabel,
     this.onMilestoneToggle,
@@ -158,7 +162,7 @@ class AppTaskCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: task!.progress,
-                        backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                        backgroundColor: AppTheme.textSlateMedium.withValues(alpha: 0.2),
                         valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                         minHeight: 6,
                       ),
@@ -229,40 +233,59 @@ class AppTaskCard extends StatelessWidget {
                   const SizedBox(height: 16),
 
                   // Footer Actions
-                  Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (onMessagePressed != null)
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: onMessagePressed,
-                            icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                            label: const Text('Message'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
-                              foregroundColor: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
-                            ),
-                          ),
+                      if (onMessageCustomerPressed != null || onMessageDriverPressed != null) ...[
+                        Row(
+                          children: [
+                            if (onMessageCustomerPressed != null)
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: onMessageCustomerPressed,
+                                  icon: const Icon(Icons.person_outline, size: 16),
+                                  label: const Text('Customer', style: TextStyle(fontSize: 13)),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
+                                    foregroundColor: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                                  ),
+                                ),
+                              ),
+                            if (onMessageCustomerPressed != null && onMessageDriverPressed != null)
+                              const SizedBox(width: 12),
+                            if (onMessageDriverPressed != null)
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: onMessageDriverPressed,
+                                  icon: const Icon(Icons.local_shipping_outlined, size: 16),
+                                  label: const Text('Driver', style: TextStyle(fontSize: 13)),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
+                                    foregroundColor: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                      if (onMessagePressed != null && onActionPressed != null)
-                        const SizedBox(width: 12),
+                        if (onActionPressed != null) const SizedBox(height: 12),
+                      ],
                       if (onActionPressed != null)
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton(
-                            onPressed: onActionPressed,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: statusColor,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: Text(
-                              actionLabel ?? 'View Details',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
+                        ElevatedButton(
+                          onPressed: onActionPressed,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: statusColor,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(
+                            actionLabel ?? 'View Details',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                     ],
@@ -291,7 +314,7 @@ class AppTaskCard extends StatelessWidget {
             text,
             style: TextStyle(
               fontSize: 14,
-              color: isDark ? Colors.grey[300] : Colors.grey[700],
+              color: isDark ? AppTheme.textSlateLight : Colors.grey[700],
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -310,9 +333,9 @@ class AppTaskCard extends StatelessWidget {
       case TaskStatus.inProgress:
         return AppTheme.towingOrange;
       case TaskStatus.completed:
-        return Colors.green;
+        return AppTheme.statusCompletedText;
       case TaskStatus.cancelled:
-        return Colors.grey;
+        return AppTheme.textSlateMedium;
       case TaskStatus.unassigned:
         return Colors.blueGrey;
     }
@@ -344,14 +367,14 @@ class AppTaskCard extends StatelessWidget {
             if (isCompleted)
               const Padding(
                 padding: EdgeInsets.only(right: 4.0),
-                child: Icon(Icons.check, size: 12, color: Colors.green),
+                child: Icon(Icons.check, size: 12, color: AppTheme.statusCompletedText),
               ),
             Text(
               milestone.title,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
-                color: isCompleted ? Colors.green[700] : Colors.grey[600],
+                color: isCompleted ? AppTheme.towingOrange : Colors.grey[600],
               ),
             ),
           ],
@@ -366,7 +389,7 @@ class AppTaskCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       height: 180,
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceLight,
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Center(

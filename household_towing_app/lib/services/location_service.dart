@@ -7,8 +7,12 @@ import 'logging_service.dart';
 
 class LocationService {
   static final LocationService _instance = LocationService._internal();
+  http.Client? _client;
 
-  factory LocationService() {
+  factory LocationService({http.Client? client}) {
+    if (client != null) {
+      _instance._client = client;
+    }
     return _instance;
   }
 
@@ -112,11 +116,11 @@ class LocationService {
 
   static Future<String> _getAddressFromWeb(double lat, double lng) async {
     try {
-      // Use OpenStreetMap Nominatim for Web - much better CORS support for localhost development
+      final client = _instance._client ?? http.Client();
       final url =
           'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng';
 
-      final response = await http.get(
+      final response = await client.get(
         Uri.parse(url),
         headers: {
           'Accept-Language': 'en',
@@ -155,10 +159,11 @@ class LocationService {
 
   static Future<List<geocoding.Location>> _getCoordinatesFromWeb(String address) async {
     try {
+      final client = _instance._client ?? http.Client();
       final encodedAddress = Uri.encodeComponent(address);
       final url = 'https://nominatim.openstreetmap.org/search?q=$encodedAddress&format=json&limit=1';
 
-      final response = await http.get(
+      final response = await client.get(
         Uri.parse(url),
         headers: {
           'Accept-Language': 'en',

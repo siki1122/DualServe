@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/service_action_card.dart';
-import 'booking_screen.dart';
+import 'package:household_towing_app/screens/customer/household_service_selection_screen.dart';
+import 'package:household_towing_app/screens/customer/booking_screen.dart';
 import '../../widgets/customer_drawer.dart';
 
 class CustomerServicesScreen extends StatelessWidget {
@@ -43,8 +44,7 @@ class CustomerServicesScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            const BookingScreen(serviceType: 'Household'),
+                        builder: (context) => const HouseholdServiceSelectionScreen(),
                       ),
                     );
                   },

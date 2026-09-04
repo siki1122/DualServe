@@ -1,0 +1,18 @@
+appId: com.example.household_towing_app
+---
+- launchApp:
+    clearState: true # Clear state to log out the provider and start fresh
+- tapOn: "Register"
+- tapOn: "Full Name"
+- inputText: "Test Customer"
+- tapOn: "Email"
+- inputText: "customer_test@example.com"
+- tapOn: "Password"
+- inputText: "Customer123"
+- tapOn: "Confirm Password"
+- inputText: "Customer123"
+- hideKeyboard
+- scroll
+- tapOn: "Customer" # Select role
+- tapOn: "Create Account"
+- assertVisible: "Household Services" # Customer home screen

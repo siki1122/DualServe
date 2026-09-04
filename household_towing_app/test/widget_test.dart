@@ -10,6 +10,6 @@ void main() {
   });
 
   test('price formatting is stable ASCII text', () {
-    expect(PricingConfig.formatPrice(1250), 'PHP 1250.00');
+    expect(PricingConfig.formatPrice(1250), '₱1250.00');
   });
 }

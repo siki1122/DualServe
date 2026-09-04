@@ -12,9 +12,12 @@ import 'towing_map_screen.dart';
 
 import 'customer_settings_screen.dart';
 import 'customer_notifications_screen.dart';
+import 'customer_history_screen.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/customer_drawer.dart';
 import '../../services/booking_service.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class CustomerHome extends StatefulWidget {
   const CustomerHome({super.key});
@@ -26,8 +29,12 @@ class CustomerHome extends StatefulWidget {
 class _CustomerHomeState extends State<CustomerHome> {
   String _userName = '';
   final PageController _pageController = PageController();
-  int _currentCarouselIndex = 0;
+  
   Timer? _carouselTimer;
+  int _currentCarouselIndex = 0;
+  
+  late Stream<QuerySnapshot> _notificationsStream;
+  late Stream<QuerySnapshot> _bookingsStream;
 
   final List<Map<String, dynamic>> _carouselItems = [
     {
@@ -36,13 +43,13 @@ class _CustomerHomeState extends State<CustomerHome> {
       'colors': [const Color(0xFF7061FA), const Color(0xFF4B3CFA)],
     },
     {
-      'subtitle': 'TOWING',
       'title': '24/7 Emergency Towing',
+      'subtitle': 'TOWING',
       'colors': [const Color(0xFFF97316), const Color(0xFFEA580C)],
     },
     {
-      'subtitle': 'HOUSEHOLD',
       'title': 'Expert Cleaning Services',
+      'subtitle': 'HOUSEHOLD',
       'colors': [const Color(0xFF0EA5E9), const Color(0xFF0284C7)],
     },
   ];
@@ -51,7 +58,59 @@ class _CustomerHomeState extends State<CustomerHome> {
   void initState() {
     super.initState();
     _loadUserName();
-    _cleanupBookings();
+    _setupStreams();
+    _startCarouselTimer();
+    _fixAllRatings(); // Temporary fix script
+  }
+
+  Future<void> _fixAllRatings() async {
+    try {
+      final providersSnapshot = await FirebaseFirestore.instance.collection('providers').get();
+      for (var doc in providersSnapshot.docs) {
+        final reviewsSnapshot = await FirebaseFirestore.instance
+            .collection('reviews')
+            .where('providerId', isEqualTo: doc.id)
+            .get();
+        if (reviewsSnapshot.docs.isNotEmpty) {
+          double totalRating = 0.0;
+          for (var r in reviewsSnapshot.docs) {
+            totalRating += (r.data()['rating'] as num?)?.toDouble() ?? 5.0;
+          }
+          final avgRating = totalRating / reviewsSnapshot.docs.length;
+          await FirebaseFirestore.instance.collection('providers').doc(doc.id).update({
+            'rating': avgRating,
+            'totalReviews': reviewsSnapshot.docs.length,
+          });
+          print('Fixed rating for ${doc.id} to $avgRating');
+        } else {
+          await FirebaseFirestore.instance.collection('providers').doc(doc.id).update({
+            'rating': 0.0,
+            'totalReviews': 0,
+          });
+        }
+      }
+      print('All provider ratings fixed successfully.');
+    } catch (e) {
+      print('Error fixing ratings: $e');
+    }
+  }
+
+  void _setupStreams() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    
+    _notificationsStream = FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: uid)
+        .where('isRead', isEqualTo: false)
+        .limit(1)
+        .snapshots();
+
+    _bookingsStream = FirebaseFirestore.instance
+        .collection('bookings')
+        .where('customerId', isEqualTo: uid)
+        .snapshots();
+
+    _loadUserName();
     _startCarouselTimer();
   }
 
@@ -75,9 +134,6 @@ class _CustomerHomeState extends State<CustomerHome> {
     super.dispose();
   }
 
-  void _cleanupBookings() {
-    BookingService().cleanupExpiredBookings(timeoutMinutes: 15);
-  }
 
   void _loadUserName() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -150,16 +206,11 @@ class _CustomerHomeState extends State<CustomerHome> {
                         borderRadius: BorderRadius.circular(16),
                         border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
                         boxShadow: isDark ? [] : [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                          BoxShadow(color: AppTheme.textSlateDark.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
                         ],
                       ),
                       child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('notifications')
-                            .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-                            .where('isRead', isEqualTo: false)
-                            .limit(1)
-                            .snapshots(),
+                        stream: _notificationsStream,
                         builder: (context, snapshot) {
                           final hasUnread = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
                           
@@ -282,10 +333,6 @@ class _CustomerHomeState extends State<CustomerHome> {
                         color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text('See All', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -299,7 +346,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                           icon: Icons.cleaning_services,
                           backgroundColor: AppTheme.householdBlue,
                           onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const BookingScreen(serviceType: 'Cleaning')));
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const TowingMapScreen(serviceType: 'Household')));
                           },
                         ),
                       ),
@@ -335,17 +382,21 @@ class _CustomerHomeState extends State<CustomerHome> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CustomerHistoryScreen(),
+                          ),
+                        );
+                      },
                       child: const Text('See All', style: TextStyle(color: AppTheme.primaryBlue)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('bookings')
-                      .where('customerId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                      .snapshots(),
+                  stream: _bookingsStream,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return ShimmerLoading.cardPlaceholder(count: 2, isDark: isDark);
@@ -366,12 +417,23 @@ class _CustomerHomeState extends State<CustomerHome> {
                         ),
                       );
                     }
+                    var docs = snapshot.data!.docs.toList();
+                    docs.sort((a, b) {
+                      final dataA = a.data() as Map<String, dynamic>;
+                      final dataB = b.data() as Map<String, dynamic>;
+                      final dateA = (dataA['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+                      final dateB = (dataB['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+                      return dateB.compareTo(dateA);
+                    });
+                    
+                    final itemCount = docs.length > 3 ? 3 : docs.length;
+                    
                     return ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: snapshot.data!.docs.length,
+                      itemCount: itemCount,
                       itemBuilder: (context, index) {
-                        final booking = snapshot.data!.docs[index];
+                        final booking = docs[index];
                         final status = booking['status'];
                         final bool isTrackable = status == 'accepted' || status == 'converted_to_task';
 
@@ -495,7 +557,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                                               child: LinearProgressIndicator(
                                                 value: progress,
                                                 minHeight: 6,
-                                                backgroundColor: Colors.grey[200],
+                                                backgroundColor: AppTheme.textSlateLight.withValues(alpha: 0.5),
                                                 valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
                                               ),
                                             ),

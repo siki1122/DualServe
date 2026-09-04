@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class DashboardShimmer extends StatelessWidget {
   const DashboardShimmer({super.key});
@@ -7,8 +9,8 @@ class DashboardShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: AppTheme.textSlateLight,
+      highlightColor: AppTheme.surfaceLight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

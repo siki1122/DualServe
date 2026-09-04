@@ -10,6 +10,8 @@ import 'customer_tracking_screen.dart';
 import 'customer_booking_details_screen.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/customer_drawer.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class CustomerActiveBookingsScreen extends StatefulWidget {
   const CustomerActiveBookingsScreen({super.key});
@@ -39,17 +41,19 @@ class _CustomerActiveBookingsScreenState
       return const Scaffold(body: Center(child: Text('Please login')));
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
       drawer: const CustomerDrawer(),
       appBar: AppBar(
         title: const Text(
           'Active Requests',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: AppTheme.textSlateDark,
+        foregroundColor: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
       ),
       body: StreamBuilder<List<Booking>>(
         stream: FirebaseFirestore.instance
@@ -82,7 +86,7 @@ class _CustomerActiveBookingsScreenState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inbox_outlined, size: 80, color: Colors.grey[300]),
+                  Icon(Icons.inbox_outlined, size: 80, color: AppTheme.textSlateLight),
                   const SizedBox(height: 16),
                   const Text(
                     'No active bookings right now.',
@@ -107,47 +111,7 @@ class _CustomerActiveBookingsScreenState
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: AppTheme.cardDecoration(context),
                 child: InkWell(
-                  onTap: () {
-                    if (booking.status == BookingStatus.converted_to_task) {
-                      // Navigate to tracking if task exists
-                      FirebaseFirestore.instance
-                          .collection('tasks')
-                          .where('bookingId', isEqualTo: booking.id)
-                          .limit(1)
-                          .get()
-                          .then((taskSnap) {
-                        if (taskSnap.docs.isNotEmpty) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CustomerServiceTrackingScreen(
-                                taskId: taskSnap.docs.first.id,
-                              ),
-                            ),
-                          );
-                        } else {
-                          // Fallback to details if task doc not found yet
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CustomerBookingDetailsScreen(
-                                booking: booking,
-                              ),
-                            ),
-                          );
-                        }
-                      });
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CustomerBookingDetailsScreen(
-                            booking: booking,
-                          ),
-                        ),
-                      );
-                    }
-                  },
+                  onTap: () => _navigateToDetailsOrTracking(context, booking),
                   borderRadius: BorderRadius.circular(16),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -239,7 +203,7 @@ class _CustomerActiveBookingsScreenState
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
+                                    color: AppTheme.primaryBlue,
                                     letterSpacing: 1.1,
                                   ),
                                 ),
@@ -249,7 +213,7 @@ class _CustomerActiveBookingsScreenState
                                     padding: const EdgeInsets.only(bottom: 6),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.local_shipping, size: 16, color: Colors.blue),
+                                        const Icon(Icons.local_shipping, size: 16, color: AppTheme.primaryBlue),
                                         const SizedBox(width: 8),
                                         Text(
                                           booking.assignedTruckName!,
@@ -265,7 +229,7 @@ class _CustomerActiveBookingsScreenState
                                 if (booking.assignedPersonnelNames.isNotEmpty)
                                   Row(
                                     children: [
-                                      const Icon(Icons.person, size: 16, color: Colors.blue),
+                                      const Icon(Icons.person, size: 16, color: AppTheme.primaryBlue),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Column(
@@ -324,7 +288,7 @@ class _CustomerActiveBookingsScreenState
                                       child: LinearProgressIndicator(
                                         value: progress,
                                         minHeight: 6,
-                                        backgroundColor: Colors.grey[200],
+                                        backgroundColor: AppTheme.textSlateLight.withValues(alpha: 0.5),
                                         valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
                                       ),
                                     ),
@@ -339,16 +303,7 @@ class _CustomerActiveBookingsScreenState
                           children: [
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CustomerBookingDetailsScreen(
-                                        booking: booking,
-                                      ),
-                                    ),
-                                  );
-                                },
+                                onPressed: () => _navigateToDetailsOrTracking(context, booking),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
                                   foregroundColor: AppTheme.primaryBlue,
@@ -427,5 +382,57 @@ class _CustomerActiveBookingsScreenState
         },
       ),
     );
+  }
+
+  void _navigateToDetailsOrTracking(BuildContext context, Booking booking) {
+    if (booking.status == BookingStatus.converted_to_task) {
+      // Navigate to tracking if task exists
+      FirebaseFirestore.instance
+          .collection('tasks')
+          .where('bookingId', isEqualTo: booking.id)
+          .limit(1)
+          .get()
+          .then((taskSnap) {
+        if (taskSnap.docs.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomerServiceTrackingScreen(
+                taskId: taskSnap.docs.first.id,
+              ),
+            ),
+          );
+        } else {
+          // Fallback to details if task doc not found yet
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomerBookingDetailsScreen(
+                booking: booking,
+              ),
+            ),
+          );
+        }
+      }).catchError((error) {
+        // Fallback to details if there is a permission error or network failure
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CustomerBookingDetailsScreen(
+              booking: booking,
+            ),
+          ),
+        );
+      });
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CustomerBookingDetailsScreen(
+            booking: booking,
+          ),
+        ),
+      );
+    }
   }
 }

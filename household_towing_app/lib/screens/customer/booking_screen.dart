@@ -11,6 +11,9 @@ import 'package:household_towing_app/utils/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:household_towing_app/utils/pricing_constants.dart';
 import '../../widgets/success_dialog.dart';
+import '../../services/location_service.dart';
+import '../../widgets/custom_date_picker.dart';
+import '../../widgets/custom_time_picker.dart';
 import 'customer_active_bookings_screen.dart';
 import 'package:household_towing_app/utils/service_templates.dart';
 import 'complex_service_sheet.dart';
@@ -18,10 +21,17 @@ import 'complex_service_sheet.dart';
 class BookingScreen extends StatefulWidget {
   final String serviceType;
   final String? preSelectedProviderId;
+  final Map<String, int>? preSelectedSubServices;
+  final Map<String, double>? preSelectedPrices;
+  final double? preSelectedTotalCost;
+
   const BookingScreen({
     super.key,
     required this.serviceType,
     this.preSelectedProviderId,
+    this.preSelectedSubServices,
+    this.preSelectedPrices,
+    this.preSelectedTotalCost,
   });
 
   @override
@@ -41,9 +51,13 @@ class _BookingScreenState extends State<BookingScreen> {
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 9, minute: 0);
   bool _isLoading = false;
-  double _estimatedCost = 0;
+  double _estimatedCost = 0.0;
+  double _baseCost = 0.0;
+  double _nightDiffCost = 0.0;
+  double _distanceSurchargeCost = 0.0;
   String? _selectedProviderId;
   String? _selectedSubService;
+  Map<String, int> _selectedSubServicesMap = {};
   String? _problemCategory;
   Map<String, double> _offeredServices = {};
   Map<String, dynamic> _rawOfferedServices = {};
@@ -64,14 +78,21 @@ class _BookingScreenState extends State<BookingScreen> {
   void initState() {
     super.initState();
     _serviceType = PricingConfig.normalizeServiceType(widget.serviceType);
+    
     // Use today for towing and tomorrow for scheduled household services.
     if (_serviceType == PricingConfig.towingService) {
       _selectedDate = DateTime.now();
       _selectedTime = TimeOfDay.now();
+    } else {
+      _selectedDate = DateTime.now().add(const Duration(days: 1));
+    }
+
+    if (widget.preSelectedSubServices != null) {
+      _selectedSubServicesMap = Map.from(widget.preSelectedSubServices!);
     }
 
     // Initial price calculation
-    _estimatedCost = PricingConfig.getBasePrice(_serviceType);
+    _estimatedCost = widget.preSelectedTotalCost ?? PricingConfig.getBasePrice(_serviceType);
 
     _loadAvailableProviders();
     _detectCurrentLocation();
@@ -123,7 +144,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 content: const Text(
                   'Address not found. Please check and try again.',
                 ),
-                backgroundColor: Colors.orange,
+                backgroundColor: AppTheme.towingOrange,
               ),
             );
           }
@@ -133,7 +154,7 @@ class _BookingScreenState extends State<BookingScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text('Address lookup failed. Please try again.'),
-                backgroundColor: Colors.orange,
+                backgroundColor: AppTheme.towingOrange,
               ),
             );
           }
@@ -222,9 +243,25 @@ class _BookingScreenState extends State<BookingScreen> {
       final def = ServiceTemplates.getDefinition(_serviceType, _rawOfferedServices[_serviceType]);
       baseRate = ServiceTemplates.calculatePrice(def, _complexDetails, 1);
     } else {
-      baseRate = PricingConfig.getBasePrice(_serviceType);
-      if (_selectedSubService != null && _offeredServices.containsKey(_selectedSubService)) {
-        baseRate = _offeredServices[_selectedSubService]!;
+      if (_serviceType == PricingConfig.towingService) {
+        baseRate = 0.0;
+        if (_selectedSubServicesMap.isEmpty) {
+          baseRate = PricingConfig.getBasePrice(_serviceType);
+        } else {
+          _selectedSubServicesMap.forEach((service, _) {
+            baseRate += _offeredServices[service] ?? PricingConfig.getBasePrice(_serviceType);
+          });
+        }
+      } else {
+        baseRate = 0.0;
+        _selectedSubServicesMap.forEach((key, qty) {
+          if (_offeredServices.containsKey(key)) {
+            baseRate += _offeredServices[key]! * qty;
+          }
+        });
+        if (baseRate == 0.0) {
+           baseRate = PricingConfig.getBasePrice(_serviceType); // default if nothing selected
+        }
       }
     }
 
@@ -238,11 +275,11 @@ class _BookingScreenState extends State<BookingScreen> {
     );
 
     setState(() {
-      // Calculate total cost (Base + Night Diff + Distance)
-      final nightDiff = PricingConfig.calculateNightDifferential(baseRate, scheduledDateTime);
-      final distanceSurcharge = PricingConfig.calculateDistanceSurcharge(distance);
+      _baseCost = baseRate;
+      _nightDiffCost = PricingConfig.calculateNightDifferential(baseRate, scheduledDateTime);
+      _distanceSurchargeCost = PricingConfig.calculateDistanceSurcharge(distance, _serviceType);
       
-      _estimatedCost = baseRate + nightDiff + distanceSurcharge;
+      _estimatedCost = _baseCost + _nightDiffCost + _distanceSurchargeCost;
     });
   }
 
@@ -255,28 +292,76 @@ class _BookingScreenState extends State<BookingScreen> {
         _availableProviders = providers
             .where((p) => p.status == ProviderStatus.available)
             .toList();
-        if (widget.preSelectedProviderId != null) {
-          _selectedProviderId = widget.preSelectedProviderId;
-        } else if (_availableProviders.isNotEmpty) {
-          _selectedProviderId = _availableProviders[0].id;
-        }
         
-        // Load offered services for the selected provider
-        if (_selectedProviderId != null) {
-          final selectedProv = _availableProviders.firstWhere((p) => p.id == _selectedProviderId);
-          _rawOfferedServices = selectedProv.offeredServices;
-          _offeredServices = {};
-          selectedProv.offeredServices.forEach((k, v) {
-            if (v is num) {
-              _offeredServices[k] = v.toDouble();
+        if (_serviceType == PricingConfig.towingService) {
+          if (widget.preSelectedProviderId != null) {
+            _selectedProviderId = widget.preSelectedProviderId;
+          } else if (_availableProviders.isNotEmpty) {
+            _selectedProviderId = _availableProviders[0].id;
+          }
+          
+          // Load offered services for the selected provider
+          if (_selectedProviderId != null) {
+            final selectedProv = _availableProviders.firstWhere((p) => p.id == _selectedProviderId);
+            _rawOfferedServices = selectedProv.offeredServices;
+            _offeredServices = {};
+            selectedProv.offeredServices.forEach((k, v) {
+              if (v is num) {
+                _offeredServices[k] = v.toDouble();
+              } else {
+                _offeredServices[k] = 0.0;
+              }
+            });
+            if (_offeredServices.isNotEmpty) {
+              _selectedSubService = _offeredServices.keys.first;
+              _selectedSubServicesMap = { _offeredServices.keys.first: 1 };
             } else {
-              _offeredServices[k] = 0.0;
+              _selectedSubService = 'General $_serviceType';
+              _selectedSubServicesMap = { 'General $_serviceType': 1 };
             }
-          });
-          if (_offeredServices.isNotEmpty) {
-            _selectedSubService = _offeredServices.keys.first;
+          }
+        } else {
+          // Household: If came from map, honor their provider and services. Otherwise, use static list.
+          if (widget.preSelectedProviderId != null) {
+            _selectedProviderId = widget.preSelectedProviderId;
+            try {
+              final selectedProv = _availableProviders.firstWhere((p) => p.id == _selectedProviderId);
+              _rawOfferedServices = selectedProv.offeredServices;
+              _offeredServices = {};
+              selectedProv.offeredServices.forEach((k, v) {
+                if (v is num) {
+                  _offeredServices[k] = v.toDouble();
+                } else {
+                  _offeredServices[k] = 0.0;
+                }
+              });
+            } catch (e) {
+              // Provider not found in available list
+            }
+          }
+          if (_offeredServices.isEmpty) {
+            _selectedProviderId = null;
+            _rawOfferedServices = {};
+            _offeredServices = {
+              'Deep Cleaning': 3500.0,
+              'Aircon Cleaning': 700.0,
+              'Mattress Deep Cleaning': 600.0,
+              'Upholstery Deep Cleaning': 350.0,
+              'Steaming Only': 50.0,
+              'Greasetrap Cleaning': 800.0,
+              'Vehicle Interior Detailing': 2800.0,
+            };
+          }
+          
+          if (widget.preSelectedPrices != null) {
+            _offeredServices.addAll(widget.preSelectedPrices!);
+          }
+          
+          _selectedSubService = null;
+          if (widget.preSelectedSubServices == null) {
+            _selectedSubServicesMap = {}; // User will check boxes
           } else {
-            _selectedSubService = 'General $_serviceType';
+            _selectedSubServicesMap = Map.from(widget.preSelectedSubServices!);
           }
         }
 
@@ -289,9 +374,10 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Future<void> _submitBooking() async {
-    if (_addressController.text.isEmpty || _selectedProviderId == null) {
+    bool requiresProvider = _serviceType == PricingConfig.towingService;
+    if (_addressController.text.isEmpty || (requiresProvider && _selectedProviderId == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all details')),
+        SnackBar(content: Text(requiresProvider ? 'Please fill all details and select a provider' : 'Please provide the service location')),
       );
       return;
     }
@@ -323,7 +409,8 @@ class _BookingScreenState extends State<BookingScreen> {
         customerId: uid,
         assignedProviderId: _selectedProviderId,
         serviceType: _serviceType,
-        specificService: _selectedSubService,
+        specificService: _serviceType == PricingConfig.towingService ? _selectedSubService : null,
+        selectedSubServices: _serviceType != PricingConfig.towingService && _selectedSubServicesMap.isNotEmpty ? _selectedSubServicesMap : null,
         serviceDetails: _complexDetails,
         status: BookingStatus.pending,
         scheduledDate: _selectedDate,
@@ -348,10 +435,11 @@ class _BookingScreenState extends State<BookingScreen> {
           message: 'A $_serviceType request has been sent to the provider.',
           onPressed: () {
             Navigator.of(context).pop(); // Pop dialog
-            Navigator.of(context).pushReplacement(
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
                 builder: (context) => const CustomerActiveBookingsScreen(),
               ),
+              (route) => route.isFirst,
             );
           },
         );
@@ -383,15 +471,12 @@ class _BookingScreenState extends State<BookingScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildServiceHeader(),
-                const SizedBox(height: 32),
-                _buildSectionTitle('Choose a Provider', isDark),
-                const SizedBox(height: 12),
-                _buildProviderSelector(isDark),
-                const SizedBox(height: 24),
-                _buildSectionTitle('Select Specific Service', isDark),
-                const SizedBox(height: 12),
-                _buildSubServiceSelector(isDark),
-                const SizedBox(height: 32),
+                if (widget.preSelectedSubServices == null) ...[
+                  _buildSectionTitle('Select Specific Service', isDark),
+                  const SizedBox(height: 12),
+                  _buildSubServiceSelector(isDark),
+                  const SizedBox(height: 32),
+                ],
                 _buildSectionTitle('Service Location', isDark),
                 const SizedBox(height: 12),
                 _buildAddressField(isDark),
@@ -488,6 +573,37 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
       );
     }
+
+    if (widget.preSelectedProviderId != null) {
+      final selectedProv = _availableProviders.firstWhere(
+        (p) => p.id == widget.preSelectedProviderId,
+        orElse: () => _availableProviders[0],
+      );
+      return Container(
+        width: double.infinity,
+        decoration: AppTheme.cardDecoration(context),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.person,
+              size: 20,
+              color: AppTheme.primaryBlue,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              selectedProv.name,
+              style: TextStyle(
+                color: isDark ? Colors.white : AppTheme.textSlateDark,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       decoration: AppTheme.cardDecoration(context),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -511,8 +627,10 @@ class _BookingScreenState extends State<BookingScreen> {
                 });
                 if (_offeredServices.isNotEmpty) {
                   _selectedSubService = _offeredServices.keys.first;
+                  _selectedSubServicesMap = { _offeredServices.keys.first: 1 };
                 } else {
                   _selectedSubService = 'General $_serviceType';
+                  _selectedSubServicesMap = { 'General $_serviceType': 1 };
                 }
               }
             });
@@ -543,6 +661,86 @@ class _BookingScreenState extends State<BookingScreen> {
               .toList(),
         ),
       ),
+    );
+  }
+
+  void _showTowingServiceSelectionModal(bool isDark) {
+    final items = _offeredServices.isEmpty ? ['General $_serviceType'] : _offeredServices.keys.toList();
+    final address = _addressController.text.toLowerCase();
+    final isBacolod = address.contains('bacolod');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? AppTheme.cardDark : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 24, left: 24, right: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Select Specific Service', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark)),
+                  if (!isBacolod) ...[
+                    const SizedBox(height: 8),
+                    const Text('Selecting multiple services is only available in Bacolod.', style: TextStyle(color: AppTheme.towingOrange, fontSize: 13, fontStyle: FontStyle.italic)),
+                  ],
+                  const SizedBox(height: 24),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final service = items[index];
+                        final price = _offeredServices[service] ?? PricingConfig.getBasePrice(_serviceType);
+                        final isSelected = _selectedSubServicesMap.containsKey(service);
+                        
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          onTap: () {
+                            setModalState(() {
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedSubServicesMap.remove(service);
+                                } else {
+                                  if (!isBacolod) {
+                                    _selectedSubServicesMap.clear();
+                                  }
+                                  _selectedSubServicesMap[service] = 1;
+                                }
+                                _updateEstimatedPrice();
+                              });
+                            });
+                          },
+                          leading: const Icon(Icons.handyman_outlined, color: AppTheme.towingOrange),
+                          title: Text(service, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark)),
+                          subtitle: Text('₱${price.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.statusCompletedText)),
+                          trailing: isSelected 
+                              ? const Icon(Icons.check_circle, color: AppTheme.primaryBlue) 
+                              : const Icon(Icons.circle_outlined, color: Colors.grey),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                      child: const Text('Done', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -581,7 +779,7 @@ class _BookingScreenState extends State<BookingScreen> {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: _complexDetails == null ? AppTheme.primaryBlue : Colors.green,
+            backgroundColor: _complexDetails == null ? AppTheme.primaryBlue : AppTheme.statusCompletedText,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -594,61 +792,164 @@ class _BookingScreenState extends State<BookingScreen> {
         ? ['General $_serviceType'] 
         : _offeredServices.keys.toList();
 
-    // Ensure current selection is in the list
-    if (!items.contains(_selectedSubService)) {
-      _selectedSubService = items[0];
-    }
+    if (_serviceType == PricingConfig.towingService) {
+      String displayTitle = 'Select Specific Service';
+      String priceDisplay = '';
+      if (_selectedSubServicesMap.isNotEmpty) {
+        final firstService = _selectedSubServicesMap.keys.first;
+        final extraCount = _selectedSubServicesMap.length - 1;
+        displayTitle = extraCount > 0 ? '$firstService + $extraCount more' : firstService;
+        
+        double totalPrice = 0.0;
+        _selectedSubServicesMap.forEach((service, _) {
+          totalPrice += _offeredServices[service] ?? PricingConfig.getBasePrice(_serviceType);
+        });
+        priceDisplay = '₱${totalPrice.toStringAsFixed(0)}';
+      }
 
-    return Container(
-      decoration: AppTheme.cardDecoration(context),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedSubService,
-          isExpanded: true,
-          dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
-          onChanged: (val) {
-            setState(() => _selectedSubService = val);
-            _updateEstimatedPrice();
-          },
-          items: items
-              .map(
-                (service) => DropdownMenuItem(
-                  value: service,
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.handyman_outlined,
-                        size: 18,
-                        color: AppTheme.towingOrange,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          service,
-                          style: TextStyle(
-                            color: isDark ? Colors.white : AppTheme.textSlateDark,
-                          ),
-                        ),
-                      ),
-                      if (_offeredServices.containsKey(service))
-                        Text(
-                          '₱${_offeredServices[service]?.toStringAsFixed(0)}',
-                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                        ),
-                    ],
+      return InkWell(
+        onTap: () => _showTowingServiceSelectionModal(isDark),
+        borderRadius: BorderRadius.circular(30),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppTheme.cardDark : Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.transparent),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.handyman_outlined,
+                size: 20,
+                color: AppTheme.towingOrange,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  displayTitle,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppTheme.textSlateDark,
+                    fontSize: 14,
+                    fontWeight: _selectedSubServicesMap.isNotEmpty ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
-              )
-              .toList(),
+              ),
+              if (priceDisplay.isNotEmpty)
+                Text(
+                  priceDisplay,
+                  style: const TextStyle(color: AppTheme.statusCompletedText, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_drop_down, color: isDark ? Colors.white70 : Colors.black54),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.1,
+        ),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final service = items[index];
+          final isSelected = _selectedSubServicesMap.containsKey(service);
+          final price = _offeredServices[service] ?? 0.0;
+          
+          IconData iconData = Icons.cleaning_services;
+          if (service.toLowerCase().contains('aircon')) iconData = Icons.ac_unit;
+          if (service.toLowerCase().contains('mattress') || service.toLowerCase().contains('upholstery')) iconData = Icons.bed;
+          if (service.toLowerCase().contains('vehicle') || service.toLowerCase().contains('car')) iconData = Icons.directions_car;
+          if (service.toLowerCase().contains('steam') || service.toLowerCase().contains('greasetrap')) iconData = Icons.air;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                if (isSelected) {
+                  _selectedSubServicesMap.remove(service);
+                } else {
+                  _selectedSubServicesMap[service] = 1;
+                }
+              });
+              _updateEstimatedPrice();
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.1) : (isDark ? AppTheme.surfaceDark : Colors.white),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected ? AppTheme.primaryBlue : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: Stack(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(iconData, size: 20, color: isDark ? Colors.white : Colors.grey.shade700),
+                      ),
+                      const Spacer(),
+                      Text(
+                        service,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isDark ? Colors.white : AppTheme.textSlateDark,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'From ₱${price.toStringAsFixed(0)}',
+                        style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                  if (isSelected)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppTheme.primaryBlue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check, size: 12, color: Colors.white),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
   }
 
   Widget _buildAddressField(bool isDark) {
     return Container(
-      decoration: AppTheme.cardDecoration(context),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.cardDark : Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.transparent),
+      ),
       child: TextField(
         controller: _addressController,
         style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
@@ -681,11 +982,18 @@ class _BookingScreenState extends State<BookingScreen> {
         Expanded(
           child: InkWell(
             onTap: () async {
-              final d = await showDatePicker(
+              final isTowing = _serviceType == PricingConfig.towingService;
+              final firstAllowedDate = isTowing ? DateTime.now() : DateTime.now().add(const Duration(days: 1));
+              // Ensure initialDate is not before firstDate
+              DateTime initDate = _selectedDate.isBefore(firstAllowedDate) ? firstAllowedDate : _selectedDate;
+              
+              final d = await showDialog<DateTime>(
                 context: context,
-                initialDate: _selectedDate,
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 30)),
+                builder: (context) => CustomDatePickerDialog(
+                  initialDate: initDate,
+                  firstDate: firstAllowedDate,
+                  lastDate: DateTime.now().add(const Duration(days: 30)),
+                ),
               );
               if (d != null) {
                 setState(() => _selectedDate = d);
@@ -713,9 +1021,11 @@ class _BookingScreenState extends State<BookingScreen> {
         Expanded(
           child: InkWell(
             onTap: () async {
-              final t = await showTimePicker(
+              final t = await showDialog<TimeOfDay>(
                 context: context,
-                initialTime: _selectedTime,
+                builder: (context) => CustomTimePickerDialog(
+                  initialTime: _selectedTime,
+                ),
               );
               if (t != null) {
                 setState(() => _selectedTime = t);
@@ -744,35 +1054,76 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _buildPricingBreakdown(bool isDark) {
-    double currentBase = PricingConfig.getBasePrice(_serviceType);
-    if (_selectedSubService != null && _offeredServices.containsKey(_selectedSubService)) {
-      currentBase = _offeredServices[_selectedSubService]!;
+    bool isTowing = _serviceType == PricingConfig.towingService;
+    
+    // Generate the list of base rate items
+    List<Widget> baseRateItems = [];
+    if ((isTowing && _selectedSubServicesMap.isEmpty) || (!isTowing && _selectedSubServicesMap.isEmpty)) {
+      baseRateItems.add(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Base Rate ($_serviceType)',
+                style: const TextStyle(fontSize: 14),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(PricingConfig.formatPrice(_baseCost)),
+          ],
+        ),
+      );
+    } else {
+      _selectedSubServicesMap.forEach((service, qty) {
+        if (_offeredServices.containsKey(service)) {
+          double price = _offeredServices[service]! * qty;
+          baseRateItems.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      qty > 1 ? '$service (x$qty)' : service,
+                      style: const TextStyle(fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(PricingConfig.formatPrice(price)),
+                ],
+              ),
+            ),
+          );
+        }
+      });
     }
-    final surcharge = _estimatedCost - currentBase;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.1)),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Base Rate (${_selectedSubService ?? _serviceType})',
-                  style: const TextStyle(fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
+          ...baseRateItems,
+          if (_nightDiffCost > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Night Differential',
+                  style: TextStyle(fontSize: 14),
                 ),
-              ),
-              Text(PricingConfig.formatPrice(currentBase)),
-            ],
-          ),
-          if (surcharge > 0) ...[
+                Text('+ ${PricingConfig.formatPrice(_nightDiffCost)}'),
+              ],
+            ),
+          ],
+          if (_distanceSurchargeCost > 0) ...[
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -781,7 +1132,7 @@ class _BookingScreenState extends State<BookingScreen> {
                   'Distance Surcharge',
                   style: TextStyle(fontSize: 14),
                 ),
-                Text('+ ${PricingConfig.formatPrice(surcharge)}'),
+                Text('+ ${PricingConfig.formatPrice(_distanceSurchargeCost)}'),
               ],
             ),
           ],
@@ -792,9 +1143,9 @@ class _BookingScreenState extends State<BookingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Estimated Total',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              Text(
+                isTowing ? 'Estimated Total' : 'Total',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
                 PricingConfig.formatPrice(_estimatedCost),
@@ -835,6 +1186,8 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _buildDetailedAddressFields(bool isDark) {
+    final pillDecoration = AppTheme.cardDecoration(context).copyWith(borderRadius: BorderRadius.circular(30));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -842,7 +1195,7 @@ class _BookingScreenState extends State<BookingScreen> {
           children: [
             Expanded(
               child: Container(
-                decoration: AppTheme.cardDecoration(context),
+                decoration: pillDecoration,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
                   controller: _barangayController,
@@ -857,7 +1210,7 @@ class _BookingScreenState extends State<BookingScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Container(
-                decoration: AppTheme.cardDecoration(context),
+                decoration: pillDecoration,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
                   controller: _zoneController,
@@ -873,7 +1226,7 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
         const SizedBox(height: 12),
         Container(
-          decoration: AppTheme.cardDecoration(context),
+          decoration: pillDecoration,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: TextField(
             controller: _landmarkController,
@@ -884,40 +1237,42 @@ class _BookingScreenState extends State<BookingScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: AppTheme.cardDecoration(context),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              hint: Text('Select Issue Category (Optional)', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 14)),
-              value: _issueCategory,
-              dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
-              onChanged: (val) => setState(() => _issueCategory = val),
-              items: ['Engine Issue', 'Flat Tire', 'Electrical', 'Plumbing', 'Cleaning', 'Other']
-                  .map((cat) => DropdownMenuItem(value: cat, child: Text(cat, style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark, fontSize: 14))))
-                  .toList(),
+        if (PricingConfig.normalizeServiceType(_serviceType) == PricingConfig.towingService) ...[
+          const SizedBox(height: 12),
+          Container(
+            decoration: pillDecoration,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                hint: Text('Select Issue Category (Optional)', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 14)),
+                value: _issueCategory,
+                dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+                onChanged: (val) => setState(() => _issueCategory = val),
+                items: ['Engine Issue', 'Flat Tire', 'Electrical', 'Other']
+                    .map((cat) => DropdownMenuItem(value: cat, child: Text(cat, style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark, fontSize: 14))))
+                    .toList(),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: AppTheme.cardDecoration(context),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              hint: Text('Damaged Parts Category (Optional)', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 14)),
-              value: _problemCategory,
-              dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
-              onChanged: (val) => setState(() => _problemCategory = val),
-              items: ['Engine', 'Transmission', 'Suspension & Steering', 'Brakes', 'Electrical & Battery', 'Body & Glass', 'Tires & Wheels', 'Other']
-                  .map((cat) => DropdownMenuItem(value: cat, child: Text(cat, style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark, fontSize: 14))))
-                  .toList(),
+          const SizedBox(height: 12),
+          Container(
+            decoration: pillDecoration,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                hint: Text('Damaged Parts Category (Optional)', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 14)),
+                value: _problemCategory,
+                dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+                onChanged: (val) => setState(() => _problemCategory = val),
+                items: ['Engine', 'Transmission', 'Suspension & Steering', 'Brakes', 'Electrical & Battery', 'Body & Glass', 'Tires & Wheels', 'Other']
+                    .map((cat) => DropdownMenuItem(value: cat, child: Text(cat, style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark, fontSize: 14))))
+                    .toList(),
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }

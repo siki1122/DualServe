@@ -5,6 +5,8 @@ import 'dart:async';
 import '../../utils/app_theme.dart';
 import '../../services/booking_service.dart';
 import 'package:flutter/services.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class NewJobOverlay extends StatefulWidget {
   final Widget child;
@@ -206,7 +208,7 @@ class _NewJobDialogContentState extends State<_NewJobDialogContent> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceLight,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
@@ -243,7 +245,7 @@ class _NewJobDialogContentState extends State<_NewJobDialogContent> {
                     child: CircularProgressIndicator(
                       value: _countdown / 30,
                       strokeWidth: 4,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: isDark ? Colors.white : AppTheme.textSlateDark,
                       backgroundColor: isDark ? Colors.white24 : Colors.black12,
                     ),
                   ),
@@ -288,7 +290,7 @@ class _NewJobDialogContentState extends State<_NewJobDialogContent> {
                     child: Text(
                       'Decline',
                       style: TextStyle(
-                        color: isDark ? Colors.white70 : Colors.black87,
+                        color: isDark ? Colors.white70 : AppTheme.textSlateDark,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -317,8 +319,8 @@ class _NewJobDialogContentState extends State<_NewJobDialogContent> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? Colors.white : Colors.black,
-                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      backgroundColor: isDark ? Colors.white : AppTheme.textSlateDark,
+                      foregroundColor: isDark ? AppTheme.textSlateDark : Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

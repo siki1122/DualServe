@@ -28,6 +28,64 @@ class ServiceTemplates {
     );
   }
 
+  // Predefined structure for Mattress Deep Cleaning
+  static ServiceDefinition get mattressCleaningTemplate {
+    return ServiceDefinition(
+      type: ServicePricingType.subtypeBased,
+      subtypes: [
+        ServiceSubtype(name: 'Single', price: 600.0),
+        ServiceSubtype(name: 'Double', price: 800.0),
+        ServiceSubtype(name: 'Queen/King', price: 1000.0),
+      ],
+    );
+  }
+
+  // Predefined structure for Upholstery Deep Cleaning
+  static ServiceDefinition get upholsteryCleaningTemplate {
+    return ServiceDefinition(
+      type: ServicePricingType.subtypeBased,
+      subtypes: [
+        ServiceSubtype(name: 'Stool (Bar Stool)', price: 350.0),
+        ServiceSubtype(name: 'Dining Chair', price: 350.0),
+        ServiceSubtype(name: 'Office Chair', price: 650.0),
+        ServiceSubtype(name: '1-Seater Sofa', price: 900.0),
+        ServiceSubtype(name: '2-Seater Sofa', price: 1200.0),
+        ServiceSubtype(name: '3-Seater Sofa', price: 1500.0),
+      ],
+    );
+  }
+
+  // Predefined structure for Steaming Only
+  static ServiceDefinition get steamingOnlyTemplate {
+    return ServiceDefinition(
+      type: ServicePricingType.subtypeBased,
+      subtypes: [
+        ServiceSubtype(name: 'Steaming Service', price: 50.0),
+      ],
+    );
+  }
+
+  // Predefined structure for Greasetrap Cleaning
+  static ServiceDefinition get greasetrapCleaningTemplate {
+    return ServiceDefinition(
+      type: ServicePricingType.subtypeBased,
+      subtypes: [
+        ServiceSubtype(name: 'Standard Greasetrap', price: 800.0),
+      ],
+    );
+  }
+
+  // Predefined structure for Vehicle Interior Detailing
+  static ServiceDefinition get vehicleDetailingTemplate {
+    return ServiceDefinition(
+      type: ServicePricingType.subtypeBased,
+      subtypes: [
+        ServiceSubtype(name: 'Sedan', price: 2800.0),
+        ServiceSubtype(name: 'SUV', price: 3500.0),
+      ],
+    );
+  }
+
   // Fallback for flat rate services
   static ServiceDefinition flatRateTemplate(double price) {
     return ServiceDefinition(
@@ -40,6 +98,11 @@ class ServiceTemplates {
   static final Map<String, ServiceDefinition> defaultTemplates = {
     'Deep Cleaning': deepCleaningTemplate,
     'Aircon Cleaning': airconCleaningTemplate,
+    'Mattress Deep Cleaning': mattressCleaningTemplate,
+    'Upholstery Deep Cleaning': upholsteryCleaningTemplate,
+    'Steaming Only': steamingOnlyTemplate,
+    'Greasetrap Cleaning': greasetrapCleaningTemplate,
+    'Vehicle Interior Detailing': vehicleDetailingTemplate,
     // Add other complex services here...
   };
 

@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/app_theme.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class DriverProfileScreen extends StatefulWidget {
   const DriverProfileScreen({super.key});
@@ -92,7 +94,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppTheme.textSlateDark.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -154,7 +156,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: AppTheme.textSlateDark.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -165,7 +167,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                 _StatusButton(
                   title: 'Available',
                   icon: Icons.check_circle,
-                  color: Colors.green,
+                  color: AppTheme.statusCompletedText,
                   isSelected: currentStatus == 'available',
                   isLoading: _isUpdating,
                   onTap: () => _updateStatus('available'),
@@ -173,7 +175,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                 _StatusButton(
                   title: 'Busy',
                   icon: Icons.access_time_filled,
-                  color: Colors.orange,
+                  color: AppTheme.towingOrange,
                   isSelected: currentStatus == 'busy',
                   isLoading: _isUpdating,
                   onTap: () => _updateStatus('busy'),
@@ -181,7 +183,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                 _StatusButton(
                   title: 'Offline',
                   icon: Icons.power_settings_new,
-                  color: Colors.grey,
+                  color: AppTheme.textSlateMedium,
                   isSelected: currentStatus == 'offline',
                   isLoading: _isUpdating,
                   onTap: () => _updateStatus('offline'),
@@ -204,7 +206,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: AppTheme.textSlateDark.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -281,7 +283,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: AppTheme.textSlateDark.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

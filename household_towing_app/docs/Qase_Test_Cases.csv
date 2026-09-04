@@ -1,0 +1,118 @@
+id,title,description,preconditions,postconditions,tags,priority,severity,type,behavior,automation,status,is_flaky,layer,steps_type,steps_actions,steps_result,steps_data,milestone_id,milestone,suite_id,suite_parent_id,suite,suite_without_cases,parameters,is_muted
+1,Register Account - Main Flow,To allow a new customer and service provider to create an account in the system.,User is on the registration page.,,actor:Customer/Service_Providers,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The user fills in personal information (name, email, contact number, address) and desired login credentials.
+2. The system validates all input fields for completeness and correctness.
+3. The user clicks the Register button.
+4. The system sends an authentication number.
+5. The system creates a new record in the database.
+6. The system redirects the user to the login page after successful registration.",,,,,,,Register Account,,,no
+2,Register Account - Alternative Flow,To allow a new customer and service provider to create an account in the system.,User is on the registration page.,,actor:Customer/Service_Providers,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. If the email is already in use, the system displays an error and prompts the user to use a different email.
+2. If any required field is empty, the system highlights the field and prevents submission.
+3. If password is invalid, error message is displayed and registration is prevented.",,,,,,,Register Account,,,no
+3,Register Employee - Main Flow,To allow a new employee to create an account using the access code provided by their service provider.,User is on the registration page and has an access code from their owner or service provider.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The user fills in personal information (name, email, contact number) and desired login credentials.
+2. The user enters the access code provided by their service provider. Step 3 : The system validates the access code and all input fields for completeness and correctness.
+3. The user clicks the Register button.
+4. The system sends an authentication number.
+5. The system uses the code to associate the new employee record with that specific provider.
+6. The system redirects the user to the login page after successful registration.",,,,,,,Register Employee,,,no
+4,Register Employee - Alternative Flow,To allow a new employee to create an account using the access code provided by their service provider.,User is on the registration page and has an access code from their owner or service provider.,,actor:Employee,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. If the access code entered does not match the provider’s fixed code, the system displays an error and prompts the user to re-enter it.
+2. If the email is already in use, the system displays an error and prompts the user to use a different email.
+3. If any required field is empty, the system highlights the field and prevents submission.
+4. If password is invalid, error message is displayed and registration is prevented.",,,,,,,Register Employee,,,no
+5,Authenticate User - Main Flow,To verify the identity of a user attempting to access the system.,User is on the login screen.,,actor:Customer_/_Service_Provider_/_Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The user enters their email and  password, or  selects “Sign in with Google.”
+2. The system validates the credentials. Step 3 : The system redirects the user to their respective dashboard (Customer / Service Provider / Employee).",,,,,,,Authenticate User,,,no
+6,Authenticate User - Alternative Flow,To verify the identity of a user attempting to access the system.,User is on the login screen.,,actor:Customer_/_Service_Provider_/_Employee,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. If credentials are incorrect, the system displays an error message and prompts retry. Step 2 : User selects 'Forgot Password' to initiate a password reset.
+2. If the user signs in with Google, the system matches the Google account to an existing registered account.",,,,,,,Authenticate User,,,no
+7,Select Service Category - Main Flow,To allow a customer to choose between Household and Towing services after logging in.,Customer is logged in.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The customer views the service category options on the home screen.
+2. The customer selects either Household or Towing. Step 3 : If Household/Towing is selected, the system directs the customer to the map view of nearby companies.",,,,,,,Select Service Category,,,no
+8,View Companies on Map - Main Flow,To allow customers to find and view nearby household or towing companies on a map.,Customer has selected either “Household” or “Towing” as the service category and location services are enabled.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The system opens the map view showing nearby towing companies.
+2. The system retrieves and plots registered towing companies on the map
+3. The customer selects a company on the map to proceed. Alternative:
+4. If the company is currently set to “Offline”, it will not appear in the map view.",,,,,,,View Companies on Map,,,no
+9,View Provider Profile - Main Flow,"To allow a customer to view a service provider’s profile, including their business permit and customer ratings and comments, before booking.",Customer has selected a service category (Household) or (Towing).,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The system displays the provider’s profile, including their business permit, overall rating, and customer comments.
+2. The customer reviews the provider’s credentials and feedback.
+3. The customer can proceed to browse the provider’s services.",,,,,,,View Provider Profile,,,no
+10,View Provider Profile - Alternative Flow,"To allow a customer to view a service provider’s profile, including their business permit and customer ratings and comments, before booking.",Customer has selected a service category (Household) or (Towing).,,actor:Customer,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,1. The customer decides not to proceed and returns to the previous screen (map or category selection).,,,,,,,View Provider Profile,,,no
+11,Browse Services - Main Flow,To allow customers to view the services and prices offered by a household or towing company.,Customer has viewed the provider’s profile and chosen to proceed.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The system displays the company’s available services.
+2. The customer selects one or more services to add to the booking.
+3. The system displays the list of selected services with individual descriptions and cost per service.",,,,,,,Browse Services,,,no
+12,Browse Services - Alternative Flow,To allow customers to view the services and prices offered by a household or towing company.,Customer has viewed the provider’s profile and chosen to proceed.,,actor:Customer,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,1. The customer can remove a previously selected service from the list.,,,,,,,Browse Services,,,no
+13,Submit Service Booking - Main Flow,To allow a customer to submit a booking request for one or more selected services from the same company.,Customer has selected one or more desired services from the same company.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The system pins the  users  location and customers  can  provide  a description or landmark of the location.
+2. The system generates a combined cost estimate for all selected services.
+3. The customer reviews the selected services and the cost-estimate
+4. The customer can select their preferred schedule
+5. The customer taps “Confirm Booking”
+6. The system saves the booking and notifies the service provider.",,,,,,,Submit Service Booking,,,no
+14,Submit Service Booking - Alternative Flow,To allow a customer to submit a booking request for one or more selected services from the same company.,Customer has selected one or more desired services from the same company.,,actor:Customer,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. The customer modifies booking details before confirming
+2. The customer removes a service from the selection before confirming.",,,,,,,Submit Service Booking,,,no
+15,Accept/Reject Booking - Main Flow,To allow a service provider to accept or decline a submitted booking request.,"A booking request has been 
+submitted
+ and the provider has been notified.",,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The service provider receives a notification of a new booking request.
+2. The service provider taps Accept or Decline.
+3. If the request is accepted, the service provider can view the booking schedule, message the customer, and assign the task.
+4. If the request is declined, the system updates the booking status to declined and notifies the customer.",,,,,,,Accept/Reject Booking,,,no
+16,Accept/Reject Booking - Alternative Flow,To allow a service provider to accept or decline a submitted booking request.,"A booking request has been 
+submitted
+ and the provider has been notified.",,actor:Service_Provider,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. If the service provider does not respond to the set time window, the booking request remains available in the  “My Task”  section.
+2. The service provider can open and view the “Booking Details” before accepting or declining the request in the “ My Task ”. System Response:  System notify the service provider",,,,,,,Accept/Reject Booking,,,no
+17,Assign Task to Employee - Main Flow,To allow a service provider to assign an accepted task to an employee and allocate the necessary tools or vehicles.,The service provider has accepted a booking.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The service provider reviews the accepted booking details and may message the customer if necessary.
+2. The service provider selects an available employee to assign to the task.
+3. The service provider allocates the required assets, such as tools or vehicles.
+4. The system saves the assignment and notifies the assigned employee. Alternative:
+5. If no employee is available, the service provider cannot proceed with the task assignment and may assign the task later.
+6. If the required asset is unavailable, the service provider may select another available asset before confirming the assignment.",,,,,,,Assign Task to Employee,,,no
+18,View Assigned Task - Main Flow,To allow an employee to view only the tasks assigned to them by their owner or service provider.,Employee is logged in and has at least one assigned task.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The employee navigates to their task dashboard.
+2. The system retrieves and displays only the tasks assigned to that employee.
+3. The employee selects a task to view its full details, including allocated assets.",,,,,,,View Assigned Task,,,no
+19,View Assigned Task - Alternative Flow,To allow an employee to view only the tasks assigned to them by their owner or service provider.,Employee is logged in and has at least one assigned task.,,actor:Employee,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. If no tasks are currently assigned, the system displays an empty state.",,,,,,,View Assigned Task,,,no
+20,View Customer Location - Main Flow,To allow the assigned employee to view a live map guiding them to the customer’s location for navigation.,A task has been assigned to the employee and the customer’s location is shared.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The employee opens the assigned task.
+2. The system displays a live map guiding the employee to the customer’s pinned location, along with the customer’s provided landmark description.
+3. The employee uses the live map for navigation to the site.",,,,,,,View Customer Location,,,no
+21,View Customer Location - Alternative Flow,To allow the assigned employee to view a live map guiding them to the customer’s location for navigation.,A task has been assigned to the employee and the customer’s location is shared.,,actor:Employee,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. If the location is unavailable, the system prompts the employee to contact the customer.",,,,,,,View Customer Location,,,no
+22,Update Job Status - Main Flow,To allow the assigned employee to update the status of a job they are performing.,Employee has an assigned task.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The employee opens an assigned task.
+2. The employee selects the appropriate status update (e.g., Provider Assigned, En Route,  etc ).
+3. The system updates the job status
+4. The system saves the updated task progress and makes it available for the service provider and customer to view.",,,,,,,Update Job Status,,,no
+23,Update Job Status - Alternative Flow,To allow the assigned employee to update the status of a job they are performing.,Employee has an assigned task.,,actor:Employee,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. The service provider and customer views the updated status from their dashboard but cannot change it; only the assigned employee may update the status.
+2. If the employee does not update the task progress, the system retains the current task status.",,,,,,,Update Job Status,,,no
+24,Add Additional Cost / Finalize Job - Main Flow,To allow the assigned employee to add additional charges after completing a task and finalize the job.,The employee has finished performing the assigned task.,,actor:Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The final cost is  set  and the job is marked as finished.
+2. The employee adds any additional cost on top of the original estimate, if applicable.
+3. The system calculates the final total and presents it to the customer for confirmation.
+4. The employee taps Finish/Done once the final cost is agreed upon.
+5. The system marks the job as completed and notifies the owner.",,,,,,,Add Additional Cost / Finalize Job,,,no
+25,View Service History - Main Flow,To allow customers and service providers to view a record of all past completed service bookings.,User is logged in and has at least one completed booking.,,actor:Customer/Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The user navigates to 'Service History'.
+2. The system retrieves all completed bookings for the customer.
+3. The user views booking details including date, provider, service, and cost.",,,,,,,View Service History,,,no
+26,View Service History - Alternative Flow,To allow customers and service providers to view a record of all past completed service bookings.,User is logged in and has at least one completed booking.,,actor:Customer/Service_Provider,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. If no booking history exists, the system displays an empty state.",,,,,,,View Service History,,,no
+27,Submit Feedback - Main Flow,To allow customers to rate and review a completed service and service providers.,Customer has a completed booking with no prior feedback submitted.,,actor:Customer,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The customer selects 'Leave Feedback'.
+2. The customer provides a star rating and optional written comments.
+3. The system records and displays the feedback.",,,,,,,Submit Feedback,,,no
+28,Submit Feedback - Alternative Flow,To allow customers to rate and review a completed service and service providers.,Customer has a completed booking with no prior feedback submitted.,,actor:Customer,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,1. The customer submits only a star rating without written comments.,,,,,,,Submit Feedback,,,no
+29,Generate Report - Main Flow,To allow the owner to view a visual report summarizing,Service provider is logged in and has at least one completed booking.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The owner navigates to ‘Reports’
+2. The owner selects a date range or reporting period.
+3. The system compiles booking,  completed-job , and earnings data across that period.
+4. The system displays the report as diagrams (e.g., a bar chart of completed jobs and a line graph of earnings over time).",,,,,,,Generate Report,,,no
+30,Generate Report - Alternative Flow,To allow the owner to view a visual report summarizing,Service provider is logged in and has at least one completed booking.,,actor:Service_Provider,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. If invalid input is detected, the system highlights errors and prompts correction. .",,,,,,,Generate Report,,,no
+31,Set Availability Status - Main Flow,"To allow a service provider to toggle their availability between Online and Offline, controlling their visibility to customers.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The owner navigates to their profile or dashboard.
+2. The owner toggles their status between Online and Offline.
+3. The system updates the provider’s status.
+4. If the provider is set to Offline, the system removes it from the customer’s map.",,,,,,,Set Availability Status,,,no
+32,Set Availability Status - Alternative Flow,"To allow a service provider to toggle their availability between Online and Offline, controlling their visibility to customers.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. If set back to Online, the provider reappears on the  map, and  becomes selectable again for customers.",,,,,,,Set Availability Status,,,no
+33,Manage Schedule - Main Flow,"To allow a service provider to set their recurring business hours and block specific dates or time slots when unavailable, restricting customer bookings accordingly.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The service provider navigates to ‘Manage Schedule’.
+2. The service provider sets opening and closing hours.
+3. The service provider blocks specific dates or time slots when unavailable.
+4. The system saves the schedule and restricts customer bookings to the available hours and open dates.",,,,,,,Manage Schedule,,,no
+34,Manage Schedule - Alternative Flow,"To allow a service provider to set their recurring business hours and block specific dates or time slots when unavailable, restricting customer bookings accordingly.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,1. The service provider edits or removes a previously blocked date or time slot.,,,,,,,Manage Schedule,,,no
+35,Manage Asset Inventory - Main Flow,"To allow a service provider to register, edit, or remove vehicles, tools, and equipment, view their crew roster, and see a log of asset usage.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The owner navigates to ‘Asset Inventory’.
+2. The system displays registered vehicles, tools, and equipment, along with the crew (registered employees).
+3. The service provider adds a new vehicle, tool, equipment entry or employee.
+4. The service provider views the usage log showing which asset or crew member was used on which completed job.",,,,,,,Manage Asset Inventory,,,no
+36,Manage Asset Inventory - Alternative Flow,"To allow a service provider to register, edit, or remove vehicles, tools, and equipment, view their crew roster, and see a log of asset usage.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,"1. The Service provider edits or removes an existing vehicle, tool, equipment entry or  employee..",,,,,,,Manage Asset Inventory,,,no
+37,Manage Services - Main Flow,"To allow a service provider to add, edit, or remove the services they offer, including setting an optional night surcharge for the services.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The owner navigates to ‘Manage Services’.
+2. The owner adds a new service with its name, description, and base price.
+3. The owner optionally sets a night surcharge for the service.
+4. The system saves the service to the provider’s offered services.",,,,,,,Manage Services,,,no
+38,Manage Services - Alternative Flow,"To allow a service provider to add, edit, or remove the services they offer, including setting an optional night surcharge for the services.",Service provider is logged in.,,actor:Service_Provider,normal,normal,functional,negative,is-not-automated,draft,no,e2e,classic,1. The owner edits or removes an existing service.,,,,,,,Manage Services,,,no
+39,Manage Account - Main Flow,To allow users to update their personal account information and settings.,User is logged in.,,actor:Customer_/_Service_Provider_/_Employee,normal,normal,functional,positive,is-not-automated,draft,no,e2e,classic,"1. The user navigates to 'Account Settings'.
+2. The user edits desired fields (name, contact, address, password).
+3. The system validates the changes
+4. The system saves and confirms the updates.",,,,,,,Manage Account,,,no

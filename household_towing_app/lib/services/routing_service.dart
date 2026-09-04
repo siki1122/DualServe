@@ -5,6 +5,9 @@ import 'logging_service.dart';
 
 class RoutingService {
   static const String _osrmBaseUrl = 'https://router.project-osrm.org/route/v1/driving';
+  final http.Client _client;
+
+  RoutingService({http.Client? client}) : _client = client ?? http.Client();
 
   /// Fetches a route between two points using OSRM
   /// Returns a list of LatLng points for the polyline, distance in meters, and duration in seconds
@@ -12,7 +15,7 @@ class RoutingService {
     try {
       final url = '$_osrmBaseUrl/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson&alternatives=true';
       
-      final response = await http.get(Uri.parse(url));
+      final response = await _client.get(Uri.parse(url));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

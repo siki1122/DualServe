@@ -5,6 +5,8 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../utils/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/shimmer_loading.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProviderEarningsScreen extends StatefulWidget {
   const ProviderEarningsScreen({super.key});
@@ -233,7 +235,7 @@ class _ProviderEarningsScreenState extends State<ProviderEarningsScreen> {
               Text(
                 '₱${amount.toStringAsFixed(2)}',
                 style: TextStyle(
-                  color: amount > 0 ? Colors.green : Colors.grey,
+                  color: amount > 0 ? AppTheme.statusCompletedText : AppTheme.textSlateMedium,
                   fontWeight: FontWeight.bold,
                 ),
               ),

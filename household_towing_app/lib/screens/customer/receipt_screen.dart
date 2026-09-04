@@ -47,7 +47,7 @@ class ReceiptScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: AppTheme.textSlateDark.withValues(alpha: 0.05),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -94,11 +94,11 @@ class ReceiptScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Colors.green.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.green),
+                              border: Border.all(color: AppTheme.statusCompletedText),
                             ),
                             child: const Text(
                               'PAID IN CASH',
-                              style: TextStyle(color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 1),
+                              style: TextStyle(color: AppTheme.statusCompletedText, fontWeight: FontWeight.w900, letterSpacing: 1),
                             ),
                           ),
                         ),
@@ -114,7 +114,7 @@ class ReceiptScreen extends StatelessWidget {
                         
                         const Text(
                           'Payment Breakdown',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textSlateMedium),
                         ),
                         const SizedBox(height: 16),
                         
@@ -190,7 +190,7 @@ class ReceiptScreen extends StatelessWidget {
                     child: const Center(
                       child: Text(
                         'Thank you for using DualServe!',
-                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppTheme.textSlateMedium, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -225,7 +225,7 @@ class ReceiptScreen extends StatelessWidget {
                 label: const Text('Close Receipt'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
-                  side: BorderSide(color: isDark ? Colors.grey[800]! : Colors.grey[300]!),
+                  side: BorderSide(color: isDark ? Colors.grey[800]! : AppTheme.textSlateLight),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
@@ -286,7 +286,7 @@ class ReceiptScreen extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: const TextStyle(color: Colors.grey, fontSize: 14),
+              style: const TextStyle(color: AppTheme.textSlateMedium, fontSize: 14),
             ),
           ),
           Expanded(
@@ -362,7 +362,7 @@ class ReceiptScreen extends StatelessWidget {
               width: dashWidth,
               height: dashHeight,
               child: DecoratedBox(
-                decoration: BoxDecoration(color: isDark ? Colors.grey[800] : Colors.grey[300]),
+                decoration: BoxDecoration(color: isDark ? Colors.grey[800] : AppTheme.textSlateLight),
               ),
             );
           }),

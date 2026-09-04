@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserProvider with ChangeNotifier {
-  final UserService _userService = UserService();
+  final UserService _userService;
+  final FirebaseAuth _firebaseAuth;
 
   Map<String, dynamic>? _userProfile;
   Map<String, dynamic>? _providerProfile;
@@ -14,7 +16,9 @@ class UserProvider with ChangeNotifier {
   bool _isDarkMode = false;
   String? _errorMessage;
 
-  UserProvider() {
+  UserProvider({UserService? userService, FirebaseAuth? firebaseAuth}) 
+      : _userService = userService ?? UserService(),
+        _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance {
     _loadTheme();
   }
 
@@ -29,7 +33,7 @@ class UserProvider with ChangeNotifier {
   bool get isProvider => _role?.toLowerCase() == 'provider';
   bool get isAdmin => _role?.toLowerCase() == 'admin';
   bool get isDriver => _role?.toLowerCase() == 'driver';
-  String get uid => FirebaseAuth.instance.currentUser?.uid ?? "";
+  String get uid => _firebaseAuth.currentUser?.uid ?? "";
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
@@ -46,7 +50,7 @@ class UserProvider with ChangeNotifier {
 
   /// Load current user profile and role
   Future<void> loadCurrentUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _firebaseAuth.currentUser;
     if (user == null) {
       _userProfile = null;
       _providerProfile = null;
@@ -71,6 +75,12 @@ class UserProvider with ChangeNotifier {
         // If provider or pending provider, also fetch provider-specific data
         if (_role == 'provider' || _role == 'pending_provider') {
           _providerProfile = await _userService.getProviderProfile(user.uid);
+          // Backfill invite code if missing (for providers registered before this feature)
+          if (_providerProfile != null && (_providerProfile!['inviteCode'] == null || (_providerProfile!['inviteCode'] as String).isEmpty)) {
+            final generatedCode = user.uid.substring(0, 6).toUpperCase();
+            await FirebaseFirestore.instance.collection('providers').doc(user.uid).update({'inviteCode': generatedCode});
+            _providerProfile!['inviteCode'] = generatedCode;
+          }
         } else if (_role == 'driver') {
           _driverProfile = await _userService.getDriverProfile(user.uid);
         }
@@ -94,7 +104,7 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _firebaseAuth.currentUser;
       if (user != null) {
         await _userService.updateProviderAvailability(user.uid, value);
       }

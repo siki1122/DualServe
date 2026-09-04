@@ -1,0 +1,18 @@
+appId: com.example.household_towing_app
+---
+- launchApp:
+    clearState: true # Log out customer, log in as provider
+- tapOn: "Login"
+- tapOn: "Email"
+- inputText: "provider_test@example.com"
+- tapOn: "Password"
+- inputText: "Provider123"
+- hideKeyboard
+- tapOn: "Sign In"
+- assertVisible: "Dashboard"
+- tapOn: "Accept Job" # Assuming a notification or dashboard button is visible
+- assertVisible: "Job Details"
+- tapOn: "Start Job"
+- assertVisible: "In Progress"
+- tapOn: "Complete Job"
+- assertVisible: "Payment"

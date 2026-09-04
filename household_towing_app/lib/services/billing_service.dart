@@ -9,7 +9,10 @@ import 'package:household_towing_app/models/service_definition_model.dart';
 import 'logging_service.dart';
 
 class BillingService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  BillingService({FirebaseFirestore? firestore}) 
+      : _firestore = firestore ?? FirebaseFirestore.instance;
   static const String _transactionsCollection = 'transactions';
 
   /// Calculate estimated cost based on service type and distance
@@ -99,6 +102,7 @@ class BillingService {
 
       final distanceSurcharge = PricingConfig.calculateDistanceSurcharge(
         distanceTraveled,
+        serviceType,
       );
       final finalCost =
           adjustedBasePrice + nightDifferential + distanceSurcharge;

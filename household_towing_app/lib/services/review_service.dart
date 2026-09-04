@@ -23,14 +23,14 @@ class ReviewService {
       // 4. Update provider rating
       final data = providerDoc.data() as Map<String, dynamic>;
       final double currentRating = (data['rating'] as num?)?.toDouble() ?? 0.0;
-      final int jobsCompleted = (data['jobsCompleted'] as num?)?.toInt() ?? 0;
+      final int totalReviews = (data['totalReviews'] as num?)?.toInt() ?? 0;
       
-      // New Average = ((Old Avg * Jobs) + New Rating) / (Jobs + 1)
-      final double newRating = ((currentRating * jobsCompleted) + review.rating) / (jobsCompleted + 1);
+      // New Average = ((Old Avg * Total) + New Rating) / (Total + 1)
+      final double newRating = ((currentRating * totalReviews) + review.rating) / (totalReviews + 1);
 
       transaction.update(providerRef, {
         'rating': newRating,
-        'jobsCompleted': jobsCompleted + 1,
+        'totalReviews': totalReviews + 1,
       });
     });
   }

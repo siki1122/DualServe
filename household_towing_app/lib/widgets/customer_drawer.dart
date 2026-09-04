@@ -95,7 +95,7 @@ class _CustomerDrawerState extends State<CustomerDrawer> {
               ),
             ),
           ),
-          Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
+          Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.textSlateLight.withValues(alpha: 0.5)),
           _buildDrawerItem(
             context,
             icon: Icons.logout,

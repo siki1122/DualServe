@@ -15,6 +15,8 @@ import 'package:household_towing_app/services/notification_service_local.dart';
 import 'package:household_towing_app/models/provider_model.dart';
 import 'package:household_towing_app/models/service_definition_model.dart';
 import 'package:household_towing_app/utils/service_templates.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 class TransactionCompletionScreen extends StatefulWidget {
   final String taskId;
   final String bookingId;
@@ -232,7 +234,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Saved offline. Will sync when connection is restored.'),
-            backgroundColor: Colors.blue,
+            backgroundColor: AppTheme.primaryBlue,
           ),
         );
         Navigator.of(context).pop(true); // Treat as success for UI flow
@@ -316,7 +318,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                       decoration: InputDecoration(
                         labelText: 'Cash Received (₱)',
                         labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                        prefixIcon: const Icon(Icons.payments, color: Colors.green),
+                        prefixIcon: const Icon(Icons.payments, color: AppTheme.statusCompletedText),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -363,11 +365,11 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                           children: [
                             const Text(
                               'Change Due:',
-                              style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16),
+                              style: TextStyle(color: AppTheme.statusCompletedText, fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                             Text(
                               PricingConfig.formatPrice(changeDue),
-                              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w900, fontSize: 20),
+                              style: const TextStyle(color: AppTheme.statusCompletedText, fontWeight: FontWeight.w900, fontSize: 20),
                             ),
                           ],
                         ),
@@ -499,7 +501,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                              const Icon(Icons.info_outline, color: AppTheme.towingOrange, size: 20),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
@@ -526,7 +528,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.2,
-                            color: Colors.grey,
+                            color: AppTheme.textSlateMedium,
                           ),
                         ),
                       ),
@@ -604,7 +606,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w900,
-                                      color: Colors.green,
+                                      color: AppTheme.statusCompletedText,
                                     ),
                                   ),
                                 ],
@@ -624,7 +626,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.2,
-                            color: Colors.grey,
+                            color: AppTheme.textSlateMedium,
                           ),
                         ),
                       ),
@@ -703,7 +705,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                         height: 56,
                         child: TextButton(
                           style: TextButton.styleFrom(
-                            foregroundColor: Colors.grey,
+                            foregroundColor: AppTheme.textSlateMedium,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24),
                             ),
@@ -739,7 +741,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: isWarning ? Colors.orange : (isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark),
+            color: isWarning ? AppTheme.towingOrange : (isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark),
           ),
         ),
       ],
@@ -752,7 +754,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
       child: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 16, color: Colors.blue),
+            Icon(icon, size: 16, color: AppTheme.primaryBlue),
             const SizedBox(width: 8),
           ],
           Expanded(

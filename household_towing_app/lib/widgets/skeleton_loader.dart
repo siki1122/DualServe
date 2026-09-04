@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../utils/app_theme.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class SkeletonLoader extends StatelessWidget {
   final double width;
@@ -23,8 +25,8 @@ class SkeletonLoader extends StatelessWidget {
     return Container(
       margin: margin,
       child: Shimmer.fromColors(
-        baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
-        highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
+        baseColor: isDark ? Colors.grey[800]! : AppTheme.textSlateLight,
+        highlightColor: isDark ? Colors.grey[700]! : AppTheme.surfaceLight,
         child: Container(
           width: width,
           height: height,

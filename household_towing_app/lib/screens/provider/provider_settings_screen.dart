@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../utils/app_theme.dart';
 import '../../providers/user_provider.dart';
 import '../auth/location_picker_screen.dart';
+import 'provider_verification_screen.dart';
 
 class ProviderSettingsScreen extends StatefulWidget {
   const ProviderSettingsScreen({super.key});
@@ -141,6 +142,20 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                         value: _providerPhone,
                         icon: Icons.phone,
                         onEdit: () => _editField('Contact Number', _providerPhone, 'phone'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSettingItem(
+                        label: 'Business Documents',
+                        value: 'Manage IDs and Permits',
+                        icon: Icons.badge_outlined,
+                        onEdit: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProviderVerificationScreen(providerId: FirebaseAuth.instance.currentUser!.uid),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       _buildSettingItem(
@@ -496,7 +511,7 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Password changed successfully!'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Password changed successfully!'), backgroundColor: AppTheme.statusCompletedText),
           );
         }
       } catch (e) {
@@ -585,7 +600,7 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$title updated!'), backgroundColor: Colors.green),
+            SnackBar(content: Text('$title updated!'), backgroundColor: AppTheme.statusCompletedText),
           );
         }
       } catch (e) {

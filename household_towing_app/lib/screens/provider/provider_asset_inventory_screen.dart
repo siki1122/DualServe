@@ -16,6 +16,8 @@ import '../../widgets/provider_drawer.dart';
 import '../../widgets/shimmer_loading.dart';
 import 'package:household_towing_app/widgets/status_badge.dart';
 import 'asset_list_screen.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProviderAssetInventoryScreen extends StatefulWidget {
   const ProviderAssetInventoryScreen({super.key});
@@ -243,7 +245,7 @@ class _ProviderAssetInventoryScreenState
                           await batch.commit();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('All stuck assets have been reset to active!'), backgroundColor: Colors.green),
+                              const SnackBar(content: Text('All stuck assets have been reset to active!'), backgroundColor: AppTheme.statusCompletedText),
                             );
                           }
                         },
@@ -348,7 +350,7 @@ class _ProviderAssetInventoryScreenState
                   runSpacing: 12,
                   alignment: WrapAlignment.start,
                   children: [
-                    _buildMetricCard('Available', availableCount.toString(), Icons.inventory_2_outlined, Colors.green, 'available', cardWidth),
+                    _buildMetricCard('Available', availableCount.toString(), Icons.inventory_2_outlined, AppTheme.statusCompletedText, 'available', cardWidth),
                     _buildMetricCard('Vehicles', truckCount.toString(), Icons.local_shipping_outlined, AppTheme.towingOrange, 'vehicles', cardWidth),
                     _buildMetricCard('Drivers', driverCount.toString(), Icons.airline_seat_recline_normal, Colors.teal, 'drivers', cardWidth),
                     _buildMetricCard('Crew', crewCount.toString(), Icons.engineering_outlined, Colors.purple, 'crew', cardWidth),
@@ -1058,7 +1060,10 @@ class _ProviderAssetInventoryScreenState
                               .toList(),
                           onChanged: (value) {
                             if (value == null) return;
-                            setDialogState(() => selectedType = value);
+                            setDialogState(() {
+                              selectedType = value;
+                              categoryController.clear();
+                            });
                           },
                         ),
                         const SizedBox(height: 14),
@@ -1081,25 +1086,36 @@ class _ProviderAssetInventoryScreenState
                           },
                         ),
                         const SizedBox(height: 14),
-                        TextFormField(
-                          controller: categoryController,
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: categoryController.text.isEmpty ? null : categoryController.text,
                           decoration: AppTheme.textFieldDecoration(
                             label: selectedType == AssetType.vehicle
                                 ? 'Vehicle type'
                                 : selectedType == AssetType.crew
                                     ? 'Role / Position'
                                     : 'Category',
-                            hint: selectedType == AssetType.vehicle
-                                ? 'Flatbed, wheel-lift, service truck'
-                                : selectedType == AssetType.crew
-                                    ? 'Driver, Helper, Mechanic'
-                                    : 'Hand tool, safety gear, diagnostic kit',
-                            prefixIcon: Icons.merge_type_outlined,
+                            prefixIcon: Icons.category_outlined,
                             isDark: isDark,
                           ),
+                          items: _getCategoryOptions(selectedType)
+                              .map(
+                                (category) => DropdownMenuItem(
+                                  value: category,
+                                  child: Text(category),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setDialogState(() {
+                                categoryController.text = value;
+                              });
+                            }
+                          },
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'Enter a category';
+                              return 'Select a category';
                             }
                             return null;
                           },
@@ -1511,7 +1527,7 @@ class _ProviderAssetInventoryScreenState
 
   _AssetStatusInfo _statusInfo(AssetModel asset, String providerId) {
     if (asset.status == AssetStatus.maintenance) {
-      return _AssetStatusInfo('Maintenance', Colors.orange);
+      return _AssetStatusInfo('Maintenance', AppTheme.towingOrange);
     }
     if (asset.status == AssetStatus.inactive) {
       return _AssetStatusInfo('Inactive', Colors.red);
@@ -1520,9 +1536,9 @@ class _ProviderAssetInventoryScreenState
       return _AssetStatusInfo('In Use', Colors.blueGrey);
     }
     if (asset.assignedTo == providerId) {
-      return _AssetStatusInfo('Available', Colors.green);
+      return _AssetStatusInfo('Available', AppTheme.statusCompletedText);
     }
-    return _AssetStatusInfo('Available', Colors.green);
+    return _AssetStatusInfo('Available', AppTheme.statusCompletedText);
   }
 
   IconData _assetIcon(AssetType type) {
@@ -1582,9 +1598,22 @@ class _ProviderAssetInventoryScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? Colors.red : AppTheme.statusCompletedText,
       ),
     );
+  }
+
+  List<String> _getCategoryOptions(AssetType type) {
+    switch (type) {
+      case AssetType.vehicle:
+        return ['Flatbed', 'Wheel-lift', 'Service Truck', 'Van', 'Motorcycle', 'Other'];
+      case AssetType.crew:
+        return ['Driver', 'Helper', 'Mechanic', 'Cleaner', 'Technician', 'Other'];
+      case AssetType.equipment:
+        return ['Vacuum Cleaner', 'Pressure Washer', 'Ladder', 'Scaffolding', 'Generator', 'Diagnostic Kit', 'Other'];
+      case AssetType.tool:
+        return ['Hand Tools', 'Power Tools', 'Plumbing Snake', 'Multimeter', 'Safety Gear', 'Other'];
+    }
   }
 }
 

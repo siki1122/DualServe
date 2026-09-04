@@ -4,6 +4,8 @@ import 'package:household_towing_app/services/billing_service.dart';
 import 'package:household_towing_app/utils/pricing_constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class EarningsHistoryScreen extends StatefulWidget {
   const EarningsHistoryScreen({super.key});
@@ -37,7 +39,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Earnings History'),
-        backgroundColor: Colors.green,
+        backgroundColor: AppTheme.statusCompletedText,
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<List<Transaction>>(
@@ -68,16 +70,16 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.attach_money_outlined,
-                      size: 64, color: Colors.grey[300]),
+                      size: 64, color: AppTheme.textSlateLight),
                   const SizedBox(height: 16),
                   const Text(
                     'No earnings yet',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: AppTheme.textSlateMedium),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Completed services will appear here',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    style: TextStyle(fontSize: 14, color: AppTheme.textSlateMedium),
                   ),
                 ],
               ),
@@ -108,7 +110,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
                           padding: const EdgeInsets.all(20.0),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Colors.green.shade400, Colors.green],
+                              colors: [Colors.green.shade400, AppTheme.statusCompletedText],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -241,7 +243,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
                                     formattedDate,
                                     style: const TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey,
+                                      color: AppTheme.textSlateMedium,
                                     ),
                                   ),
                                 ],
@@ -251,7 +253,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.green,
+                                  color: AppTheme.statusCompletedText,
                                 ),
                               ),
                             ],
@@ -269,7 +271,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
                                     '${transaction.distanceTraveled.toStringAsFixed(2)} km',
                                     style: const TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey,
+                                      color: AppTheme.textSlateMedium,
                                     ),
                                   ),
                                 ],
@@ -399,7 +401,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: AppTheme.statusCompletedText,
                     ),
                   ),
                 ],
@@ -451,7 +453,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: AppTheme.surfaceLight,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -483,7 +485,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
               label,
               style: const TextStyle(
                 fontSize: 13,
-                color: Colors.grey,
+                color: AppTheme.textSlateMedium,
               ),
             ),
             Text(
@@ -516,9 +518,9 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
   Color _getPaymentStatusColor(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.recorded:
-        return Colors.green;
+        return AppTheme.statusCompletedText;
       case PaymentStatus.pending:
-        return Colors.orange;
+        return AppTheme.towingOrange;
     }
   }
 

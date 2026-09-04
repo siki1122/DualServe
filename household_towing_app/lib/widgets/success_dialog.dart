@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class SuccessDialog extends StatelessWidget {
   final String title;
@@ -40,7 +42,7 @@ class SuccessDialog extends StatelessWidget {
               ),
               child: const Icon(
                 Icons.check_circle,
-                color: Colors.green,
+                color: AppTheme.statusCompletedText,
                 size: 80,
               ),
             ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 enum BadgeSize { small, normal, large }
 
@@ -49,7 +51,7 @@ class StatusBadge extends StatelessWidget {
 
     // Default neutral theme
     return _BadgeTheme(
-      background: isDark ? Colors.grey.withValues(alpha: 0.2) : Colors.grey.shade200,
+      background: isDark ? AppTheme.textSlateMedium.withValues(alpha: 0.2) : Colors.grey.shade200,
       text: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
       icon: Icons.info_rounded,
     );

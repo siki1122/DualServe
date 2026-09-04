@@ -1,0 +1,12 @@
+appId: com.example.household_towing_app
+---
+- launchApp:
+    clearState: true
+- tapOn: "Login" # Assuming the splash/auth screen has a Login button or tab
+- tapOn: "Email" # Tap the email text field (Maestro looks for hint text or labels)
+- inputText: "provider@example.com"
+- tapOn: "Password"
+- inputText: "password123"
+- hideKeyboard
+- tapOn: "Sign In" # Or whatever the exact text on the button is
+- assertVisible: "Dashboard" # Or whatever text is on the Provider Home screen

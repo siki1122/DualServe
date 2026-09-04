@@ -125,7 +125,8 @@ service cloud.firestore {
     // TASKS COLLECTION
     // ============================================================================
     match /tasks/{taskId} {
-      allow read, update: if isSignedIn() && (
+      allow read: if isSignedIn();
+      allow update: if isSignedIn() && (
         resource.data.customerId == request.auth.uid ||
         resource.data.assignedProviderId == request.auth.uid ||
         resource.data.assignedDriverId == request.auth.uid ||

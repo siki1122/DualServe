@@ -11,6 +11,8 @@ import 'package:household_towing_app/providers/user_provider.dart';
 import 'package:provider/provider.dart' as provider_pkg;
 import 'package:household_towing_app/utils/app_theme.dart';
 import 'package:household_towing_app/utils/error_handler.dart';
+import 'package:household_towing_app/models/task_model.dart';
+import 'package:intl/intl.dart';
 
 class BookingAssetAssignmentScreen extends StatefulWidget {
   final Booking booking;
@@ -36,6 +38,7 @@ class _BookingAssetAssignmentScreenState
   List<AssetModel> _availableCrew = [];
   List<AssetModel> _availableAssets = [];
   List<Driver> _availableDrivers = [];
+  Map<String, List<Task>> _driverSchedules = {};
   bool _isLoading = true;
   bool _isSubmitting = false;
 
@@ -58,7 +61,7 @@ class _BookingAssetAssignmentScreenState
 
       final trucks = trucksSnapshot.docs
           .map((doc) => AssetModel.fromFirestore(doc))
-          .where((asset) => asset.assignedTo == null || asset.assignedTo == uid)
+          .where((asset) => asset.assignedTo == uid || (asset.assignedTo == null && (asset.ownerId == uid || asset.ownerId == null)))
           .toList();
 
       // Load other assets (tools, equipment, crew)
@@ -69,7 +72,7 @@ class _BookingAssetAssignmentScreenState
 
       final assets = assetsSnapshot.docs
           .map((doc) => AssetModel.fromFirestore(doc))
-          .where((asset) => asset.assignedTo == null || asset.assignedTo == uid)
+          .where((asset) => asset.assignedTo == uid || (asset.assignedTo == null && (asset.ownerId == uid || asset.ownerId == null)))
           .toList();
 
       // Load drivers
@@ -83,11 +86,27 @@ class _BookingAssetAssignmentScreenState
           .map((doc) => Driver.fromFirestore(doc))
           .toList();
 
+      // Load active tasks for these drivers to show their schedule
+      final tasksSnapshot = await _firestore
+          .collection('tasks')
+          .where('assignedProviderId', isEqualTo: uid)
+          .where('status', whereNotIn: ['completed', 'cancelled'])
+          .get();
+          
+      final Map<String, List<Task>> schedules = {};
+      for (var doc in tasksSnapshot.docs) {
+        final task = Task.fromFirestore(doc);
+        if (task.assignedDriverId != null && task.assignedDriverId!.isNotEmpty) {
+          schedules.putIfAbsent(task.assignedDriverId!, () => []).add(task);
+        }
+      }
+
       if (mounted) {
         setState(() {
           _availableTrucks = trucks;
           _availableAssets = assets;
           _availableDrivers = drivers;
+          _driverSchedules = schedules;
           _availableCrew = assets.where((a) => a.type == AssetType.crew).toList();
           _isLoading = false;
         });
@@ -422,6 +441,13 @@ class _BookingAssetAssignmentScreenState
     return Column(
       children: _availableDrivers.map((driver) {
         final isSelected = _selectedDriverId == driver.id;
+        final schedule = _driverSchedules[driver.id] ?? [];
+        final hasConflict = schedule.any((t) => 
+          t.scheduledDate.year == widget.booking.scheduledDate.year &&
+          t.scheduledDate.month == widget.booking.scheduledDate.month &&
+          t.scheduledDate.day == widget.booking.scheduledDate.day
+        );
+
         return GestureDetector(
           onTap: () {
             setState(() {
@@ -434,11 +460,13 @@ class _BookingAssetAssignmentScreenState
             decoration: BoxDecoration(
               color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.1) : Colors.white,
               border: Border.all(
-                color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade300,
+                color: isSelected ? AppTheme.primaryBlue : (hasConflict ? Colors.red.shade300 : Colors.grey.shade300),
+                width: isSelected || hasConflict ? 2 : 1,
               ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Radio<String?>(
                   value: driver.id,
@@ -453,14 +481,63 @@ class _BookingAssetAssignmentScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        driver.name,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            driver.name,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          if (hasConflict)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'Has booking on this day',
+                                style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            )
+                        ],
                       ),
                       Text(
                         'Phone: ${driver.phone}',
                         style: const TextStyle(fontSize: 12, color: AppTheme.textSlateMedium),
                       ),
+                      if (schedule.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Upcoming Schedule:',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSlateDark),
+                        ),
+                        const SizedBox(height: 4),
+                        ...schedule.take(3).map((t) => Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today, size: 12, color: AppTheme.textSlateMedium),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${DateFormat('MMM d').format(t.scheduledDate)} at ${DateFormat('h:mm a').format(t.scheduledDate)} - ${t.status.name.toUpperCase()}',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.textSlateMedium),
+                              ),
+                            ],
+                          ),
+                        )),
+                        if (schedule.length > 3)
+                          Text(
+                            '+ ${schedule.length - 3} more tasks',
+                            style: const TextStyle(fontSize: 12, color: AppTheme.primaryBlue, fontStyle: FontStyle.italic),
+                          )
+                      ] else ...[
+                         const SizedBox(height: 8),
+                         const Text(
+                           'No upcoming tasks assigned.',
+                           style: TextStyle(fontSize: 12, color: Colors.green, fontStyle: FontStyle.italic),
+                         ),
+                      ]
                     ],
                   ),
                 ),

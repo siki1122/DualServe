@@ -9,7 +9,7 @@ import 'package:household_towing_app/screens/provider/provider_asset_inventory_s
 
 import 'package:household_towing_app/screens/provider/provider_services_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_history_screen.dart';
-import 'package:household_towing_app/screens/provider/provider_earnings_screen.dart';
+import 'package:household_towing_app/screens/provider/analytics_dashboard_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_ratings_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_team_screen.dart';
 
@@ -71,7 +71,7 @@ class ProviderDrawer extends StatelessWidget {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderTeamScreen()));
                     },
                   ),
-                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
+                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.textSlateLight.withValues(alpha: 0.5)),
 
                   _buildDrawerItem(
                     context,
@@ -82,7 +82,7 @@ class ProviderDrawer extends StatelessWidget {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderRatingsScreen()));
                     },
                   ),
-                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
+                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.textSlateLight.withValues(alpha: 0.5)),
                   _buildDrawerItem(
                     context,
                     icon: Icons.calendar_month,
@@ -93,7 +93,7 @@ class ProviderDrawer extends StatelessWidget {
                     },
                   ),
 
-                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
+                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.textSlateLight.withValues(alpha: 0.5)),
                   _buildDrawerItem(
                     context,
                     icon: Icons.history,
@@ -105,15 +105,15 @@ class ProviderDrawer extends StatelessWidget {
                   ),
                   _buildDrawerItem(
                     context,
-                    icon: Icons.payments_outlined,
-                    title: 'My Earnings',
+                    icon: Icons.analytics_outlined,
+                    title: 'Reports',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProviderEarningsScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsDashboardScreen()));
                     },
                   ),
 
-                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
+                  Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.textSlateLight.withValues(alpha: 0.5)),
                   _buildDrawerItem(
                     context,
                     icon: Icons.settings,
@@ -127,7 +127,7 @@ class ProviderDrawer extends StatelessWidget {
               ),
             ),
           ),
-          Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
+          Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.textSlateLight.withValues(alpha: 0.5)),
           _buildDrawerItem(
             context,
             icon: Icons.logout,

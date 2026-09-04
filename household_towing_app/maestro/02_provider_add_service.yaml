@@ -1,0 +1,20 @@
+appId: com.example.household_towing_app
+---
+- launchApp:
+    clearState: false # Assuming they are already logged in from the previous test
+- tapOn: "My Services" # Navigates to the services management screen
+- tapOn: "Service Name" # The dropdown we just created
+- tapOn: "Upholstery Deep Cleaning"
+- tapOn: "Price"
+- inputText: "500"
+- tapOn: "Add Service"
+- hideKeyboard
+- assertVisible: "Upholstery Deep Cleaning" # Verify it was added to the list
+- tapOn: "My Assets" # Navigate to assets to add an asset
+- tapOn: "Add Asset"
+- tapOn: "Vehicle / Equipment Name"
+- inputText: "Service Van"
+- hideKeyboard
+- scroll
+- tapOn: "Register Asset"
+- assertVisible: "Service Van"

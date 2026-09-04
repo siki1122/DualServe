@@ -49,8 +49,11 @@ class PricingConfig {
   }
 
   /// Calculate distance surcharge
-  /// Distance less than minDistanceKm is free
-  static double calculateDistanceSurcharge(double distanceKm) {
+  /// Distance less than minDistanceKm is free, and only applies to towing
+  static double calculateDistanceSurcharge(double distanceKm, [String? serviceType]) {
+    if (serviceType != null && normalizeServiceType(serviceType) != towingService) {
+      return 0.0;
+    }
     if (distanceKm < 11.0) {
       return 0.0;
     }
@@ -85,7 +88,7 @@ class PricingConfig {
       adjustedBasePrice,
       serviceTime,
     );
-    final surcharge = calculateDistanceSurcharge(distanceKm);
+    final surcharge = calculateDistanceSurcharge(distanceKm, serviceType);
     return adjustedBasePrice + nightDifferential + surcharge;
   }
 

@@ -5,6 +5,8 @@ import '../../models/task_model.dart';
 import '../../utils/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'driver_task_detail_screen.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class DriverHome extends StatefulWidget {
   const DriverHome({super.key});
@@ -145,8 +147,8 @@ class _DriverHomeState extends State<DriverHome> {
 
   Widget _buildActiveHeroCard(Task task, bool isDark) {
     Color statusColor = AppTheme.primaryBlue;
-    if (task.status == TaskStatus.assigned) statusColor = Colors.orange;
-    if (task.status == TaskStatus.inProgress) statusColor = Colors.green;
+    if (task.status == TaskStatus.assigned) statusColor = AppTheme.towingOrange;
+    if (task.status == TaskStatus.inProgress) statusColor = AppTheme.statusCompletedText;
 
     return Container(
       decoration: BoxDecoration(

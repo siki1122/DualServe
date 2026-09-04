@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:household_towing_app/services/task_service.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProviderAvailabilityScreen extends StatefulWidget {
   const ProviderAvailabilityScreen({super.key});
@@ -133,10 +135,10 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.surfaceLight,
       appBar: AppBar(
         title: const Text('Manage Availability'),
-        backgroundColor: Colors.green,
+        backgroundColor: AppTheme.statusCompletedText,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -148,13 +150,13 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green[50],
+                color: AppTheme.towingOrange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green[200]!),
+                border: Border.all(color: AppTheme.statusCompletedText),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.green[700]),
+                  Icon(Icons.info_outline, color: AppTheme.towingOrange),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -164,7 +166,7 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
                           'Set Your Available Time Slots',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: AppTheme.textSlateDark,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -199,7 +201,7 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
                       color: Colors.white,
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                       border: Border(
-                        bottom: BorderSide(color: Colors.grey[300]!),
+                        bottom: BorderSide(color: AppTheme.textSlateLight),
                       ),
                     ),
                     child: Row(
@@ -210,7 +212,7 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: AppTheme.textSlateDark,
                           ),
                         ),
                         Row(
@@ -228,7 +230,7 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
                                 child: Text(
                                   '$taskCount tasks',
                                   style: TextStyle(
-                                    color: Colors.blue[700],
+                                    color: AppTheme.primaryBlue,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -241,7 +243,7 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green,
+                                color: AppTheme.statusCompletedText,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -278,16 +280,16 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.green : Colors.grey[100],
+                              color: isSelected ? AppTheme.statusCompletedText : AppTheme.surfaceLight,
                               border: Border.all(
-                                color: isSelected ? Colors.green : Colors.grey[300]!,
+                                color: isSelected ? AppTheme.statusCompletedText : AppTheme.textSlateLight,
                               ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               time,
                               style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.black87,
+                                color: isSelected ? Colors.white : AppTheme.textSlateDark,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
@@ -309,11 +311,11 @@ class _ProviderAvailabilityScreenState extends State<ProviderAvailabilityScreen>
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveSchedule,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppTheme.statusCompletedText,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  disabledBackgroundColor: Colors.grey,
+                  disabledBackgroundColor: AppTheme.textSlateMedium,
                 ),
                 child: _isLoading
                     ? const SizedBox(

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 enum IncidentType { congestion, accident, roadwork, hazard, closure }
 
@@ -71,15 +73,15 @@ class IncidentModel {
   Color get color {
     switch (type) {
       case IncidentType.congestion:
-        return Colors.orange;
+        return AppTheme.towingOrange;
       case IncidentType.accident:
         return Colors.red;
       case IncidentType.roadwork:
-        return Colors.blue;
+        return AppTheme.primaryBlue;
       case IncidentType.hazard:
         return Colors.amber;
       case IncidentType.closure:
-        return Colors.black;
+        return AppTheme.textSlateDark;
     }
   }
 }

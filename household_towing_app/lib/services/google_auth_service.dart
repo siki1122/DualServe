@@ -3,13 +3,14 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class GoogleAuthService {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseAuth _firebaseAuth;
   late final GoogleSignIn _googleSignIn;
 
-  GoogleAuthService() {
+  GoogleAuthService({FirebaseAuth? firebaseAuth, GoogleSignIn? googleSignIn}) 
+      : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance {
     // For mobile only - web uses Firebase Auth directly with signInWithPopup
     if (!kIsWeb) {
-      _googleSignIn = GoogleSignIn(
+      _googleSignIn = googleSignIn ?? GoogleSignIn(
         scopes: [
           'email',
           'profile',

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
@@ -73,6 +74,7 @@ class StorageService {
       final TaskSnapshot snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
+      print('Evidence upload failed: $e');
       return null;
     }
   }
@@ -95,40 +97,20 @@ class StorageService {
     }
   }
 
-  /// Upload a verification document for a provider
+  /// Upload a verification document for a provider (Base64 Bypass)
   Future<String?> uploadVerificationDocument(
     String providerId,
     XFile image,
     String docType,
   ) async {
     try {
-      final String fileName =
-          '${docType}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final Reference ref = _storage
-          .ref()
-          .child('verification_docs')
-          .child(providerId)
-          .child(fileName);
-
-      UploadTask uploadTask;
-
-      if (kIsWeb) {
-        // Web requires bytes
-        final bytes = await image.readAsBytes();
-        uploadTask = ref.putData(
-          bytes,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-      } else {
-        // Mobile can use File
-        uploadTask = ref.putFile(File(image.path));
-      }
-
-      final TaskSnapshot snapshot = await uploadTask.timeout(const Duration(seconds: 30));
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      print('Upload successful: $downloadUrl');
-      return downloadUrl;
+      // Bypass Firebase Storage completely to avoid billing/CORS issues
+      final bytes = await image.readAsBytes();
+      final base64String = base64Encode(bytes);
+      final dataUri = 'data:image/jpeg;base64,$base64String';
+      
+      print('Document encoded to Base64 successfully');
+      return dataUri;
     } catch (e) {
       print('Upload failed: $e');
       return null;

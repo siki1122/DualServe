@@ -15,6 +15,8 @@ import '../../utils/app_theme.dart';
 import '../../widgets/provider_drawer.dart';
 import '../../widgets/shimmer_loading.dart';
 import 'package:household_towing_app/widgets/status_badge.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class AssetListScreen extends StatefulWidget {
   final String initialFilter;
@@ -300,7 +302,7 @@ class _AssetListScreenState
             runSpacing: 12,
             alignment: WrapAlignment.start,
             children: [
-              _buildMetricCard('Available', availableCount.toString(), Icons.inventory_2_outlined, Colors.green),
+              _buildMetricCard('Available', availableCount.toString(), Icons.inventory_2_outlined, AppTheme.statusCompletedText),
               _buildMetricCard('Vehicles', truckCount.toString(), Icons.local_shipping_outlined, AppTheme.towingOrange),
               _buildMetricCard('Drivers', driverCount.toString(), Icons.airline_seat_recline_normal, Colors.teal),
               _buildMetricCard('Crew', crewCount.toString(), Icons.engineering_outlined, Colors.purple),
@@ -1409,7 +1411,7 @@ class _AssetListScreenState
 
   _AssetStatusInfo _statusInfo(AssetModel asset, String providerId) {
     if (asset.status == AssetStatus.maintenance) {
-      return _AssetStatusInfo('Maintenance', Colors.orange);
+      return _AssetStatusInfo('Maintenance', AppTheme.towingOrange);
     }
     if (asset.status == AssetStatus.inactive) {
       return _AssetStatusInfo('Inactive', Colors.red);
@@ -1418,9 +1420,9 @@ class _AssetListScreenState
       return _AssetStatusInfo('In Use', Colors.blueGrey);
     }
     if (asset.assignedTo == providerId) {
-      return _AssetStatusInfo('Available', Colors.green);
+      return _AssetStatusInfo('Available', AppTheme.statusCompletedText);
     }
-    return _AssetStatusInfo('Available', Colors.green);
+    return _AssetStatusInfo('Available', AppTheme.statusCompletedText);
   }
 
   IconData _assetIcon(AssetType type) {
@@ -1480,7 +1482,7 @@ class _AssetListScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? Colors.red : AppTheme.statusCompletedText,
       ),
     );
   }

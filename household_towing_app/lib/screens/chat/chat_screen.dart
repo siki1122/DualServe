@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../utils/app_theme.dart';
 import '../../services/logging_service.dart';
 import '../../utils/global_state.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ChatScreen extends StatefulWidget {
   final String bookingId;
@@ -155,7 +157,7 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Expanded(
               child: StreamBuilder<List<Message>>(
-                stream: _chatService.getMessages(widget.bookingId),
+                stream: _chatService.getMessages(widget.bookingId, _currentUserId, widget.receiverId),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -172,7 +174,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   
                   // Mark messages as read when they arrive
                   if (messages.isNotEmpty) {
-                    _chatService.markMessagesAsRead(widget.bookingId, _currentUserId);
+                    _chatService.markMessagesAsRead(widget.bookingId, _currentUserId, widget.receiverId);
                   }
 
                   if (messages.isEmpty) {
@@ -231,7 +233,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: AppTheme.textSlateDark.withValues(alpha: 0.05),
                 blurRadius: 5,
                 offset: const Offset(0, 2),
               ),
@@ -265,7 +267,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       height: 200,
                       width: double.infinity,
                       color: isDark ? Colors.white10 : Colors.black12,
-                      child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                      child: const Center(child: Icon(Icons.broken_image, size: 50, color: AppTheme.textSlateMedium)),
                     ),
                   ),
                 ),
@@ -342,7 +344,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: AppTheme.textSlateDark.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -382,7 +384,7 @@ class _ChatScreenState extends State<ChatScreen> {
               height: 50,
               width: 50,
               decoration: BoxDecoration(
-                color: _isUploading ? Colors.grey : AppTheme.primaryBlue,
+                color: _isUploading ? AppTheme.textSlateMedium : AppTheme.primaryBlue,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(

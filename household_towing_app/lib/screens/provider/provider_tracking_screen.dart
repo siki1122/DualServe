@@ -9,7 +9,10 @@ import '../../utils/error_handler.dart';
 import '../../utils/map_utils.dart';
 import '../../services/logging_service.dart';
 import '../../services/task_service.dart';
+import '../../widgets/compass_overlay.dart';
 import 'dart:async';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProviderTrackingScreen extends StatefulWidget {
   final String bookingId;
@@ -325,8 +328,8 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                      subdomains: const ['a', 'b', 'c', 'd'],
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: const ['a', 'b', 'c'],
                       userAgentPackageName: 'com.dualserve.app',
                     ),
                     if (_customerLocation != null)
@@ -371,6 +374,33 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
                     ),
                   ],
                 ),
+
+                // Compass Overlay
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + kToolbarHeight + 10,
+                  right: 16,
+                  child: CompassOverlay(
+                    onTap: () {
+                      if (_currentPosition != null && _customerLocation != null) {
+                        try {
+                          final bounds = LatLngBounds.fromPoints([
+                            LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                            _customerLocation!
+                          ]);
+                          _mapController.fitCamera(
+                            CameraFit.bounds(
+                              bounds: bounds,
+                              padding: const EdgeInsets.all(120),
+                            ),
+                          );
+                        } catch (e) {
+                           // ignore
+                        }
+                      }
+                    },
+                  ),
+                ),
+
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -387,7 +417,7 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.location_off, size: 64, color: Colors.grey),
+          const Icon(Icons.location_off, size: 64, color: AppTheme.textSlateMedium),
           const SizedBox(height: 16),
           const Text('Location Required', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
@@ -413,7 +443,7 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: AppTheme.textSlateDark.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -428,7 +458,7 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Distance', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  const Text('Distance', style: TextStyle(color: AppTheme.textSlateMedium, fontSize: 12)),
                   Text('${_distance.toStringAsFixed(1)} km', 
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue)),
                 ],
@@ -436,9 +466,9 @@ class _ProviderTrackingScreenState extends State<ProviderTrackingScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('ETA', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  const Text('ETA', style: TextStyle(color: AppTheme.textSlateMedium, fontSize: 12)),
                   Text('$_eta min', 
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.statusCompletedText)),
                 ],
               ),
             ],

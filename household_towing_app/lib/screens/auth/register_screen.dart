@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:household_towing_app/screens/provider/provider_verification_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:convert';
+import 'dart:math';
+import 'package:http/http.dart' as http;
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -69,6 +70,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
+  /// Format phone to E.164
+  String _getFormattedPhone() {
+    String p = _phoneController.text.trim();
+    if (p.startsWith('0')) {
+      return '+63${p.substring(1)}';
+    }
+    if (!p.startsWith('+')) {
+      return '+$p';
+    }
+    return p;
+  }
+
   /// Validate name
   String? _validateName(String name) {
     if (name.trim().isEmpty) return 'Name is required';
@@ -84,7 +97,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textSlateDark),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -99,13 +112,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppTheme.textSlateDark,
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
                 'Join us today and start booking services',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: TextStyle(fontSize: 16, color: AppTheme.textSlateMedium),
               ),
               const SizedBox(height: 40),
               TextField(
@@ -169,7 +182,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppTheme.textSlateDark,
                 ),
               ),
               const SizedBox(height: 12),
@@ -186,8 +199,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               : Colors.transparent,
                           border: Border.all(
                             color: _selectedRole == 'customer'
-                                ? Colors.blue
-                                : Colors.grey[300]!,
+                                ? AppTheme.primaryBlue
+                                : AppTheme.textSlateLight,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -196,17 +209,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Icon(
                               Icons.person,
                               color: _selectedRole == 'customer'
-                                  ? Colors.blue
-                                  : Colors.grey,
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.textSlateMedium,
                             ),
                             const SizedBox(height: 4),
-                            const Text('Customer'),
+                            const Text('Customer', style: TextStyle(fontSize: 13)),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: InkWell(
                       onTap: () => setState(() => _selectedRole = 'provider'),
@@ -218,8 +231,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               : Colors.transparent,
                           border: Border.all(
                             color: _selectedRole == 'provider'
-                                ? Colors.blue
-                                : Colors.grey[300]!,
+                                ? AppTheme.primaryBlue
+                                : AppTheme.textSlateLight,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -228,17 +241,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Icon(
                               Icons.build,
                               color: _selectedRole == 'provider'
-                                  ? Colors.blue
-                                  : Colors.grey,
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.textSlateMedium,
                             ),
                             const SizedBox(height: 4),
-                            const Text('Provider'),
+                            const Text('Provider', style: TextStyle(fontSize: 13)),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: InkWell(
                       onTap: () => setState(() => _selectedRole = 'driver'),
@@ -250,8 +263,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               : Colors.transparent,
                           border: Border.all(
                             color: _selectedRole == 'driver'
-                                ? Colors.blue
-                                : Colors.grey[300]!,
+                                ? AppTheme.primaryBlue
+                                : AppTheme.textSlateLight,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -260,11 +273,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Icon(
                               Icons.local_shipping,
                               color: _selectedRole == 'driver'
-                                  ? Colors.blue
-                                  : Colors.grey,
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.textSlateMedium,
                             ),
                             const SizedBox(height: 4),
-                            const Text('Driver'),
+                            const Text('Driver', style: TextStyle(fontSize: 13)),
                           ],
                         ),
                       ),
@@ -272,6 +285,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ],
               ),
+              if (_selectedRole == 'driver') ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _inviteCodeController,
+                  decoration: InputDecoration(
+                    labelText: 'Company Invite Code',
+                    prefixIcon: const Icon(Icons.vpn_key_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
               if (_selectedRole == 'provider') ...[
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
@@ -299,19 +325,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ],
-              if (_selectedRole == 'driver') ...[
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _inviteCodeController,
-                  decoration: InputDecoration(
-                    labelText: 'Company Invite Code',
-                    prefixIcon: const Icon(Icons.business),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -319,7 +332,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: AppTheme.primaryBlue,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -341,6 +354,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
+  }
+
+  Future<String?> _sendEmailOTP(String email, String name, String otp) async {
+    const serviceId = 'service_qi2p2hj';
+    const templateId = 'template_bz2chir';
+    const userId = 'bwUMI_HXOkvaCYkUR';
+    
+    try {
+      final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'service_id': serviceId,
+          'template_id': templateId,
+          'user_id': userId,
+          'template_params': {
+            'to_name': name,
+            'email': email,
+            'passcode': otp,
+            'time': '15 minutes', 
+          }
+        }),
+      );
+      
+      if (response.statusCode == 200) {
+        return null; // Success, no error
+      } else {
+        return 'EmailJS Error: ${response.statusCode} - ${response.body}';
+      }
+    } catch (e) {
+      return 'EmailJS Exception: $e';
+    }
   }
 
   void _register() async {
@@ -392,20 +438,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
     try {
-      // Bypass Firebase Phone Authentication because the Firebase project
-      // does not have billing enabled (Blaze plan required for SMS).
-      // We directly proceed to email registration.
-      await _finalizeEmailRegistration();
+      setState(() => _isLoading = true);
+
+      final email = _emailController.text.trim();
+      
+      // TEST BYPASS: If email is an example.com domain, skip OTP and EmailJS
+      if (email.endsWith('@example.com')) {
+        await _finalizeEmailRegistration();
+        return;
+      }
+
+      // Generate a random 6-digit OTP
+      final random = Random();
+      final otp = (100000 + random.nextInt(900000)).toString();
+
+      // Send the OTP via EmailJS
+      final errorMessage = await _sendEmailOTP(email, _nameController.text.trim(), otp);
+
+      setState(() => _isLoading = false);
+
+      if (errorMessage == null) {
+        _showEmailOTPDialog(otp);
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed: $errorMessage'),
+          duration: const Duration(seconds: 10),
+        ));
+      }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
     }
   }
 
-  void _showOTPDialog(ConfirmationResult? confirmationResult, String? verificationId) {
+  void _showEmailOTPDialog(String generatedOtp) {
     final otpController = TextEditingController();
     bool isVerifying = false;
 
@@ -429,15 +496,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.message_rounded,
+                    child: const Icon(
+                      Icons.email_outlined,
                       color: AppTheme.primaryBlue,
                       size: 32,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Verify Phone Number',
+                  const Text(
+                    'Verify Email Address',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -446,9 +513,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Enter the 6-digit code sent to\n${_phoneController.text}',
+                    'Enter the 6-digit code sent to\n${_emailController.text.trim()}',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       color: AppTheme.textSlateMedium,
                       height: 1.4,
@@ -460,7 +527,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     keyboardType: TextInputType.number,
                     maxLength: 6,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 28,
                       letterSpacing: 8,
                       fontWeight: FontWeight.bold,
@@ -477,7 +544,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+                        borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
                       ),
                     ),
                   ),
@@ -493,7 +560,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: Text(
+                          child: const Text(
                             'Cancel',
                             style: TextStyle(
                               color: AppTheme.textSlateMedium,
@@ -507,36 +574,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: isVerifying ? null : () async {
-                            final otp = otpController.text.trim();
-                            if (otp.length != 6) return;
+                            final enteredOtp = otpController.text.trim();
+                            if (enteredOtp.length != 6) return;
 
-                            setDialogState(() => isVerifying = true);
-
-                            try {
-                              User? phoneUser;
-                              if (kIsWeb && confirmationResult != null) {
-                                final userCredential = await confirmationResult.confirm(otp);
-                                phoneUser = userCredential.user;
-                              } else if (verificationId != null) {
-                                PhoneAuthCredential credential = PhoneAuthProvider.credential(
-                                  verificationId: verificationId,
-                                  smsCode: otp,
-                                );
-                                final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-                                phoneUser = userCredential.user;
-                              }
-
-                              if (phoneUser != null) {
-                                await phoneUser.delete();
-                              }
-
+                            if (enteredOtp == generatedOtp) {
+                              setDialogState(() => isVerifying = true);
                               if (mounted) Navigator.pop(context); // close dialog
                               await _finalizeEmailRegistration();
-                            } catch (e) {
-                              setDialogState(() => isVerifying = false);
+                            } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Invalid Code: ${e.toString()}'),
+                                const SnackBar(
+                                  content: Text('Invalid Code! Please try again.'),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -584,6 +632,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       if (mounted) setState(() => _isLoading = true);
 
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      final user = credential.user!;
+
       String? providerId;
       if (_selectedRole == 'driver') {
         final inviteCode = _inviteCodeController.text.trim();
@@ -594,16 +648,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             .get();
 
         if (providerSnapshot.docs.isEmpty) {
+          await user.delete();
           throw Exception('Invalid Company Invite Code');
         }
         providerId = providerSnapshot.docs.first.id;
       }
-
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      final user = credential.user!;
 
       final String role = _selectedRole;
 
@@ -611,7 +660,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'uid': user.uid,
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim(),
+        'phone': _getFormattedPhone(),
         'role': role,
         'isEmailVerified': false,
         'isPhoneVerified': true,
@@ -619,16 +668,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       if (_selectedRole == 'provider') {
+        // Generate invite code from first 6 chars of UID so drivers can join
+        final providerInviteCode = user.uid.substring(0, 6).toUpperCase();
         await FirebaseFirestore.instance.collection('providers').doc(user.uid).set({
           'uid': user.uid,
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
+          'phone': _getFormattedPhone(),
           'serviceType': _selectedServiceType,
           'status': 'offline',
           'rating': 0.0,
           'jobsCompleted': 0,
           'isApproved': true, // Auto-approve
+          'inviteCode': providerInviteCode,
           'createdAt': FieldValue.serverTimestamp(),
         });
       } else if (_selectedRole == 'driver') {
@@ -636,7 +688,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'uid': user.uid,
           'providerId': providerId,
           'name': _nameController.text.trim(),
-          'phone': _phoneController.text.trim(),
+          'phone': _getFormattedPhone(),
           'email': user.email,
           'status': 'available',
           'createdAt': FieldValue.serverTimestamp(),
@@ -654,7 +706,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'jobsCompleted': 0,
           'metadata': {
             'email': user.email,
-            'phone': _phoneController.text.trim(),
+            'phone': _getFormattedPhone(),
           }
         });
       }
@@ -665,16 +717,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SnackBar(content: Text('Account created successfully!')),
         );
 
-        if (_selectedRole == 'provider') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProviderVerificationScreen(providerId: user.uid),
-            ),
-          );
-        } else {
-          Navigator.pop(context);
-        }
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);

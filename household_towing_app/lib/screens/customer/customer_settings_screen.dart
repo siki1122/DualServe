@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../utils/app_theme.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/customer_drawer.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class CustomerSettingsScreen extends StatefulWidget {
   const CustomerSettingsScreen({super.key});
@@ -343,7 +345,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Email updated successfully!'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Email updated successfully!'), backgroundColor: AppTheme.statusCompletedText),
           );
         }
       } catch (e) {
@@ -514,7 +516,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Password changed successfully!'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Password changed successfully!'), backgroundColor: AppTheme.statusCompletedText),
           );
         }
       } catch (e) {
@@ -586,7 +588,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$title updated!'), backgroundColor: Colors.green),
+            SnackBar(content: Text('$title updated!'), backgroundColor: AppTheme.statusCompletedText),
           );
         }
       } catch (e) {

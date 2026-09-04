@@ -8,6 +8,8 @@ import '../utils/global_state.dart';
 import '../screens/chat/chat_screen.dart';
 import '../screens/customer/customer_service_tracking_screen.dart';
 import '../models/task_model.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class GlobalMessageOverlay extends StatefulWidget {
   final Widget child;
@@ -252,7 +254,7 @@ class _GlobalMessageOverlayState extends State<GlobalMessageOverlay> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
+                      color: AppTheme.textSlateDark.withValues(alpha: 0.15),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),

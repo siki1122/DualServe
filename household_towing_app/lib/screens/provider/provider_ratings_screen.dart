@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/provider_drawer.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProviderRatingsScreen extends StatelessWidget {
   const ProviderRatingsScreen({super.key});
@@ -118,6 +120,8 @@ class ProviderRatingsScreen extends StatelessWidget {
 
         final double rating = (data['rating'] as num?)?.toDouble() ?? 0.0;
         final int jobsCompleted = (data['jobsCompleted'] as num?)?.toInt() ?? 0;
+        final int totalReviews = (data['totalReviews'] as num?)?.toInt() ?? 0;
+        final double displayRating = totalReviews == 0 ? 0.0 : rating;
 
         return Container(
           padding: const EdgeInsets.all(24),
@@ -131,18 +135,18 @@ class ProviderRatingsScreen extends StatelessWidget {
               Column(
                 children: [
                   Text(
-                    rating.toStringAsFixed(1),
+                    displayRating.toStringAsFixed(1),
                     style: TextStyle(
                       fontSize: 48, 
                       fontWeight: FontWeight.bold, 
-                      color: jobsCompleted == 0 ? Colors.grey : AppTheme.towingOrange,
+                      color: jobsCompleted == 0 ? AppTheme.textSlateMedium : AppTheme.towingOrange,
                     ),
                   ),
                   Row(
                     children: List.generate(5, (index) {
                       return Icon(
-                        index < rating.round() ? Icons.star : Icons.star_border,
-                        color: jobsCompleted == 0 ? Colors.grey : Colors.amber,
+                        index < displayRating.round() ? Icons.star : Icons.star_border,
+                        color: totalReviews == 0 ? AppTheme.textSlateMedium : Colors.amber,
                         size: 20,
                       );
                     }),

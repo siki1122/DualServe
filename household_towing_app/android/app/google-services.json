@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "318653580866-1acs8fdugko4mdhledceitvldg20ubje.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.household_towing_app",
+            "certificate_hash": "9caac21110e2b08bf1f571d9892378961b1dfab2"
+          }
+        },
+        {
           "client_id": "318653580866-osrb6a364v4uqrju8lsr4gt5o6pp3gv8.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

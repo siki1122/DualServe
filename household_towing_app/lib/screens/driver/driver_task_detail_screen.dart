@@ -56,6 +56,7 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
         providerId: _task.assignedProviderId ?? '',
         providerName: providerName,
         preselectedTask: _task,
+        isEmployeeContext: true,
       ),
     );
 
@@ -194,8 +195,6 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
                     children: [
                       _buildHeaderCard(isDark),
                       const SizedBox(height: 20),
-                      _buildLocationCard(isDark),
-                      const SizedBox(height: 20),
                       _buildEvidenceCard(isDark),
                       const SizedBox(height: 20),
                       _buildCustomerCard(isDark),
@@ -261,7 +260,7 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
               const Icon(Icons.calendar_today, size: 16, color: AppTheme.primaryBlue),
               const SizedBox(width: 8),
               Text(
-                DateFormat('EEEE, MMM d • h:mm a').format(_task.scheduledDate),
+                DateFormat("EEEE, MMM d '•' h:mm a").format(_task.scheduledDate),
                 style: TextStyle(fontSize: 15, color: isDark ? Colors.white70 : AppTheme.textSlateMedium),
               ),
             ],
@@ -351,113 +350,6 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
               );
             }),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocationCard(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Location',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : AppTheme.textSlateDark,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              height: 180,
-              width: double.infinity,
-              child: FlutterMap(
-                options: MapOptions(
-                  initialCenter: LatLng(_task.latitude, _task.longitude),
-                  initialZoom: 15.0,
-                  interactionOptions: const InteractionOptions(
-                    flags: InteractiveFlag.none, // Make it a static mini-map
-                  ),
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                    subdomains: const ['a', 'b', 'c', 'd'],
-                    userAgentPackageName: 'com.dualserve.app',
-                  ),
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: LatLng(_task.latitude, _task.longitude),
-                        width: 40,
-                        height: 40,
-                        child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.location_on, color: AppTheme.primaryBlue),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _task.location,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isDark ? Colors.white : AppTheme.textSlateDark,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        MapUtils.openMapWithCoords(_task.latitude, _task.longitude);
-                      },
-                      icon: const Icon(Icons.navigation, size: 18),
-                      label: const Text('Get Directions'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
-                        foregroundColor: AppTheme.primaryBlue,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -655,6 +547,7 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
     String actionText = 'Start Route';
     TaskStatus nextStatus = TaskStatus.inProgress;
     Color btnColor = AppTheme.primaryBlue;
+    bool isButtonDisabled = false;
 
     if (_task.status == TaskStatus.assigned) {
       actionText = 'Arrived at Location';
@@ -664,6 +557,9 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
       actionText = 'Complete Job';
       nextStatus = TaskStatus.completed;
       btnColor = Colors.green;
+      if (_task.progress < 1.0) {
+        isButtonDisabled = true;
+      }
     }
 
     return Container(
@@ -713,15 +609,20 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: () => _updateStatus(nextStatus),
+              onPressed: isButtonDisabled ? null : () => _updateStatus(nextStatus),
               style: ElevatedButton.styleFrom(
                 backgroundColor: btnColor,
+                disabledBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
               ),
               child: Text(
                 actionText,
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: isButtonDisabled ? (isDark ? Colors.grey[500] : Colors.grey[500]) : Colors.white, 
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold
+                ),
               ),
             ),
           ),

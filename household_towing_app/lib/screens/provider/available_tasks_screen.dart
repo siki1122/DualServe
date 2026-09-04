@@ -74,7 +74,7 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
                           Icon(
                             Icons.inbox_outlined,
                             size: 64,
-                            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[300],
+                            color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.textSlateLight,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -353,7 +353,7 @@ class _AvailableTasksScreenState extends State<AvailableTasksScreen> {
         ScaffoldMessenger.of(btnContext).showSnackBar(
           const SnackBar(
             content: Text('✓ Task claimed! You can assign assets from "My Tasks".'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.statusCompletedText,
           ),
         );
 

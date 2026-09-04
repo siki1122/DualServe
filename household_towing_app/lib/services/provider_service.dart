@@ -346,12 +346,7 @@ class ProviderService {
         'updatedAt': Timestamp.now(),
       }, SetOptions(merge: true));
 
-      // 2. Update User Document Role to 'pending_provider'
-      final userRef = _firestore.collection('users').doc(providerId);
-      batch.update(userRef, {
-        'role': 'pending_provider',
-        'updatedAt': Timestamp.now(),
-      });
+      // 2. We no longer change role to 'pending_provider' because there is no admin approval.
 
       await batch.commit();
       Logger.info('Submitted verification documents and updated role for provider $providerId');

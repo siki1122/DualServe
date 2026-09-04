@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/app_theme.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -19,8 +21,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   bool _isLoading = false;
   String _selectedRole = 'customer';
 
+  /// Format phone to E.164
+  String _getFormattedPhone() {
+    String p = _phoneController.text.trim();
+    if (p.startsWith('0')) {
+      return '+63${p.substring(1)}';
+    }
+    if (!p.startsWith('+')) {
+      return '+$p';
+    }
+    return p;
+  }
+
   Future<void> _saveProfile() async {
-    if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty) {
+    if (_nameController.text.trim().isEmpty || _getFormattedPhone().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
@@ -43,7 +57,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           'uid': user.uid,
           'name': _nameController.text.trim(),
           'email': user.email,
-          'phone': _phoneController.text.trim(),
+          'phone': _getFormattedPhone(),
           'role': _selectedRole,
           'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
@@ -67,7 +81,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             'uid': user.uid,
             'providerId': providerId,
             'name': _nameController.text.trim(),
-            'phone': _phoneController.text.trim(),
+            'phone': _getFormattedPhone(),
             'email': user.email,
             'status': 'available',
             'createdAt': FieldValue.serverTimestamp(),
@@ -85,7 +99,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             'jobsCompleted': 0,
             'metadata': {
               'email': user.email,
-              'phone': _phoneController.text.trim(),
+              'phone': _getFormattedPhone(),
             }
           });
         }
@@ -95,7 +109,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           await FirebaseFirestore.instance.collection('providers').doc(user.uid).set({
             'uid': user.uid,
             'name': _nameController.text.trim(),
-            'phone': _phoneController.text.trim(),
+            'phone': _getFormattedPhone(),
             'email': user.email,
             'serviceType': 'Towing', // Default
             'status': 'available',
@@ -160,7 +174,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   const SizedBox(width: 8),
                   _buildRoleCard('provider', Icons.home_repair_service, 'Provider'),
                   const SizedBox(width: 8),
-                  _buildRoleCard('driver', Icons.local_shipping, 'Driver'),
+                  _buildRoleCard('driver', Icons.drive_eta, 'Driver'),
                 ],
               ),
               const SizedBox(height: 32),
@@ -187,20 +201,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   fillColor: Colors.white,
                 ),
               ),
+              const SizedBox(height: 20),
               if (_selectedRole == 'driver') ...[
-                const SizedBox(height: 20),
                 TextField(
                   controller: _inviteCodeController,
                   decoration: InputDecoration(
                     labelText: 'Company Invite Code',
-                    prefixIcon: const Icon(Icons.business),
+                    prefixIcon: const Icon(Icons.vpn_key_outlined),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
                     fillColor: Colors.white,
                   ),
                 ),
+                const SizedBox(height: 20),
               ],
-              const SizedBox(height: 40),
               
               SizedBox(
                 width: double.infinity,
@@ -255,7 +269,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? Colors.white : Colors.grey, size: 24),
+              Icon(icon, color: isSelected ? Colors.white : AppTheme.textSlateMedium, size: 24),
               const SizedBox(height: 4),
               Text(
                 label,

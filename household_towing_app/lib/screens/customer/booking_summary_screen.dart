@@ -10,6 +10,8 @@ import 'customer_active_bookings_screen.dart';
 import 'package:intl/intl.dart';
 import '../../utils/service_templates.dart';
 import '../../models/service_definition_model.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class BookingSummaryScreen extends StatefulWidget {
   final Booking booking;
@@ -256,14 +258,14 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
               List<Widget> complexDetailsWidgets = [];
               if (def.type == ServicePricingType.areaBased && details != null) {
                  final sqm = details['sqm'] ?? 0;
-                 complexDetailsWidgets.add(Text('Area: ${sqm}sqm', style: const TextStyle(fontSize: 11, color: Colors.grey)));
+                 complexDetailsWidgets.add(Text('Area: ${sqm}sqm', style: const TextStyle(fontSize: 11, color: AppTheme.textSlateMedium)));
                  if (details['addons'] is List && (details['addons'] as List).isNotEmpty) {
-                    complexDetailsWidgets.add(Text('Add-ons: ${(details['addons'] as List).join(", ")}', style: const TextStyle(fontSize: 11, color: Colors.grey)));
+                    complexDetailsWidgets.add(Text('Add-ons: ${(details['addons'] as List).join(", ")}', style: const TextStyle(fontSize: 11, color: AppTheme.textSlateMedium)));
                  }
               } else if (def.type == ServicePricingType.subtypeBased && details != null) {
                  final subtypes = details.entries.map((e) => '${e.value}x ${e.key}').join(', ');
                  if (subtypes.isNotEmpty) {
-                    complexDetailsWidgets.add(Text(subtypes, style: const TextStyle(fontSize: 11, color: Colors.grey)));
+                    complexDetailsWidgets.add(Text(subtypes, style: const TextStyle(fontSize: 11, color: AppTheme.textSlateMedium)));
                  }
               }
 
@@ -286,7 +288,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                           else 
                             Text(
                               '@ ${PricingConfig.formatPrice(subTotal / qty)} each',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              style: const TextStyle(fontSize: 11, color: AppTheme.textSlateMedium),
                             ),
                         ],
                       ),
@@ -315,9 +317,9 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Expanded(
-                child: Text('Base Subtotal', style: TextStyle(color: Colors.grey)),
+                child: Text('Base Subtotal', style: TextStyle(color: AppTheme.textSlateMedium)),
               ),
-              Text(PricingConfig.formatPrice(widget.basePrice), style: const TextStyle(color: Colors.grey)),
+              Text(PricingConfig.formatPrice(widget.basePrice), style: const TextStyle(color: AppTheme.textSlateMedium)),
             ],
           ),
           
@@ -328,10 +330,10 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Expanded(
-                  child: Text('Surcharges (Night / Distance)', style: TextStyle(color: Colors.grey)),
+                  child: Text('Surcharges (Night / Distance)', style: TextStyle(color: AppTheme.textSlateMedium)),
                 ),
                 const SizedBox(width: 8),
-                Text('+ ${PricingConfig.formatPrice(surcharges)}', style: const TextStyle(color: Colors.grey)),
+                Text('+ ${PricingConfig.formatPrice(surcharges)}', style: const TextStyle(color: AppTheme.textSlateMedium)),
               ],
             ),
           ],

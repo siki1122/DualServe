@@ -1,8 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/asset_model.dart';
-import '../models/provider_model.dart';
 import '../models/booking_model.dart';
 import '../models/task_model.dart';
 import '../services/booking_service.dart';
@@ -14,6 +11,7 @@ class AssetSelectionDialog extends StatefulWidget {
   final String providerName;
   final Task? preselectedTask;
   final Booking? preselectedBooking;
+  final bool isEmployeeContext;
 
   const AssetSelectionDialog({
     super.key,
@@ -21,6 +19,7 @@ class AssetSelectionDialog extends StatefulWidget {
     required this.providerName,
     this.preselectedTask,
     this.preselectedBooking,
+    this.isEmployeeContext = false,
   });
 
   @override
@@ -46,6 +45,10 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
   void initState() {
     super.initState();
     _assetsStream = _assetService.getAssets();
+    if (widget.isEmployeeContext && widget.preselectedTask != null) {
+      selectedDriverId = widget.preselectedTask!.assignedDriverId;
+      selectedVehicleId = widget.preselectedTask!.assignedTruckId;
+    }
   }
 
   @override
@@ -73,8 +76,12 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
         // ONLY show if active, or if already inUse BY THIS SPECIFIC TASK
         final relevantAssets = allAssets.where((asset) => 
           (asset.assignedTo == widget.providerId && (asset.status == AssetStatus.active || asset.currentTaskId == widget.preselectedTask?.id)) || 
-          (asset.assignedTo == null && asset.status == AssetStatus.active)
+          (asset.assignedTo == null && asset.status == AssetStatus.active && (asset.ownerId == widget.providerId || asset.ownerId == null))
         ).toList();
+
+        // Determine if this is a household/cleaning service (no truck required)
+        final serviceType = (widget.preselectedBooking?.serviceType ?? widget.preselectedTask?.serviceType ?? '').toLowerCase();
+        final isTowingService = serviceType.contains('towing') || serviceType.contains('tow');
 
         final vehicles = relevantAssets
             .where((asset) => asset.type == AssetType.vehicle)
@@ -157,35 +164,46 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
                     ],
 
                     // Driver selection
-                    DropdownButtonFormField<String>(
-                          isExpanded: true,
-                      value: drivers.any((d) => d.id == selectedDriverId) ? selectedDriverId : null,
-                      decoration: InputDecoration(
-                        labelText: 'Assigned Driver',
-                        labelStyle: TextStyle(color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
-                        prefixIcon: Icon(Icons.airline_seat_recline_normal, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
-                        filled: true,
-                        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                    if (isTowingService) ...[
+                      if (widget.isEmployeeContext && widget.preselectedTask != null)
+                        _buildReadOnlyField(
+                          context,
+                          label: 'Assigned Driver',
+                          value: widget.preselectedTask!.assignedDriverName ?? 'No driver assigned',
+                          icon: Icons.airline_seat_recline_normal,
+                          isDark: isDark,
+                        )
+                      else
+                        DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: drivers.any((d) => d.id == selectedDriverId) ? selectedDriverId : null,
+                        decoration: InputDecoration(
+                          labelText: 'Assigned Driver',
+                          labelStyle: TextStyle(color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
+                          prefixIcon: Icon(Icons.airline_seat_recline_normal, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
+                          filled: true,
+                          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                        ),
+                        hint: drivers.isEmpty
+                            ? const Text('No drivers available')
+                            : const Text('Select driver'),
+                        items: drivers
+                            .map(
+                              (asset) => DropdownMenuItem(
+                                value: asset.id,
+                                child: Text(asset.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: drivers.isEmpty
+                            ? null
+                            : (value) => setState(() => selectedDriverId = value),
+                        validator: (value) => (!isTowingService || value != null) ? null : 'Please select a driver',
                       ),
-                      hint: drivers.isEmpty
-                          ? const Text('No drivers available')
-                          : const Text('Select driver'),
-                      items: drivers
-                          .map(
-                            (asset) => DropdownMenuItem(
-                              value: asset.id,
-                              child: Text(asset.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: drivers.isEmpty
-                          ? null
-                          : (value) => setState(() => selectedDriverId = value),
-                      validator: (value) => value == null ? 'Please select a driver' : null,
-                    ),
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 14),
+                    ],
 
                     // Helpers selection
                     if (helpers.isNotEmpty) ...[
@@ -199,35 +217,46 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
                     ],
 
                     // Truck selection
-                    DropdownButtonFormField<String>(
-                          isExpanded: true,
-                      value: vehicles.any((v) => v.id == selectedVehicleId) ? selectedVehicleId : null,
-                      decoration: InputDecoration(
-                        labelText: 'Truck to use',
-                        labelStyle: TextStyle(color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
-                        prefixIcon: Icon(Icons.local_shipping_outlined, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
-                        filled: true,
-                        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                    if (isTowingService) ...[
+                      if (widget.isEmployeeContext && widget.preselectedTask != null)
+                        _buildReadOnlyField(
+                          context,
+                          label: 'Truck to use',
+                          value: widget.preselectedTask!.assignedTruckName ?? 'No truck assigned',
+                          icon: Icons.local_shipping_outlined,
+                          isDark: isDark,
+                        )
+                      else
+                        DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: vehicles.any((v) => v.id == selectedVehicleId) ? selectedVehicleId : null,
+                        decoration: InputDecoration(
+                          labelText: 'Truck to use',
+                          labelStyle: TextStyle(color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
+                          prefixIcon: Icon(Icons.local_shipping_outlined, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
+                          filled: true,
+                          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                        ),
+                        hint: vehicles.isEmpty
+                            ? const Text('No trucks assigned to you')
+                            : const Text('Select truck'),
+                        items: vehicles
+                            .map(
+                              (asset) => DropdownMenuItem(
+                                value: asset.id,
+                                child: Text('${asset.name} (${asset.plateNumber ?? 'No plate'})'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: vehicles.isEmpty
+                            ? null
+                            : (value) => setState(() => selectedVehicleId = value),
+                        validator: (value) => (!isTowingService || value != null) ? null : 'Please select a truck',
                       ),
-                      hint: vehicles.isEmpty
-                          ? const Text('No trucks assigned to you')
-                          : const Text('Select truck'),
-                      items: vehicles
-                          .map(
-                            (asset) => DropdownMenuItem(
-                              value: asset.id,
-                              child: Text('${asset.name} (${asset.plateNumber ?? 'No plate'})'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: vehicles.isEmpty
-                          ? null
-                          : (value) => setState(() => selectedVehicleId = value),
-                      validator: (value) => value == null ? 'Please select a truck' : null,
-                    ),
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 14),
+                    ],
 
                     // Tools & Equipment
                     _buildAssetChecklist(
@@ -273,7 +302,6 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
 
-                final vehicle = relevantAssets.firstWhere((a) => a.id == selectedVehicleId);
                 final selectedTools = tools
                     .where((asset) => selectedToolIds.contains(asset.id))
                     .toList();
@@ -284,21 +312,35 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
                     .where((asset) => asset.type == AssetType.crew && (selectedCrewIds.contains(asset.id) || asset.id == selectedDriverId))
                     .toList();
 
-                final driver = relevantAssets.firstWhere((a) => a.id == selectedDriverId);
-
                 try {
                   String? taskId = widget.preselectedTask?.id;
                   
                   if (widget.preselectedBooking != null) {
+                    // For household services, vehicle/driver are optional
+                    final AssetModel? vehicle = selectedVehicleId != null
+                        ? relevantAssets.firstWhere((a) => a.id == selectedVehicleId)
+                        : null;
+                    final AssetModel? driver = selectedDriverId != null
+                        ? relevantAssets.firstWhere((a) => a.id == selectedDriverId)
+                        : null;
+
                     taskId = await _bookingService.acceptBooking(
                       widget.preselectedBooking!.id,
                       widget.providerId,
-                      truckId: vehicle.id,
-                      truckName: vehicle.name,
-                      driverId: driver.id,
-                      driverName: driver.name,
+                      truckId: vehicle?.id,
+                      truckName: vehicle?.name,
+                      driverId: driver?.id,
+                      driverName: driver?.name,
                     );
                   }
+
+                  // Get optional vehicle/driver for logging (already retrieved above in booking block)
+                  final AssetModel? logVehicle = selectedVehicleId != null
+                      ? relevantAssets.firstWhere((a) => a.id == selectedVehicleId)
+                      : null;
+                  final AssetModel? logDriver = selectedDriverId != null
+                      ? relevantAssets.firstWhere((a) => a.id == selectedDriverId)
+                      : null;
 
                   await _assetService.logResourceUsage(
                     providerId: widget.providerId,
@@ -310,9 +352,9 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
                         : (widget.preselectedBooking != null 
                             ? '${widget.preselectedBooking!.serviceType} at ${widget.preselectedBooking!.address}' 
                             : null),
-                    driverId: driver.id,
-                    driverName: driver.name,
-                    vehicle: vehicle,
+                    driverId: logDriver?.id,
+                    driverName: logDriver?.name,
+                    vehicle: logVehicle,
                     tools: selectedTools,
                     equipment: selectedEquipment,
                     crew: selectedCrew,
@@ -400,6 +442,33 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
                 },
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyField(BuildContext context, {required String label, required String value, required IconData icon, required bool isDark}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium, fontSize: 12)),
+                const SizedBox(height: 4),
+                Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark)),
+              ],
+            ),
+          ),
         ],
       ),
     );

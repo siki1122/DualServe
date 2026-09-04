@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../utils/app_theme.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class LocationPickerScreen extends StatefulWidget {
   final LatLng? initialLocation;
@@ -50,8 +52,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c'],
                 userAgentPackageName: 'com.dualserve.app',
               ),
               if (_pickedLocation != null)
@@ -81,7 +83,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: AppTheme.textSlateDark.withValues(alpha: 0.1),
                       blurRadius: 10,
                     ),
                   ],

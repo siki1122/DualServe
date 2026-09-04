@@ -9,6 +9,8 @@ import '../chat/chat_screen.dart';
 import '../../utils/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/task_model.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class DriverTrackingScreen extends StatefulWidget {
   final Task task;
@@ -188,11 +190,11 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
       backgroundColor: isDark ? AppTheme.backgroundDark : const Color(0xFFF8FAFC),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Live Tracking', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+        title: const Text('Live Tracking', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSlateDark)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textSlateDark),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -218,8 +220,8 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-          subdomains: const ['a', 'b', 'c', 'd'],
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          subdomains: const ['a', 'b', 'c'],
           userAgentPackageName: 'com.dualserve.app', // Match customer app
         ),
         if (_routePoints.isNotEmpty)
@@ -288,7 +290,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: AppTheme.textSlateDark.withValues(alpha: 0.1),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),
@@ -314,7 +316,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
           borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: AppTheme.textSlateDark.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -330,7 +332,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.grey[300],
+                  color: isDark ? Colors.white24 : AppTheme.textSlateLight,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -408,7 +410,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
                     'En Route',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: isDark ? Colors.white : AppTheme.textSlateDark,
                     ),
                   ),
                 ),
@@ -419,20 +421,23 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final doc = await FirebaseFirestore.instance.collection('users').doc(widget.task.customerId).get();
-                      if (doc.exists) {
-                        final phone = doc.data()?['phone'];
-                        if (phone != null) {
-                          launchUrl(Uri.parse('tel:$phone'));
-                        }
-                      }
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatScreen(
+                            bookingId: widget.task.bookingId ?? widget.task.id,
+                            receiverId: widget.task.customerId,
+                            receiverName: _customerName,
+                          ),
+                        ),
+                      );
                     },
-                    icon: const Icon(Icons.call, size: 20),
-                    label: const Text('Call'),
+                    icon: const Icon(Icons.person, size: 20),
+                    label: const Text('Customer'),
                     style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.black87,
-                      backgroundColor: Colors.grey[100],
+                      foregroundColor: AppTheme.textSlateDark,
+                      backgroundColor: AppTheme.surfaceLight,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -444,20 +449,31 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatScreen(
-                            bookingId: widget.task.id,
-                            receiverId: widget.task.customerId,
-                            receiverName: _customerName,
+                    onPressed: () async {
+                      final providerId = widget.task.assignedProviderId;
+                      if (providerId == null) return;
+                      
+                      String providerName = 'Provider';
+                      final doc = await FirebaseFirestore.instance.collection('users').doc(providerId).get();
+                      if (doc.exists) {
+                        providerName = doc.data()?['fullName'] ?? 'Provider';
+                      }
+                      
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatScreen(
+                              bookingId: widget.task.bookingId ?? widget.task.id,
+                              receiverId: providerId,
+                              receiverName: providerName,
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      }
                     },
-                    icon: const Icon(Icons.chat_bubble_outline, size: 20),
-                    label: const Text('Message'),
+                    icon: const Icon(Icons.storefront_outlined, size: 20),
+                    label: const Text('Provider'),
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
                       backgroundColor: AppTheme.primaryBlue,
@@ -476,4 +492,5 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
       ),
     );
   }
+
 }

@@ -29,10 +29,18 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
   Map<String, String> _serviceAreas = {};
   bool _isLoading = true;
   bool _useNightDifferential = false;
+  String _serviceType = 'Towing';
 
   int _nightStartHour = 23;
   int _nightEndHour = 5;
   double _nightPercent = 30.0;
+
+  final TextEditingController _categoryController = TextEditingController();
+
+  String? _selectedServiceName;
+  
+  // Custom service name controller for "Other" option
+  final TextEditingController _customServiceController = TextEditingController();
 
   final List<MapEntry<int, String>> _hourOptions = List.generate(24, (i) {
     final displayHour = i == 0 ? 12 : (i > 12 ? i - 12 : i);
@@ -68,6 +76,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
         setState(() {
           _services = servicesData;
           _serviceAreas = areasData.map((key, value) => MapEntry(key, value.toString()));
+          _serviceType = data['serviceType'] as String? ?? 'Towing';
           _useNightDifferential = pricing.useNightDifferential;
           _nightStartHour = pricing.nightSurchargeStartHour;
           _nightEndHour = pricing.nightSurchargeEndHour;
@@ -133,11 +142,18 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
   }
 
   Future<void> _addService() async {
-    final service = _serviceController.text.trim();
+    final service = _selectedServiceName == 'Other' 
+        ? _customServiceController.text.trim() 
+        : (_selectedServiceName ?? '');
+    
     final priceStr = _priceController.text.trim();
     final area = _areaController.text.trim();
     
     if (service.isEmpty || priceStr.isEmpty) return;
+    
+    // Use manual category input or fallback to Other
+    final categoryStr = _categoryController.text.trim();
+    final category = categoryStr.isEmpty ? 'Other' : categoryStr;
 
     final price = double.tryParse(priceStr);
     if (price == null) {
@@ -155,19 +171,32 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
             pricePerSqm: template.pricePerSqm,
             minSqm: template.minSqm,
             addons: template.addons,
+            category: category,
           ).toMap();
         } else if (template.type == ServicePricingType.subtypeBased) {
-          _services[service] = template.toMap();
+          final mapped = template.toMap();
+          mapped['category'] = category;
+          _services[service] = mapped;
         } else {
-          _services[service] = price;
+          _services[service] = ServiceDefinition(
+            type: ServicePricingType.flatRate,
+            flatRatePrice: price,
+            category: category,
+          ).toMap();
         }
       } else {
-        _services[service] = price;
+        _services[service] = ServiceDefinition(
+          type: ServicePricingType.flatRate,
+          flatRatePrice: price,
+          category: category,
+        ).toMap();
       }
       _serviceAreas[service] = area.isNotEmpty ? area : 'All Areas';
-      _serviceController.clear();
+      _selectedServiceName = null;
+      _customServiceController.clear();
       _priceController.clear();
       _areaController.clear();
+      _categoryController.clear();
     });
 
     await _updateFirestore();
@@ -240,14 +269,50 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                             Expanded(
                               flex: 2,
                               child: TextField(
-                                controller: _serviceController,
+                                controller: _categoryController,
                                 style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
                                 decoration: AppTheme.textFieldDecoration(
-                                  label: 'Service',
-                                  hint: 'e.g. Wheel lift',
+                                  label: 'Category',
+                                  hint: 'e.g. Deep Cleaning, Aircon',
+                                  prefixIcon: Icons.category_outlined,
+                                  isDark: isDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedServiceName,
+                                isExpanded: true,
+                                style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
+                                dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+                                decoration: AppTheme.textFieldDecoration(
+                                  label: 'Service Name',
                                   prefixIcon: Icons.handyman,
                                   isDark: isDark,
                                 ),
+                                items: [
+                                  ...ServiceTemplates.defaultTemplates.keys.map((String service) {
+                                    return DropdownMenuItem<String>(
+                                      value: service,
+                                      child: Text(service),
+                                    );
+                                  }),
+                                  const DropdownMenuItem<String>(
+                                    value: 'Other',
+                                    child: Text('Custom Service (Other)'),
+                                  ),
+                                ],
+                                onChanged: (newValue) {
+                                  setState(() {
+                                    _selectedServiceName = newValue;
+                                  });
+                                },
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -266,6 +331,25 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                             ),
                           ],
                         ),
+                        if (_selectedServiceName == 'Other') ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _customServiceController,
+                                  style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
+                                  decoration: AppTheme.textFieldDecoration(
+                                    label: 'Custom Service Name',
+                                    hint: 'e.g. Lawn Mowing',
+                                    prefixIcon: Icons.edit_outlined,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 12),
                         Row(
                           children: [
@@ -328,12 +412,15 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                             final rawPrice = _services[serviceName];
                             double? displayPrice;
                             String priceLabel = '';
+                            String? categoryLabel;
+
                             if (rawPrice is num) {
                               displayPrice = rawPrice.toDouble();
                               priceLabel = '₱${displayPrice.toStringAsFixed(2)}';
                             } else if (rawPrice is Map) {
                               final def = ServiceDefinition.fromMap(Map<String, dynamic>.from(rawPrice));
                               displayPrice = def.flatRatePrice ?? def.minPrice ?? 0.0;
+                              categoryLabel = def.category;
                               if (def.type == ServicePricingType.areaBased) {
                                 priceLabel = 'Starts at ₱${displayPrice.toStringAsFixed(2)}';
                               } else if (def.type == ServicePricingType.subtypeBased) {
@@ -361,7 +448,21 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const SizedBox(height: 4),
+                                    if (categoryLabel != null) ...[
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          categoryLabel,
+                                          style: const TextStyle(fontSize: 10, color: AppTheme.primaryBlue, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 6),
                                     Text(
                                       priceLabel,
                                       style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
@@ -390,16 +491,17 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                             );
                           },
                         ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Preferences',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppTheme.textSlateDark,
+                  if (_serviceType == 'Towing') ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'Preferences',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppTheme.textSlateDark,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: AppTheme.cardDecoration(context),
@@ -547,6 +649,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                       ],
                     ),
                   ),
+                  ],
                 ],
               ),
             ),

@@ -7,6 +7,8 @@ import '../../utils/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/app_task_card.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class DriverAvailableTasksScreen extends StatefulWidget {
   const DriverAvailableTasksScreen({super.key});
@@ -58,7 +60,7 @@ class _DriverAvailableTasksScreenState extends State<DriverAvailableTasksScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task claimed successfully!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Task claimed successfully!'), backgroundColor: AppTheme.statusCompletedText),
         );
       }
     } catch (e) {
@@ -67,7 +69,7 @@ class _DriverAvailableTasksScreenState extends State<DriverAvailableTasksScreen>
         if (errorMsg.contains('Task already claimed')) {
           errorMsg = 'This task was already claimed by someone else.';
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMsg), backgroundColor: Colors.orange),
+            SnackBar(content: Text(errorMsg), backgroundColor: AppTheme.towingOrange),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -88,7 +90,7 @@ class _DriverAvailableTasksScreenState extends State<DriverAvailableTasksScreen>
       return Scaffold(
         backgroundColor: isDark ? AppTheme.backgroundDark : const Color(0xFFF8FAFC),
         body: Center(
-          child: Text('No provider profile found.', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+          child: Text('No provider profile found.', style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark)),
         ),
       );
     }

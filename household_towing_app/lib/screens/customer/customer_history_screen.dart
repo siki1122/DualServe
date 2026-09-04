@@ -10,6 +10,8 @@ import '../chat/chat_screen.dart';
 import '../../models/booking_model.dart';
 import 'customer_booking_details_screen.dart';
 import '../../widgets/customer_drawer.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class CustomerHistoryScreen extends StatefulWidget {
   const CustomerHistoryScreen({super.key});
@@ -27,7 +29,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
       drawer: const CustomerDrawer(),
       appBar: AppBar(
         title: const Text('History', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -44,48 +46,6 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
       ),
       body: Column(
         children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppTheme.surfaceDark : AppTheme.surface,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: isDark ? [] : [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
-                      ],
-                    ),
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search...',
-                        hintStyle: TextStyle(color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateLight),
-                        prefixIcon: Icon(Icons.search, color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateLight),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? AppTheme.surfaceDark : AppTheme.surface,
-                    shape: BoxShape.circle,
-                    boxShadow: isDark ? [] : [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: Icon(Icons.tune, color: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark),
-                    onPressed: () {},
-                  ),
-                )
-              ],
-            ),
-          ),
 
           // Filter Chips
           SizedBox(
@@ -255,14 +215,14 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey[200]),
+                        Divider(height: 1, color: isDark ? Colors.white12 : AppTheme.textSlateLight.withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
                         Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 'Cost: ₱${(data['finalCost'] as num? ?? data['estimatedCost'] as num? ?? 0.0).toStringAsFixed(2)}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.statusCompletedText),
                               ),
                               Row(
                                 children: [
@@ -338,7 +298,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history, size: 80, color: Colors.grey[300]),
+          Icon(Icons.history, size: 80, color: AppTheme.textSlateLight),
           const SizedBox(height: 16),
           const Text(
             'No matching services.',
@@ -351,11 +311,11 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
 
   Color _getStatusColor(String? status) {
     switch (status) {
-      case 'completed': return Colors.green;
+      case 'completed': return AppTheme.statusCompletedText;
       case 'pending': 
       case 'converted_to_task':
-        return Colors.orange;
-      case 'accepted': return Colors.blue;
+        return AppTheme.towingOrange;
+      case 'accepted': return AppTheme.primaryBlue;
       case 'cancelled': 
       case 'rejected':
         return Colors.red;

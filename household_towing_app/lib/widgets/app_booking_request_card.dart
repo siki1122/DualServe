@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/booking_model.dart';
 import '../utils/app_theme.dart';
 import 'package:intl/intl.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class AppBookingRequestCard extends StatelessWidget {
   final Booking? booking;
@@ -29,7 +31,7 @@ class AppBookingRequestCard extends StatelessWidget {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isRejected = booking!.status == BookingStatus.rejected;
-    final statusColor = isRejected ? Colors.grey : AppTheme.towingOrange; // Highlight for new requests
+    final statusColor = isRejected ? AppTheme.textSlateMedium : AppTheme.towingOrange; // Highlight for new requests
 
     return Semantics(
       label: 'Booking request for ${booking!.serviceType} at ${booking!.address}',
@@ -101,7 +103,7 @@ class AppBookingRequestCard extends StatelessWidget {
                         child: Text(
                           isRejected ? 'DECLINED' : 'NEW REQUEST',
                           style: TextStyle(
-                            color: isRejected ? Colors.grey : Colors.blue,
+                            color: isRejected ? AppTheme.textSlateMedium : AppTheme.primaryBlue,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
@@ -137,7 +139,7 @@ class AppBookingRequestCard extends StatelessWidget {
                           'Est. Cost: ₱${booking!.estimatedCost!.toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontSize: 13,
-                            color: Colors.green,
+                            color: AppTheme.statusCompletedText,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -172,7 +174,7 @@ class AppBookingRequestCard extends StatelessWidget {
                           child: ElevatedButton(
                             onPressed: isProcessing ? null : onAcceptPressed,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: AppTheme.statusCompletedText,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -212,7 +214,7 @@ class AppBookingRequestCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       height: 180,
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceLight,
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Center(

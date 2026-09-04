@@ -5,14 +5,19 @@ import 'in_app_notification_service.dart';
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Stream<List<Message>> getMessages(String bookingId) {
+  Stream<List<Message>> getMessages(String bookingId, String currentUserId, String otherUserId) {
     return _firestore
         .collection('messages')
         .where('bookingId', isEqualTo: bookingId)
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList());
+        .map((snapshot) {
+          final allMessages = snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList();
+          return allMessages.where((msg) {
+            return (msg.senderId == currentUserId && msg.receiverId == otherUserId) ||
+                   (msg.senderId == otherUserId && msg.receiverId == currentUserId);
+          }).toList();
+        });
   }
 
   Future<void> sendMessage(Message message) async {
@@ -53,22 +58,21 @@ class ChatService {
     }
   }
 
-  Future<void> markMessagesAsRead(String bookingId, String currentUserId) async {
-    // Read messages not sent by current user
+  Future<void> markMessagesAsRead(String bookingId, String currentUserId, String otherUserId) async {
+    // Read messages sent by the other user to the current user
     final unreadMessages = await _firestore
         .collection('messages')
         .where('bookingId', isEqualTo: bookingId)
         .where('isRead', isEqualTo: false)
+        .where('senderId', isEqualTo: otherUserId)
+        .where('receiverId', isEqualTo: currentUserId)
         .get();
 
     if (unreadMessages.docs.isEmpty) return;
 
     final batch = _firestore.batch();
     for (var doc in unreadMessages.docs) {
-      final data = doc.data();
-      if (data['senderId'] != currentUserId) {
-        batch.update(doc.reference, {'isRead': true});
-      }
+      batch.update(doc.reference, {'isRead': true});
     }
     await batch.commit();
   }

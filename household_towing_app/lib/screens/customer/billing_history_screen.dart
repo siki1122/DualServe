@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/shimmer_loading.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class BillingHistoryScreen extends StatefulWidget {
   const BillingHistoryScreen({super.key});
@@ -75,17 +77,17 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                   Icon(
                     Icons.receipt_long_outlined,
                     size: 64,
-                    color: Colors.grey[300],
+                    color: AppTheme.textSlateLight,
                   ),
                   const SizedBox(height: 16),
                   const Text(
                     'No billing records yet',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: AppTheme.textSlateMedium),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Completed services will appear here',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    style: TextStyle(fontSize: 14, color: AppTheme.textSlateMedium),
                   ),
                 ],
               ),
@@ -189,7 +191,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                                color: AppTheme.statusCompletedText,
                               ),
                             ),
                           ],
@@ -293,7 +295,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
               ),
               _buildDetailRow(
                 'Distance Surcharge',
-                '${transaction.distanceTraveled.toStringAsFixed(2)} km × ${PricingConfig.formatPrice(PricingConfig.costPerKm)}/km',
+                '${(transaction.distanceTraveled > PricingConfig.minDistanceKm ? transaction.distanceTraveled - PricingConfig.minDistanceKm : 0).toStringAsFixed(2)} km (after first ${PricingConfig.minDistanceKm.toInt()}km) × ${PricingConfig.formatPrice(PricingConfig.costPerKm)}/km',
                 secondLine: PricingConfig.formatPrice(
                   transaction.distanceSurcharge,
                 ),
@@ -311,7 +313,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: AppTheme.statusCompletedText,
                     ),
                   ),
                 ],
@@ -329,7 +331,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: AppTheme.surfaceLight,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -355,7 +357,7 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 13, color: Colors.grey),
+              style: const TextStyle(fontSize: 13, color: AppTheme.textSlateMedium),
             ),
             Text(
               value,
@@ -381,9 +383,9 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
   Color _getPaymentStatusColor(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.recorded:
-        return Colors.green;
+        return AppTheme.statusCompletedText;
       case PaymentStatus.pending:
-        return Colors.orange;
+        return AppTheme.towingOrange;
     }
   }
 

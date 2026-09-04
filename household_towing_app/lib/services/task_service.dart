@@ -3,7 +3,10 @@ import 'package:household_towing_app/models/task_model.dart';
 import 'logging_service.dart';
 
 class TaskService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  TaskService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
   static const String _tasksCollection = 'tasks';
 
   // CREATE - Add new task

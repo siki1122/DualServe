@@ -62,7 +62,7 @@ class _CustomerServiceTrackingScreenState
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Colors.grey,
+                              color: AppTheme.textSlateMedium,
                             ),
                           ),
                           Container(
@@ -158,7 +158,7 @@ class _CustomerServiceTrackingScreenState
                         return ListTile(
                           leading: Icon(
                             milestone.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                            color: milestone.isCompleted ? Colors.green : Colors.grey[300],
+                            color: milestone.isCompleted ? AppTheme.statusCompletedText : AppTheme.textSlateLight,
                             size: 24,
                           ),
                           title: Text(
@@ -166,8 +166,7 @@ class _CustomerServiceTrackingScreenState
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: milestone.isCompleted ? FontWeight.bold : FontWeight.normal,
-                              color: milestone.isCompleted ? Colors.black87 : Colors.grey[500],
-                              decoration: milestone.isCompleted ? TextDecoration.lineThrough : null,
+                              color: milestone.isCompleted ? AppTheme.textSlateDark : Colors.grey[500],
                             ),
                           ),
                           trailing: milestone.completedAt != null 
@@ -184,9 +183,7 @@ class _CustomerServiceTrackingScreenState
                   const SizedBox(height: 24),
                 ],
 
-                // Timeline
-                _buildTimeline(task),
-                const SizedBox(height: 24),
+
 
                 // Service Details
                 const Text(
@@ -198,21 +195,21 @@ class _CustomerServiceTrackingScreenState
                   icon: Icons.home_repair_service,
                   title: 'Service Type',
                   value: task.serviceType,
-                  color: Colors.blue,
+                  color: AppTheme.primaryBlue,
                 ),
                 const SizedBox(height: 12),
                 _buildDetailCard(
                   icon: Icons.location_on,
                   title: 'Location',
                   value: task.location,
-                  color: Colors.green,
+                  color: AppTheme.statusCompletedText,
                 ),
                 const SizedBox(height: 12),
                 _buildDetailCard(
                   icon: Icons.schedule,
                   title: 'Requested',
                   value: _formatDate(task.scheduledDate),
-                  color: Colors.orange,
+                  color: AppTheme.towingOrange,
                 ),
                 const SizedBox(height: 12),
 
@@ -285,7 +282,7 @@ class _CustomerServiceTrackingScreenState
                     icon: Icons.handyman,
                     title: 'Resources',
                     value: '${task.assignedAssets.length} items assigned',
-                    color: Colors.orange,
+                    color: AppTheme.towingOrange,
                   ),
                 ],
 
@@ -294,14 +291,14 @@ class _CustomerServiceTrackingScreenState
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue[200]!),
+                    border: Border.all(color: AppTheme.primaryBlue),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue[700]),
+                      Icon(Icons.info_outline, color: AppTheme.primaryBlue),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -310,7 +307,7 @@ class _CustomerServiceTrackingScreenState
                               : 'Your provider is on the way. You can track their location once they start the service.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.blue[700],
+                            color: AppTheme.primaryBlue,
                           ),
                         ),
                       ),
@@ -325,88 +322,7 @@ class _CustomerServiceTrackingScreenState
     );
   }
 
-  Widget _buildTimeline(Task task) {
-    return Column(
-      children: [
-        _buildTimelineStep('Requested', true, Icons.check_circle, Colors.green),
-        Container(
-          width: 2,
-          height: 20,
-          color: task.status != TaskStatus.unassigned
-              ? Colors.green
-              : Colors.grey[300],
-        ),
-        _buildTimelineStep(
-          'Assigned',
-          task.assignedProviderId != null,
-          Icons.person,
-          task.assignedProviderId != null ? Colors.green : Colors.grey,
-        ),
-        Container(
-          width: 2,
-          height: 20,
-          color:
-              task.status == TaskStatus.inProgress ||
-                  task.status == TaskStatus.completed
-              ? Colors.green
-              : Colors.grey[300],
-        ),
-        _buildTimelineStep(
-          'In Progress',
-          task.status == TaskStatus.inProgress ||
-              task.status == TaskStatus.completed,
-          Icons.directions_car,
-          task.status == TaskStatus.inProgress ||
-                  task.status == TaskStatus.completed
-              ? Colors.green
-              : Colors.grey,
-        ),
-        Container(
-          width: 2,
-          height: 20,
-          color: task.status == TaskStatus.completed
-              ? Colors.green
-              : Colors.grey[300],
-        ),
-        _buildTimelineStep(
-          'Completed',
-          task.status == TaskStatus.completed,
-          Icons.check_circle,
-          task.status == TaskStatus.completed ? Colors.green : Colors.grey,
-        ),
-      ],
-    );
-  }
 
-  Widget _buildTimelineStep(
-    String label,
-    bool completed,
-    IconData icon,
-    Color color,
-  ) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color, width: 2),
-          ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        const SizedBox(width: 16),
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: completed ? FontWeight.bold : FontWeight.normal,
-            color: completed ? Colors.black : Colors.grey,
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildDetailCard({
     required IconData icon,
@@ -478,7 +394,7 @@ class _CustomerServiceTrackingScreenState
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: Colors.green,
+                  color: AppTheme.statusCompletedText,
                   borderRadius: BorderRadius.circular(25),
                 ),
                 child: Center(
@@ -506,11 +422,11 @@ class _CustomerServiceTrackingScreenState
                     ),
                     Row(
                       children: [
-                        Icon(Icons.star, size: 16, color: Colors.orange),
+                        Icon(Icons.star, size: 16, color: AppTheme.towingOrange),
                         const SizedBox(width: 4),
                         Text('$rating', style: const TextStyle(fontSize: 12)),
                         const SizedBox(width: 16),
-                        Icon(Icons.phone, size: 16, color: Colors.green),
+                        Icon(Icons.phone, size: 16, color: AppTheme.statusCompletedText),
                         const SizedBox(width: 4),
                         Text(phone, style: const TextStyle(fontSize: 12)),
                       ],

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class PendingApprovalScreen extends StatelessWidget {
   const PendingApprovalScreen({super.key});
@@ -21,7 +23,7 @@ class PendingApprovalScreen extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.blue[50]!, Colors.white],
+                colors: [AppTheme.primaryBlue.withValues(alpha: 0.1), Colors.white],
               ),
             ),
             child: Column(
@@ -33,7 +35,7 @@ class PendingApprovalScreen extends StatelessWidget {
                     color: Colors.blue[100],
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.access_time_filled, size: 80, color: Colors.blue),
+                  child: const Icon(Icons.access_time_filled, size: 80, color: AppTheme.primaryBlue),
                 ),
                 const SizedBox(height: 32),
                 const Text(
@@ -44,7 +46,7 @@ class PendingApprovalScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 const Text(
                   'Your provider account is currently being reviewed by our administration team. This usually takes 24-48 hours.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: AppTheme.textSlateMedium),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
@@ -52,14 +54,14 @@ class PendingApprovalScreen extends StatelessWidget {
                   elevation: 0,
                   color: Colors.white,
                   shape: RoundedRectangleBorder(
-                    side: BorderSide(color: Colors.blue),
+                    side: BorderSide(color: AppTheme.primaryBlue),
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                   child: Padding(
                     padding: EdgeInsets.all(16.0),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.blue),
+                        Icon(Icons.info_outline, color: AppTheme.primaryBlue),
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -80,7 +82,7 @@ class PendingApprovalScreen extends StatelessWidget {
                     icon: const Icon(Icons.refresh),
                     label: const Text('Check Status'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -111,11 +113,11 @@ class PendingApprovalScreen extends StatelessWidget {
     if (context.mounted) {
       if (userProvider.role == 'provider') {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account Approved! Welcome.'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Account Approved! Welcome.'), backgroundColor: AppTheme.statusCompletedText),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Still pending review...'), backgroundColor: Colors.orange),
+          const SnackBar(content: Text('Still pending review...'), backgroundColor: AppTheme.towingOrange),
         );
       }
     }

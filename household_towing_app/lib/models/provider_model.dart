@@ -10,6 +10,7 @@ class Provider {
   final String specialty;
   final ProviderStatus status;
   final double rating;
+  final int totalReviews;
   final int jobsCompleted;
   final String serviceType;
   final List<String> serviceTypes;
@@ -47,6 +48,7 @@ class Provider {
     required this.specialty,
     this.status = ProviderStatus.available,
     this.rating = 0.0,
+    this.totalReviews = 0,
     this.jobsCompleted = 0,
     required this.serviceType,
     this.serviceTypes = const [],
@@ -115,9 +117,10 @@ class Provider {
           ProviderStatus.values.asNameMap()[data['status']] ??
           ProviderStatus.available,
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
+      totalReviews: data['totalReviews'] as int? ?? 0,
       jobsCompleted: data['jobsCompleted'] as int? ?? 0,
       serviceType: data['serviceType'] ?? '',
-      serviceTypes: List<String>.from(data['serviceTypes'] ?? []),
+      serviceTypes: _parseServiceTypes(data),
       offeredServices: offeredServices,
       serviceAreas: serviceAreas,
       weeklySchedule: weeklySchedule,
@@ -140,6 +143,28 @@ class Provider {
     );
   }
 
+  static List<String> _parseServiceTypes(Map<String, dynamic> data) {
+    final Set<String> types = {};
+    if (data['serviceTypes'] != null) {
+      types.addAll(List<String>.from(data['serviceTypes']));
+    }
+    if (data['services'] != null) {
+      types.addAll(List<String>.from(data['services']));
+    }
+    if (data['serviceType'] != null && data['serviceType'].toString().isNotEmpty) {
+      types.add(data['serviceType'].toString());
+    }
+    
+    // If this is obviously a household services account but Towing was accidentally saved (e.g. from a default value bug)
+    if ((data['serviceType'] == 'Household Services' || data['specialty'].toString().toLowerCase().contains('house')) && types.contains('Towing')) {
+      types.remove('Towing');
+    }
+    if (types.isEmpty) {
+      types.add('Towing'); // Fallback if completely empty
+    }
+    return types.toList();
+  }
+
   // Convert to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
@@ -149,6 +174,7 @@ class Provider {
       'specialty': specialty,
       'status': status.toString().split('.').last,
       'rating': rating,
+      'totalReviews': totalReviews,
       'jobsCompleted': jobsCompleted,
       'serviceType': serviceType,
       'serviceTypes': serviceTypes,
@@ -183,6 +209,7 @@ class Provider {
     String? specialty,
     ProviderStatus? status,
     double? rating,
+    int? totalReviews,
     int? jobsCompleted,
     String? serviceType,
     List<String>? serviceTypes,
@@ -208,6 +235,7 @@ class Provider {
       specialty: specialty ?? this.specialty,
       status: status ?? this.status,
       rating: rating ?? this.rating,
+      totalReviews: totalReviews ?? this.totalReviews,
       jobsCompleted: jobsCompleted ?? this.jobsCompleted,
       serviceType: serviceType ?? this.serviceType,
       serviceTypes: serviceTypes ?? this.serviceTypes,

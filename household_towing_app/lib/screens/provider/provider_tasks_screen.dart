@@ -28,7 +28,8 @@ enum ProviderTaskFilter {
   requests,
   assigned,
   inProgress,
-  completed
+  completed,
+  declined
 }
 
 class ProviderTasksScreen extends StatefulWidget {
@@ -93,6 +94,8 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                   _buildFilterChip('In Progress', ProviderTaskFilter.inProgress),
                   const SizedBox(width: 8),
                   _buildFilterChip('Completed', ProviderTaskFilter.completed),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Declined', ProviderTaskFilter.declined),
                 ],
               ),
             ),
@@ -126,7 +129,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
           boxShadow: isSelected && !isDark
               ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: AppTheme.textSlateDark.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   )
@@ -148,12 +151,12 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
   Widget _buildContent() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    if (_filterStatus == ProviderTaskFilter.requests) {
+    if (_filterStatus == ProviderTaskFilter.requests || _filterStatus == ProviderTaskFilter.declined) {
       return StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('bookings')
             .where('assignedProviderId', isEqualTo: _providerId)
-            .where('status', whereIn: ['pending', 'rejected'])
+            .where('status', isEqualTo: _filterStatus == ProviderTaskFilter.requests ? 'pending' : 'rejected')
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -181,11 +184,11 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                   Icon(
                     Icons.notifications_none,
                     size: 64,
-                    color: Colors.grey[300],
+                    color: AppTheme.textSlateLight,
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'No new requests',
+                    'No bookings found',
                     style: TextStyle(
                       color: AppTheme.textSlateMedium,
                       fontSize: 16,
@@ -267,7 +270,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                 Icon(
                   Icons.task_outlined,
                   size: 64,
-                  color: Colors.grey[300],
+                  color: AppTheme.textSlateLight,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -309,7 +312,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
     ).then((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking accepted and dispatched!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Booking accepted and dispatched!'), backgroundColor: AppTheme.statusCompletedText),
         );
       }
     });
@@ -321,7 +324,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
       await _bookingService.rejectBooking(booking.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking declined'), backgroundColor: Colors.orange),
+          const SnackBar(content: Text('Booking declined'), backgroundColor: AppTheme.towingOrange),
         );
       }
     } catch (e) {
@@ -341,11 +344,11 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
     return AppTaskCard(
       task: task,
       onTap: () => _showTaskDetail(task),
-      onMilestoneToggle: (milestone) {
+      onMilestoneToggle: (task.assignedDriverId != null) ? null : (milestone) {
         _taskService.updateTaskMilestone(task.id, milestone.id, !milestone.isCompleted);
         HapticFeedback.lightImpact();
       },
-      onMessagePressed: (task.status == TaskStatus.assigned || task.status == TaskStatus.inProgress)
+      onMessageCustomerPressed: (task.status == TaskStatus.assigned || task.status == TaskStatus.inProgress)
           ? () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -357,15 +360,30 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                 ),
               )
           : null,
-      actionLabel: (task.assignedDriverId != null && task.assignedDriverId!.isNotEmpty)
+      onMessageDriverPressed: (task.assignedDriverId != null && (task.status == TaskStatus.assigned || task.status == TaskStatus.inProgress))
+          ? () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    bookingId: task.bookingId ?? task.id,
+                    receiverId: task.assignedDriverId!,
+                    receiverName: task.assignedDriverName ?? 'Driver',
+                  ),
+                ),
+              )
+          : null,
+      actionLabel: task.assignedDriverId != null
           ? 'View Details'
           : (task.status == TaskStatus.assigned 
               ? 'Start Task' 
               : (task.status == TaskStatus.inProgress ? 'Complete Task' : 'View Details')),
       onActionPressed: () {
-        if (task.assignedDriverId != null && task.assignedDriverId!.isNotEmpty) {
+        if (task.assignedDriverId != null) {
           _showTaskDetail(task);
-        } else if (task.status == TaskStatus.assigned) {
+          return;
+        }
+        
+        if (task.status == TaskStatus.assigned) {
           if (task.assignedTruckId == null) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -405,7 +423,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Assets assigned successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.statusCompletedText,
           ),
         );
       }
@@ -491,7 +509,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                     child: LinearProgressIndicator(
                       value: task.progress,
                       minHeight: 8,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor: AppTheme.textSlateLight.withValues(alpha: 0.5),
                       valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
                     ),
                   ),
@@ -503,7 +521,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                         milestone.title,
                         style: TextStyle(
                           decoration: milestone.isCompleted ? TextDecoration.lineThrough : null,
-                          color: milestone.isCompleted ? Colors.grey : AppTheme.textSlateDark,
+                          color: milestone.isCompleted ? AppTheme.textSlateMedium : AppTheme.textSlateDark,
                         ),
                       ),
                       value: milestone.isCompleted,
@@ -515,7 +533,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                                 HapticFeedback.mediumImpact();
                               }
                             },
-                      activeColor: Colors.green,
+                      activeColor: AppTheme.statusCompletedText,
                       contentPadding: EdgeInsets.zero,
                       dense: true,
                       controlAffinity: ListTileControlAffinity.leading,
@@ -612,7 +630,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Could not detect your location. GPS is required for distance surcharge calculation.'),
-                backgroundColor: Colors.orange,
+                backgroundColor: AppTheme.towingOrange,
               ),
             );
             return;
@@ -638,7 +656,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
           if (success == true) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Task completed and transaction recorded!'), backgroundColor: Colors.green),
+                const SnackBar(content: Text('Task completed and transaction recorded!'), backgroundColor: AppTheme.statusCompletedText),
               );
             }
           }
@@ -660,7 +678,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Task ${newStatus.toString().split('.').last}!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.statusCompletedText,
           ),
         );
       }

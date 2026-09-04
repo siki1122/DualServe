@@ -479,7 +479,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
-                          color: Colors.green,
+                          color: AppTheme.statusCompletedText,
                         ),
                       ),
                     ],

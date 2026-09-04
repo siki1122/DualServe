@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ShimmerLoading extends StatelessWidget {
   final double width;
@@ -18,10 +20,10 @@ class ShimmerLoading extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Shimmer.fromColors(
-      baseColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[300]!,
+      baseColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.textSlateLight,
       highlightColor: isDark
           ? Colors.white.withValues(alpha: 0.1)
-          : Colors.grey[100]!,
+          : AppTheme.surfaceLight,
       child: Container(
         width: width,
         height: height,
@@ -81,7 +83,7 @@ class ShimmerLoading extends StatelessWidget {
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: AppTheme.textSlateDark.withValues(alpha: 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -146,7 +148,7 @@ class ShimmerLoading extends StatelessWidget {
                     ? []
                     : [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
+                          color: AppTheme.textSlateDark.withValues(alpha: 0.03),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),

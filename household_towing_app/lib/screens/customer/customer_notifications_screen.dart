@@ -5,6 +5,8 @@ import '../../utils/app_theme.dart';
 import '../../services/in_app_notification_service.dart';
 import '../chat/chat_screen.dart';
 import 'customer_tracking_screen.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 import 'package:timeago/timeago.dart' as timeago;
 
 class CustomerNotificationsScreen extends StatefulWidget {
@@ -184,7 +186,7 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
                       borderRadius: BorderRadius.circular(16),
                       border: isRead ? null : Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3), width: 1.5),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                        BoxShadow(color: AppTheme.textSlateDark.withValues(alpha: isDark ? 0.2 : 0.03), blurRadius: 10, offset: const Offset(0, 4)),
                       ],
                     ),
                     child: Material(

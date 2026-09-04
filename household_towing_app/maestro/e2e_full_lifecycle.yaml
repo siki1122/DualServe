@@ -1,0 +1,12 @@
+appId: com.example.household_towing_app
+---
+- runFlow:
+    file: 01_register_provider.yaml
+- runFlow:
+    file: 02_provider_add_service.yaml
+- runFlow:
+    file: 03_register_customer.yaml
+- runFlow:
+    file: 04_customer_booking.yaml
+- runFlow:
+    file: 05_provider_fulfill.yaml

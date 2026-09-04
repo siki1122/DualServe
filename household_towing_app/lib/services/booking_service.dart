@@ -1,11 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:household_towing_app/models/booking_model.dart';
 import 'package:household_towing_app/models/task_model.dart';
+import 'package:household_towing_app/services/in_app_notification_service.dart';
 import 'package:household_towing_app/utils/pricing_constants.dart';
 import 'logging_service.dart';
 
 class BookingService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  BookingService({FirebaseFirestore? firestore}) 
+      : _firestore = firestore ?? FirebaseFirestore.instance;
   static const String _bookingsCollection = 'bookings';
   static const String _tasksCollection = 'tasks';
   static const int _pageSize = 20; // Pagination size
@@ -226,6 +230,9 @@ class BookingService {
             assignedPersonnelIds: driverId != null ? [driverId] : booking.assignedPersonnelIds,
             assignedPersonnelNames: driverName != null ? [driverName] : booking.assignedPersonnelNames,
             assignedAssets: booking.assignedAssets,
+            landmarkDescription: booking.landmarkDescription,
+            barangay: booking.barangay,
+            zone: booking.zone,
           );
 
           // 2. Create task document
@@ -263,6 +270,27 @@ class BookingService {
       if (innerErrorDetails != null) {
         throw Exception(innerErrorDetails);
       }
+
+      // Send notification to customer
+      try {
+        final docAfter = await _firestore.collection(_bookingsCollection).doc(bookingId).get();
+        if (docAfter.exists) {
+          final customerId = docAfter.data()?['customerId'] as String?;
+          if (customerId != null) {
+            final InAppNotificationService notificationService = InAppNotificationService();
+            await notificationService.sendNotification(
+              userId: customerId,
+              title: 'Booking Accepted',
+              message: 'Your booking request has been accepted by the provider.',
+              type: 'booking_update',
+              actionData: {'bookingId': bookingId, 'taskId': createdTaskId},
+            );
+          }
+        }
+      } catch (notifE) {
+        Logger.error('Failed to send acceptance notification', notifE);
+      }
+
       return createdTaskId!;
     } catch (e, stack) {
       Logger.error('Error in acceptBooking transaction', e, stack);
@@ -300,6 +328,22 @@ class BookingService {
       await _firestore.collection(_bookingsCollection).doc(bookingId).update({
         'status': 'rejected',
       });
+
+      // Send notification to customer
+      final docAfter = await _firestore.collection(_bookingsCollection).doc(bookingId).get();
+      if (docAfter.exists) {
+         final customerId = docAfter.data()?['customerId'] as String?;
+         if (customerId != null) {
+           final InAppNotificationService notificationService = InAppNotificationService();
+           await notificationService.sendNotification(
+             userId: customerId,
+             title: 'Booking Declined',
+             message: 'Your booking request has been declined by the provider.',
+             type: 'booking_update',
+             actionData: {'bookingId': bookingId},
+           );
+         }
+      }
     } catch (e) {
       throw Exception('Error rejecting booking: $e');
     }

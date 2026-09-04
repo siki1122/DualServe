@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/provider/provider_main_layout.dart';
@@ -20,9 +21,15 @@ import 'package:flutter/foundation.dart';
 import 'screens/auth/pending_approval_screen.dart';
 import 'services/logging_service.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug,
+    // Note: for production web, replace with an actual reCAPTCHA v3 site key
+    webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+  );
 
   // Enable Offline Persistence ONLY on Mobile (Web causes IndexedDB locking issues across multiple tabs)
   if (!kIsWeb) {
@@ -31,6 +38,18 @@ void main() async {
       cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
     );
   }
+  
+  const bool useEmulator = String.fromEnvironment('USE_EMULATOR') == 'true';
+  if (useEmulator) {
+    try {
+      FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
+      FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+      Logger.info('Connected to Firebase Emulators');
+    } catch (e) {
+      Logger.error('Failed to connect to emulators', e);
+    }
+  }
+
   FirebaseFirestore.instance.enableNetwork().catchError((e) => Logger.error('Failed to enable network', e));
 
   runApp(

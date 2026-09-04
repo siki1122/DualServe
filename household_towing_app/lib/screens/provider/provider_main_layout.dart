@@ -6,6 +6,8 @@ import 'provider_asset_inventory_screen.dart';
 import 'provider_services_screen.dart';
 import 'provider_ratings_screen.dart';
 import '../../widgets/provider_drawer.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProviderMainLayout extends StatefulWidget {
   const ProviderMainLayout({super.key});
@@ -21,9 +23,8 @@ class _ProviderMainLayoutState extends State<ProviderMainLayout> {
   final List<Widget> _screens = [
     const ProviderHome(),
     const ProviderTasksScreen(),
-    const ProviderRatingsScreen(),
-    const ProviderAssetInventoryScreen(),
     const ProviderServicesScreen(),
+    const ProviderAssetInventoryScreen(),
   ];
 
   void _onTabTapped(int index) {
@@ -44,7 +45,7 @@ class _ProviderMainLayoutState extends State<ProviderMainLayout> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: AppTheme.textSlateDark.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -71,19 +72,14 @@ class _ProviderMainLayoutState extends State<ProviderMainLayout> {
               label: 'Tasks',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.star_outline),
-              activeIcon: Icon(Icons.star),
-              label: 'Ratings',
+              icon: Icon(Icons.build_circle_outlined),
+              activeIcon: Icon(Icons.build_circle),
+              label: 'Services',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.inventory_2_outlined),
               activeIcon: Icon(Icons.inventory_2),
               label: 'Assets',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.build_circle_outlined),
-              activeIcon: Icon(Icons.build_circle),
-              label: 'Services',
             ),
           ],
         ),

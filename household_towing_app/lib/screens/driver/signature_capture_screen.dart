@@ -8,6 +8,8 @@ import '../../services/billing_service.dart';
 import '../../services/task_service.dart';
 import '../../utils/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class SignatureCaptureScreen extends StatefulWidget {
   final Task task;
@@ -22,7 +24,7 @@ class SignatureCaptureScreen extends StatefulWidget {
 class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
   final SignatureController _controller = SignatureController(
     penStrokeWidth: 5,
-    penColor: Colors.black,
+    penColor: AppTheme.textSlateDark,
     exportBackgroundColor: Colors.white,
   );
   
@@ -112,7 +114,7 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
       appBar: AppBar(
         title: const Text('Customer Signature'),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: AppTheme.textSlateDark,
         elevation: 0,
       ),
       body: Column(

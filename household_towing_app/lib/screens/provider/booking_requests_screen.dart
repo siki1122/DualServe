@@ -5,6 +5,8 @@ import 'booking_detail_screen.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/provider_drawer.dart';
 import '../../widgets/shimmer_loading.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class BookingRequestsScreen extends StatefulWidget {
   const BookingRequestsScreen({super.key});
@@ -191,7 +193,7 @@ class _BookingCardState extends State<_BookingCard> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: AppTheme.textSlateDark.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -245,7 +247,7 @@ class _BookingCardState extends State<_BookingCard> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: AppTheme.statusCompletedText,
                       ),
                     ),
                   ],

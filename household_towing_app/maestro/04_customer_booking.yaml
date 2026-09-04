@@ -1,0 +1,18 @@
+appId: com.example.household_towing_app
+---
+- launchApp:
+    clearState: false # Assuming they are logged in from the previous test
+- tapOn: "Household Services"
+- tapOn: "Upholstery Deep Cleaning"
+- tapOn: "1-Seater Sofa"
+- tapOn: "Add to booking"
+- tapOn: "Proceed to Checkout"
+# Booking details screen
+- tapOn: "Complete Address"
+- inputText: "123 Test St"
+- tapOn: "Barangay"
+- inputText: "Test Barangay"
+- hideKeyboard
+- scroll
+- tapOn: "Confirm Booking"
+- assertVisible: "Waiting for Provider" # Or whatever the tracking screen shows

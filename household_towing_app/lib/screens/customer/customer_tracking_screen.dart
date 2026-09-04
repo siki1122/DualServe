@@ -8,6 +8,9 @@ import '../../services/routing_service.dart';
 import '../chat/chat_screen.dart';
 import '../../utils/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../widgets/compass_overlay.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class CustomerTrackingScreen extends StatefulWidget {
   final String bookingId;
@@ -321,8 +324,8 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                      subdomains: const ['a', 'b', 'c', 'd'],
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: const ['a', 'b', 'c'],
                       userAgentPackageName: 'com.dualserve.app',
                     ),
                     
@@ -393,7 +396,7 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
+                                    color: AppTheme.textSlateDark.withValues(alpha: 0.1),
                                     blurRadius: 10,
                                     spreadRadius: 2,
                                   ),
@@ -420,7 +423,7 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
                         color: Colors.orange.shade800,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2)),
+                          BoxShadow(color: AppTheme.textSlateDark.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2)),
                         ],
                       ),
                       child: Row(
@@ -437,6 +440,17 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
                       ),
                     ),
                   ),
+                  
+                // Compass Overlay
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + kToolbarHeight + (_isStale ? 70 : 10),
+                  right: 16,
+                  child: CompassOverlay(
+                    onTap: () {
+                      _fitBounds();
+                    },
+                  ),
+                ),
 
                 // Bottom Info Card
                 Positioned(
@@ -474,7 +488,7 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1), 
+            color: AppTheme.textSlateDark.withValues(alpha: isDark ? 0.3 : 0.1), 
             blurRadius: 20, 
             offset: const Offset(0, -10),
           ),
@@ -488,7 +502,7 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
             width: 40, 
             height: 4, 
             decoration: BoxDecoration(
-              color: isDark ? Colors.white24 : Colors.grey[200], 
+              color: isDark ? Colors.white24 : AppTheme.textSlateLight.withValues(alpha: 0.5), 
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -503,7 +517,7 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
                 children: [
                   Text('Arriving in $_eta min', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark)),
                   const SizedBox(height: 4),
-                  Text('${_distance.toStringAsFixed(1)} km away • $vehicleModel', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                  Text('${_distance.toStringAsFixed(1)} km away • $vehicleModel', style: const TextStyle(fontSize: 14, color: AppTheme.textSlateMedium)),
                 ],
               ),
               if (_taskProgress > 0)
@@ -522,14 +536,14 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
               child: LinearProgressIndicator(
                 value: _taskProgress,
                 minHeight: 6,
-                backgroundColor: isDark ? Colors.white10 : Colors.grey[200],
+                backgroundColor: isDark ? Colors.white10 : AppTheme.textSlateLight.withValues(alpha: 0.5),
                 valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
               ),
             ),
           ],
           
           const SizedBox(height: 20),
-          Divider(color: isDark ? Colors.white10 : Colors.grey[200], height: 1),
+          Divider(color: isDark ? Colors.white10 : AppTheme.textSlateLight.withValues(alpha: 0.5), height: 1),
           const SizedBox(height: 20),
           
           // Driver Profile Row
@@ -562,9 +576,9 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white10 : Colors.grey[100],
+                  color: isDark ? Colors.white10 : AppTheme.surfaceLight,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isDark ? Colors.white24 : Colors.grey[300]!)
+                  border: Border.all(color: isDark ? Colors.white24 : AppTheme.textSlateLight)
                 ),
                 child: Text(vehiclePlate, style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, color: isDark ? Colors.white : AppTheme.textSlateDark)),
               )
@@ -579,13 +593,19 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    final phone = widget.bookingData['providerPhone'] ?? '';
-                    if (phone.isNotEmpty) launchUrl(Uri.parse('tel:$phone'));
+                    final providerId = widget.bookingData['assignedProviderId'];
+                    if (providerId != null) {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
+                        bookingId: widget.bookingId,
+                        receiverId: providerId,
+                        receiverName: widget.bookingData['providerName'] ?? 'Provider',
+                      )));
+                    }
                   },
-                  icon: const Icon(Icons.call_outlined),
-                  label: const Text('Call'),
+                  icon: const Icon(Icons.storefront_outlined),
+                  label: const Text('Provider'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? Colors.white10 : Colors.grey[100],
+                    backgroundColor: isDark ? Colors.white10 : AppTheme.surfaceLight,
                     foregroundColor: isDark ? Colors.white : AppTheme.textSlateDark,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -596,15 +616,19 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: (_assignedDriverId != null && _assignedDriverId!.isNotEmpty) ? () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
                       bookingId: widget.bookingId,
-                      receiverId: displayId,
-                      receiverName: displayName,
+                      receiverId: _assignedDriverId!,
+                      receiverName: _assignedDriverName ?? 'Driver',
                     )));
+                  } : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No driver assigned yet.'), backgroundColor: AppTheme.towingOrange)
+                    );
                   },
-                  icon: const Icon(Icons.chat_bubble_outline),
-                  label: const Text('Message'),
+                  icon: const Icon(Icons.local_shipping_outlined),
+                  label: const Text('Driver'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
                     foregroundColor: Colors.white,

@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/driver_tracking_service.dart';
 import '../../models/task_model.dart';
 import '../../utils/app_theme.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class LiveTrackingMap extends StatefulWidget {
   final Task task;
@@ -96,8 +98,8 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
         ),
         children: [
           TileLayer(
-            urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-            subdomains: const ['a', 'b', 'c', 'd'],
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            subdomains: const ['a', 'b', 'c'],
             userAgentPackageName: 'com.dualserve.app',
           ),
           MarkerLayer(
@@ -122,7 +124,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
                       border: Border.all(color: Colors.white, width: 2),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
+                          color: AppTheme.textSlateDark.withValues(alpha: 0.2),
                           blurRadius: 5,
                         ),
                       ],

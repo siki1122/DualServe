@@ -181,7 +181,7 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Schedule saved successfully!'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppTheme.statusCompletedText,
         ),
       );
     } catch (e) {
@@ -728,7 +728,7 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen>
                                       color: isBlocked
                                           ? Colors.white
                                           : isPast
-                                          ? (isDark ? Colors.white.withValues(alpha: 0.2) : Colors.grey[300])
+                                          ? (isDark ? Colors.white.withValues(alpha: 0.2) : AppTheme.textSlateLight)
                                           : (isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark),
                                       fontSize: 13,
                                     ),

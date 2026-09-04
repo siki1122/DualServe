@@ -7,6 +7,8 @@ import '../../utils/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'driver_task_detail_screen.dart';
 import '../../utils/pricing_constants.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class DriverHistoryScreen extends StatefulWidget {
   const DriverHistoryScreen({super.key});
@@ -123,7 +125,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Center(
-                  child: Icon(Icons.check_circle, color: Colors.green),
+                  child: Icon(Icons.check_circle, color: AppTheme.statusCompletedText),
                 ),
               ),
               const SizedBox(width: 16),
@@ -157,7 +159,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   PricingConfig.formatPrice(task.finalCost!),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    color: AppTheme.statusCompletedText,
                   ),
                 ),
             ],

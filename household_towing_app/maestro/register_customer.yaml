@@ -1,0 +1,19 @@
+appId: com.example.household_towing_app
+---
+- launchApp:
+    clearState: true
+- tapOn: "Sign Up" # Or whatever text navigates to the Registration screen
+- tapOn: "Full Name"
+- inputText: "Maestro Test User"
+- tapOn: "Email"
+- inputText: "maestro@example.com"
+- tapOn: "Password"
+- inputText: "MaestroTest123" # Must have uppercase and number
+- tapOn: "Confirm Password"
+- inputText: "MaestroTest123"
+# Scroll down to ensure buttons/checkboxes are visible
+- scroll
+- tapOn: "Customer" # Assuming role selection involves tapping "Customer"
+- hideKeyboard
+- tapOn: "Create Account" # Or "Register"
+- assertVisible: "Household Services" # Or whatever screen shows upon successful registration

@@ -1,0 +1,18 @@
+appId: com.example.household_towing_app
+---
+- launchApp:
+    clearState: true
+- tapOn: "Register"
+- tapOn: "Full Name"
+- inputText: "Test Provider"
+- tapOn: "Email"
+- inputText: "provider_test@example.com"
+- tapOn: "Password"
+- inputText: "Provider123"
+- tapOn: "Confirm Password"
+- inputText: "Provider123"
+- hideKeyboard
+- scroll
+- tapOn: "Service Provider" # Select role
+- tapOn: "Create Account"
+- assertVisible: "Dashboard" # Provider home screen

@@ -6,6 +6,8 @@ import 'driver_profile_screen.dart';
 import 'driver_equipment_screen.dart';
 import 'driver_history_screen.dart';
 import 'driver_available_tasks_screen.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class DriverMainLayout extends StatefulWidget {
   const DriverMainLayout({super.key});
@@ -18,8 +20,6 @@ class _DriverMainLayoutState extends State<DriverMainLayout> {
   int _currentIndex = 0;
   final List<Widget> _screens = [
     const DriverHome(),
-    const DriverAvailableTasksScreen(),
-    const DriverEquipmentScreen(),
     const DriverHistoryScreen(),
     const DriverProfileScreen(),
   ];
@@ -55,20 +55,12 @@ class _DriverMainLayoutState extends State<DriverMainLayout> {
         onTap: _onTabTapped,
         backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surface,
         selectedItemColor: AppTheme.primaryBlue,
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: AppTheme.textSlateMedium,
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.list_alt),
             label: 'My Tasks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.group_work),
-            label: 'Job Pool',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.handyman),
-            label: 'Equipment',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),

@@ -2,6 +2,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class PdfReportService {
   static Future<void> generateAndDownloadReport({
@@ -30,7 +32,7 @@ class PdfReportService {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('DualServe Admin Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Generated: $formattedDate', style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey)),
+                      pw.Text('Generated: $formattedDate', style: const pw.TextStyle(fontSize: 12, color: PdfAppTheme.textSlateMedium)),
                     ],
                   ),
                 ),

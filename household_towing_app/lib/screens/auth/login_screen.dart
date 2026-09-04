@@ -5,6 +5,8 @@ import '../../services/google_auth_service.dart';
 import '../../utils/app_theme.dart';
 import 'register_screen.dart';
 import 'register_screen.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -52,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Image.asset(
                     'assets/icon.png',
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 60, color: Colors.grey),
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 60, color: AppTheme.textSlateMedium),
                   ),
                 ),
               ),
@@ -177,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: Divider(color: isDark ? Colors.grey[800] : Colors.grey[300])),
+                  Expanded(child: Divider(color: isDark ? Colors.grey[800] : AppTheme.textSlateLight)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
@@ -185,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(color: isDark ? AppTheme.textDarkSecondary : Colors.grey[600]),
                     ),
                   ),
-                  Expanded(child: Divider(color: isDark ? Colors.grey[800] : Colors.grey[300])),
+                  Expanded(child: Divider(color: isDark ? Colors.grey[800] : AppTheme.textSlateLight)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -194,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 56,
                 child: OutlinedButton.icon(
                   onPressed: _isLoading ? null : _loginWithGoogle,
-                  icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 32),
+                  icon: Image.asset('assets/google_logo.png', height: 24),
                   label: Text(
                     'Continue with Google',
                     style: TextStyle(
@@ -204,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: isDark ? Colors.grey[800]! : Colors.grey[300]!, width: 1.5),
+                    side: BorderSide(color: isDark ? Colors.grey[800]! : AppTheme.textSlateLight, width: 1.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -312,7 +314,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Password reset link sent! Check your email.'),
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppTheme.statusCompletedText,
                       ),
                     );
                   }
@@ -410,7 +412,7 @@ class _LoginScreenState extends State<LoginScreen> {
             content: const Text('Login successful!'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.statusCompletedText,
             margin: const EdgeInsets.all(20),
           ),
         );

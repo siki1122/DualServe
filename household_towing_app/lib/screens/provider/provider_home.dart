@@ -12,7 +12,8 @@ import '../../services/provider_service.dart';
 import '../../models/provider_model.dart';
 
 import '../../widgets/dashboard_shimmer.dart';
-import 'provider_verification_screen.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class ProviderHome extends StatefulWidget {
   const ProviderHome({super.key});
@@ -113,8 +114,6 @@ class _ProviderHomeState extends State<ProviderHome> {
                     ),
                     children: [
                       _buildHeader(profile['name'] ?? 'Provider', isDark, profile['status'] == 'available'),
-                      const SizedBox(height: 16),
-                      _buildVerificationBanner(profile, userProvider.uid),
                       const SizedBox(height: 32),
                       _buildStatsGrid(userProvider.uid, isDark),
                       const SizedBox(height: 32),
@@ -130,96 +129,7 @@ class _ProviderHomeState extends State<ProviderHome> {
     );
   }
 
-  Widget _buildVerificationBanner(Map<String, dynamic> profile, String providerId) {
-    final status = profile['verificationStatus'] ?? 'pending';
-    final hasDocs = profile['businessPermitUrl'] != null && profile['governmentIdUrl'] != null;
 
-    if (status == 'verified') return const SizedBox.shrink();
-
-    Color bannerColor = Colors.orange[50]!;
-    Color textColor = Colors.orange[900]!;
-    IconData icon = Icons.warning_amber_rounded;
-    String message = 'Verification Required';
-    String subMessage = 'Please upload your business documents to start accepting jobs.';
-    String buttonText = 'Verify Now';
-
-    if (status == 'pending' && hasDocs) {
-      bannerColor = Colors.blue[50]!;
-      textColor = Colors.blue[900]!;
-      icon = Icons.hourglass_empty_rounded;
-      message = 'Verification Pending';
-      subMessage = 'Your documents are currently being reviewed by our team.';
-      buttonText = 'View Status';
-    } else if (status == 'rejected') {
-      bannerColor = Colors.red[50]!;
-      textColor = Colors.red[900]!;
-      icon = Icons.error_outline_rounded;
-      message = 'Verification Failed';
-      subMessage = profile['rejectionReason'] ?? 'Some documents were invalid. Please re-upload.';
-      buttonText = 'Re-upload';
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bannerColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: textColor.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: textColor),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      message,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      subMessage,
-                      style: TextStyle(color: textColor.withValues(alpha: 0.8), fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (status != 'pending' || !hasDocs) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProviderVerificationScreen(providerId: providerId),
-                    ),
-                  ).then((_) => context.read<UserProvider>().loadCurrentUserData());
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: textColor,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: Text(buttonText),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
   Widget _buildStatusToggle(String providerId, bool isAvailable, bool isDark) {
     return Row(
@@ -231,7 +141,7 @@ class _ProviderHomeState extends State<ProviderHome> {
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
             color: isAvailable 
-              ? Colors.green 
+              ? AppTheme.statusCompletedText 
               : (isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
           ),
         ),
@@ -241,9 +151,9 @@ class _ProviderHomeState extends State<ProviderHome> {
           child: Switch(
             value: isAvailable,
             onChanged: _isToggling ? null : (val) => _toggleStatus(providerId, val),
-            activeThumbColor: Colors.green,
+            activeThumbColor: AppTheme.statusCompletedText,
             activeTrackColor: Colors.green.withValues(alpha: 0.3),
-            inactiveThumbColor: Colors.grey,
+            inactiveThumbColor: AppTheme.textSlateMedium,
             inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
           ),
         ),
@@ -398,18 +308,6 @@ class _ProviderHomeState extends State<ProviderHome> {
             MaterialPageRoute(builder: (_) => const ProviderTasksScreen()),
           ),
         ),
-        const SizedBox(height: 12),
-        _buildActionButton(
-          context,
-          'Available Tasks',
-          'Find new work near you',
-          Icons.search,
-          AppTheme.towingOrange,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AvailableTasksScreen()),
-          ),
-        ),
       ],
     );
   }
@@ -433,7 +331,7 @@ class _ProviderHomeState extends State<ProviderHome> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: AppTheme.textSlateDark.withValues(alpha: 0.03),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),

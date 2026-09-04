@@ -213,15 +213,15 @@ class _ProviderPricingSettingsScreenState
             children: [
               Text(
                 'Economy',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+                style: TextStyle(fontSize: 11, color: AppTheme.textSlateMedium),
               ),
               Text(
                 'Standard',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+                style: TextStyle(fontSize: 11, color: AppTheme.textSlateMedium),
               ),
               Text(
                 'Premium',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+                style: TextStyle(fontSize: 11, color: AppTheme.textSlateMedium),
               ),
             ],
           ),
@@ -246,7 +246,7 @@ class _ProviderPricingSettingsScreenState
               ),
               Text(
                 '11 PM - 5 AM (+30%)',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(fontSize: 12, color: AppTheme.textSlateMedium),
               ),
             ],
           ),
@@ -303,7 +303,7 @@ class _ProviderPricingSettingsScreenState
             '*Excludes distance and night surcharges',
             style: TextStyle(
               fontSize: 10,
-              color: Colors.grey,
+              color: AppTheme.textSlateMedium,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -361,7 +361,7 @@ class _ProviderPricingSettingsScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pricing updated successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.statusCompletedText,
           ),
         );
       }

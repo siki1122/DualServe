@@ -70,9 +70,7 @@ class _CustomerBookingDetailsScreenState
             backgroundColor: Colors.transparent,
             elevation: 0,
             foregroundColor: AppTheme.textSlateDark,
-            actions: [
-              IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
-            ],
+            // actions: [], // Removed notification icon
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -134,55 +132,68 @@ class _CustomerBookingDetailsScreenState
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            final receiverId = booking.assignedDriverId != null && booking.assignedDriverId!.isNotEmpty 
-                                ? booking.assignedDriverId! 
-                                : booking.assignedProviderId!;
-                            final receiverName = booking.assignedPersonnelNames.isNotEmpty
-                                ? booking.assignedPersonnelNames.first
-                                : (booking.assignedDriverId != null ? 'Driver' : 'Provider');
-                                
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatScreen(
-                                  bookingId: booking.id,
-                                  receiverId: receiverId,
-                                  receiverName: receiverName,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatScreen(
+                                      bookingId: booking.id,
+                                      receiverId: booking.assignedProviderId!,
+                                      receiverName: 'Provider',
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryBlue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 18),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Message Provider', 
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                              ),
+                            ),
+                            if (booking.assignedDriverId != null && booking.assignedDriverId!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ChatScreen(
+                                        bookingId: booking.id,
+                                        receiverId: booking.assignedDriverId!,
+                                        receiverName: booking.assignedPersonnelNames.isNotEmpty
+                                            ? booking.assignedPersonnelNames.first
+                                            : 'Driver',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryBlue,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                                  elevation: 0,
+                                ),
+                                child: const Text(
+                                  'Message Driver', 
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
                                 ),
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryBlue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            booking.assignedDriverId != null ? 'Message Driver' : 'Message Provider', 
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                            ],
                           ],
                         ),
-                        child: IconButton(
-                          icon: const Icon(Icons.favorite_border, color: AppTheme.textSlateMedium),
-                          onPressed: () {},
-                        ),
                       ),
+                      // Removed heart icon container
                     ],
                   ),
                 if (booking.assignedProviderId != null) ...[
@@ -212,7 +223,7 @@ class _CustomerBookingDetailsScreenState
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                            BoxShadow(color: AppTheme.textSlateDark.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
                           ],
                         ),
                         child: Row(
@@ -336,7 +347,7 @@ class _CustomerBookingDetailsScreenState
                                   child: LinearProgressIndicator(
                                     value: progress,
                                     minHeight: 8,
-                                    backgroundColor: Colors.grey[200],
+                                    backgroundColor: AppTheme.textSlateLight.withValues(alpha: 0.5),
                                     valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
                                   ),
                                 ),
@@ -364,14 +375,14 @@ class _CustomerBookingDetailsScreenState
                                                 if (isCompleted)
                                                   const Padding(
                                                     padding: EdgeInsets.only(right: 4.0),
-                                                    child: Icon(Icons.check, size: 12, color: Colors.green),
+                                                    child: Icon(Icons.check, size: 12, color: AppTheme.statusCompletedText),
                                                   ),
                                                 Text(
                                                   m['title'] ?? '',
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
-                                                    color: isCompleted ? Colors.green[700] : Colors.grey[600],
+                                                    color: isCompleted ? AppTheme.towingOrange : Colors.grey[600],
                                                   ),
                                                 ),
                                               ],
@@ -520,7 +531,7 @@ class _CustomerBookingDetailsScreenState
                     child: Column(
                       children: [
                         _buildPriceRow(
-                          'Total Estimated Cost',
+                          'Total Payment',
                           '₱${booking.estimatedCost?.toStringAsFixed(2) ?? '0.00'}',
                           isTotal: true,
                         ),
@@ -761,7 +772,7 @@ class _CustomerBookingDetailsScreenState
           style: TextStyle(
             fontSize: isTotal ? 18 : 14,
             fontWeight: FontWeight.bold,
-            color: isTotal ? Colors.green : AppTheme.textSlateDark,
+            color: isTotal ? AppTheme.statusCompletedText : AppTheme.textSlateDark,
           ),
         ),
       ],
@@ -780,7 +791,7 @@ class _CustomerBookingDetailsScreenState
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: AppTheme.textSlateDark.withValues(alpha: 0.03),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/logging_service.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 /// Centralized error handling and user-friendly error messages
 class ErrorHandler {
@@ -68,7 +70,7 @@ class ErrorHandler {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: AppTheme.statusCompletedText,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -79,7 +81,7 @@ class ErrorHandler {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.blue,
+        backgroundColor: AppTheme.primaryBlue,
         duration: const Duration(seconds: 3),
       ),
     );

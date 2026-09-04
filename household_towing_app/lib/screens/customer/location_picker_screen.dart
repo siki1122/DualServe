@@ -3,6 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../services/location_service.dart';
 import '../../utils/app_theme.dart';
+import 'package:household_towing_app/utils/app_theme.dart';
+
 
 class LocationPickerResult {
   final LatLng position;
@@ -116,8 +118,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c'],
                 userAgentPackageName: 'com.dualserve.household_towing_app',
               ),
             ],
@@ -132,7 +134,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 size: 50,
                 shadows: [
                   Shadow(
-                    color: Colors.black.withValues(alpha: 0.3),
+                    color: AppTheme.textSlateDark.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -152,7 +154,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: AppTheme.textSlateDark.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, -2),
                   ),
