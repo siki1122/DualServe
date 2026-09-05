@@ -128,6 +128,11 @@ class _BookingAssetAssignmentScreenState
       return;
     }
 
+    if (_selectedTruckId == null && _selectedDriverId == null && _selectedCrewIds.isEmpty && _selectedAssets.isEmpty) {
+      ErrorHandler.showError(context, Exception('Please assign at least one truck, driver, crew member, or equipment'));
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {

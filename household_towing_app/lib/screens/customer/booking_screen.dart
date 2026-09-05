@@ -665,9 +665,16 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   void _showTowingServiceSelectionModal(bool isDark) {
-    final items = _offeredServices.isEmpty ? ['General $_serviceType'] : _offeredServices.keys.toList();
+    List<String> items = _offeredServices.isEmpty ? ['General $_serviceType'] : _offeredServices.keys.toList();
     final address = _addressController.text.toLowerCase();
     final isBacolod = address.contains('bacolod');
+
+    if (!isBacolod) {
+      items = items.where((s) => s.toLowerCase().contains('flat') || s.toLowerCase().contains('bed')).toList();
+      if (items.isEmpty) {
+        items = ['Flat Bed Towing'];
+      }
+    }
 
     showModalBottomSheet(
       context: context,
@@ -993,6 +1000,16 @@ class _BookingScreenState extends State<BookingScreen> {
                   initialDate: initDate,
                   firstDate: firstAllowedDate,
                   lastDate: DateTime.now().add(const Duration(days: 30)),
+                  selectableDayPredicate: (DateTime date) {
+                    if (_selectedProviderId == null) return true;
+                    try {
+                      final prov = _availableProviders.firstWhere((p) => p.id == _selectedProviderId);
+                      final dateIso = DateFormat('yyyy-MM-dd').format(date);
+                      return !prov.blockOutDates.contains(dateIso);
+                    } catch (e) {
+                      return true;
+                    }
+                  },
                 ),
               );
               if (d != null) {
@@ -1091,7 +1108,23 @@ class _BookingScreenState extends State<BookingScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Text(PricingConfig.formatPrice(price)),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(PricingConfig.formatPrice(price)),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.only(left: 8),
+                        onPressed: () {
+                          setState(() {
+                            _selectedSubServicesMap.remove(service);
+                          });
+                          _updateEstimatedPrice();
+                        },
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

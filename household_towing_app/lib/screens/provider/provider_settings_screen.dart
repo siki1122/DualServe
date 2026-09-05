@@ -499,6 +499,15 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
       final newPassword = result['new']!;
       final email = user.email;
       
+      if (currentPassword == newPassword) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('New password cannot be the same as the current password.'), backgroundColor: Colors.red),
+          );
+        }
+        return;
+      }
+      
       if (email == null) return;
 
       try {

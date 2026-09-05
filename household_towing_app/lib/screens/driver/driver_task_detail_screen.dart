@@ -162,10 +162,29 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
         DriverTrackingService().stopTracking();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update status: $e'), backgroundColor: Colors.red),
-        );
+      if (e.toString().toLowerCase().contains('unavailable') || e.toString().toLowerCase().contains('network') || e.toString().toLowerCase().contains('offline')) {
+        setState(() {
+          _task = _task.copyWith(status: newStatus);
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Saved offline. Will sync when connection is restored.'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
+        if (newStatus == TaskStatus.inProgress) {
+          DriverTrackingService().startTracking(_task.assignedDriverId ?? '', _task.id);
+        } else if (newStatus == TaskStatus.completed || newStatus == TaskStatus.cancelled) {
+          DriverTrackingService().stopTracking();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update status: $e'), backgroundColor: Colors.red),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -253,6 +272,33 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
               fontWeight: FontWeight.bold,
               color: isDark ? Colors.white : AppTheme.textSlateDark,
             ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.location_on, size: 16, color: Colors.red),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _task.location,
+                      style: TextStyle(fontSize: 15, color: isDark ? Colors.white70 : AppTheme.textSlateMedium),
+                    ),
+                    if (_task.landmarkDescription != null && _task.landmarkDescription!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          'Landmark: ${_task.landmarkDescription}',
+                          style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: isDark ? Colors.white54 : Colors.black54),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Row(

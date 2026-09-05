@@ -16,6 +16,7 @@ import 'package:household_towing_app/models/provider_model.dart';
 import 'package:household_towing_app/models/service_definition_model.dart';
 import 'package:household_towing_app/utils/service_templates.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
+import 'package:household_towing_app/services/in_app_notification_service.dart';
 
 class TransactionCompletionScreen extends StatefulWidget {
   final String taskId;
@@ -197,6 +198,18 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
         bookingId: widget.bookingId,
         finalCost: _finalCost,
       ).timeout(const Duration(seconds: 5));
+
+      try {
+        await InAppNotificationService().sendNotification(
+          userId: widget.customerId,
+          title: 'Service Completed',
+          message: 'Your service has been completed. An e-receipt is now available.',
+          type: 'booking_update',
+          actionData: {'bookingId': widget.bookingId, 'taskId': widget.taskId},
+        );
+      } catch (e) {
+        debugPrint('Failed to send e-receipt notification: $e');
+      }
 
       if (mounted) {
         // Show beautiful success dialog instead of a small snackbar

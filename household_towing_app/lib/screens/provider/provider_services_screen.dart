@@ -210,6 +210,77 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
     await _updateFirestore();
   }
 
+  Future<void> _editService(String serviceName, Map<String, dynamic>? currentDef, double? currentPrice) async {
+    final TextEditingController editPriceController = TextEditingController(text: currentPrice?.toStringAsFixed(2) ?? '');
+    final TextEditingController editAreaController = TextEditingController(text: _serviceAreas[serviceName] ?? '');
+    
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit $serviceName'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: editPriceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Price', prefixText: '₱ '),
+              ),
+              TextField(
+                controller: editAreaController,
+                decoration: const InputDecoration(labelText: 'Service Area'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                final newPrice = double.tryParse(editPriceController.text.trim());
+                if (newPrice != null) {
+                  setState(() {
+                    if (currentDef != null) {
+                       final def = ServiceDefinition.fromMap(currentDef);
+                       if (def.type == ServicePricingType.areaBased) {
+                         _services[serviceName] = ServiceDefinition(
+                           type: def.type,
+                           minPrice: newPrice,
+                           pricePerSqm: def.pricePerSqm,
+                           minSqm: def.minSqm,
+                           addons: def.addons,
+                           subtypes: def.subtypes,
+                           category: def.category,
+                         ).toMap();
+                       } else {
+                         _services[serviceName] = ServiceDefinition(
+                           type: def.type,
+                           flatRatePrice: newPrice,
+                           minPrice: def.minPrice,
+                           pricePerSqm: def.pricePerSqm,
+                           minSqm: def.minSqm,
+                           addons: def.addons,
+                           subtypes: def.subtypes,
+                           category: def.category,
+                         ).toMap();
+                       }
+                    } else {
+                       _services[serviceName] = newPrice;
+                    }
+                    _serviceAreas[serviceName] = editAreaController.text.trim();
+                  });
+                  _updateFirestore();
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _updateFirestore() async {
     await _firestore.collection('providers').doc(_uid).update({
       'offeredServices': _services,
@@ -483,9 +554,18 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                                     ),
                                   ],
                                 ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  onPressed: () => _removeService(serviceName),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryBlue),
+                                      onPressed: () => _editService(serviceName, rawPrice is Map ? Map<String, dynamic>.from(rawPrice) : null, displayPrice),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      onPressed: () => _removeService(serviceName),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );

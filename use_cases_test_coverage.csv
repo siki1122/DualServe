@@ -1,0 +1,25 @@
+Use Case,Description,Test Type,Test File
+User Authentication & Profile Management,Customers/Providers/Admins register login and manage profiles,Integration (E2E),authentication_test.dart
+User Authentication & Profile Management,Customers/Providers/Admins register login and manage profiles,Integration (E2E),registration_test.dart
+User Authentication & Profile Management,Customers/Providers/Admins register login and manage profiles,Unit/Widget,auth_service_test.dart
+User Authentication & Profile Management,Customers/Providers/Admins register login and manage profiles,Unit/Widget,google_auth_service_test.dart
+User Authentication & Profile Management,Customers/Providers/Admins register login and manage profiles,Unit/Widget,user_service_test.dart
+User Authentication & Profile Management,Customers/Providers/Admins register login and manage profiles,Unit/Widget,login_screen_test.dart
+User Authentication & Profile Management,Customers/Providers/Admins register login and manage profiles,Unit/Widget,register_screen_test.dart
+Booking Management,Customers select locations and request services. Providers can accept or decline.,Integration (E2E),booking_lifecycle_test.dart
+Booking Management,Customers select locations and request services. Providers can accept or decline.,Unit/Widget,booking_service_test.dart
+Booking Management,Customers select locations and request services. Providers can accept or decline.,Unit/Widget,booking_model_test.dart
+Asset & Inventory Management,Providers assign specific resources to a task before starting it.,Integration (E2E),asset_management_test.dart
+Asset & Inventory Management,Providers assign specific resources to a task before starting it.,Integration (E2E),comprehensive_system_test.dart
+Asset & Inventory Management,Providers assign specific resources to a task before starting it.,Unit/Widget,asset_model_test.dart
+Asset & Inventory Management,Providers assign specific resources to a task before starting it.,Unit/Widget,driver_model_test.dart
+Task & Field Operations Execution,Starting the task tracking GPS location completing milestones and finalizing.,Integration (E2E),comprehensive_system_test.dart
+Task & Field Operations Execution,Starting the task tracking GPS location completing milestones and finalizing.,Integration (E2E),full_system_test.dart
+Task & Field Operations Execution,Starting the task tracking GPS location completing milestones and finalizing.,Unit/Widget,task_service_test.dart
+Task & Field Operations Execution,Starting the task tracking GPS location completing milestones and finalizing.,Unit/Widget,task_model_test.dart
+Task & Field Operations Execution,Starting the task tracking GPS location completing milestones and finalizing.,Unit/Widget,location_service_test.dart
+Task & Field Operations Execution,Starting the task tracking GPS location completing milestones and finalizing.,Unit/Widget,routing_service_test.dart
+Billing & Financial Transactions,Calculates final costs and records payment.,Integration (E2E),comprehensive_system_test.dart
+Billing & Financial Transactions,Calculates final costs and records payment.,Unit/Widget,billing_service_test.dart
+Billing & Financial Transactions,Calculates final costs and records payment.,Unit/Widget,provider_pricing_test.dart
+Billing & Financial Transactions,Calculates final costs and records payment.,Unit/Widget,transaction_model_test.dart

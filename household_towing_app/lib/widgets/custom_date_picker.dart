@@ -6,12 +6,14 @@ class CustomDatePickerDialog extends StatefulWidget {
   final DateTime initialDate;
   final DateTime firstDate;
   final DateTime lastDate;
+  final bool Function(DateTime)? selectableDayPredicate;
 
   const CustomDatePickerDialog({
     super.key,
     required this.initialDate,
     required this.firstDate,
     required this.lastDate,
+    this.selectableDayPredicate,
   });
 
   @override
@@ -204,7 +206,10 @@ class _CustomDatePickerDialogState extends State<CustomDatePickerDialog> {
                 final normalizedFirstDate = DateTime(widget.firstDate.year, widget.firstDate.month, widget.firstDate.day);
                 final normalizedLastDate = DateTime(widget.lastDate.year, widget.lastDate.month, widget.lastDate.day);
                 
-                final isSelectable = !normalizedDate.isBefore(normalizedFirstDate) && !normalizedDate.isAfter(normalizedLastDate);
+                bool isSelectable = !normalizedDate.isBefore(normalizedFirstDate) && !normalizedDate.isAfter(normalizedLastDate);
+                if (isSelectable && widget.selectableDayPredicate != null) {
+                  isSelectable = widget.selectableDayPredicate!(normalizedDate);
+                }
                 final isSelected = _selectedDate.year == date.year && _selectedDate.month == date.month && _selectedDate.day == date.day;
                 
                 return InkWell(

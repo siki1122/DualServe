@@ -1,0 +1,1622 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>DualServe Data Dictionary</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f4f4f4; }
+            h2 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        </style>
+    </head>
+    <body>
+        <h1>DualServe Complete Data Dictionary</h1>
+<p>This document outlines the complete data structures for the DualServe system.</p>
+<h2>AssetModel Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">name</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Full name or title of the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">category</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">High-level grouping classification.</td>
+</tr>
+<tr>
+<td style="text-align: left;">type</td>
+<td style="text-align: left;">AssetType</td>
+<td style="text-align: left;">Enum/Custom</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Type detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">status</td>
+<td style="text-align: left;">AssetStatus</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Current status lifecycle state of the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">plateNumber</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Plate number detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedTo</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Assigned to detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">providerName</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Provider name detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">lastMaintenance</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Last maintenance detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">nextMaintenance</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Next maintenance detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">jobsCompleted</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Jobs completed detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">quantity</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Quantity detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">isConsumable</td>
+<td style="text-align: left;">bool</td>
+<td style="text-align: left;">Boolean</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Is consumable detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">currentTaskId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Current task id detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">currentTaskLabel</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Current task label detail associated with the AssetModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">ownerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Owner id detail associated with the AssetModel.</td>
+</tr>
+</tbody>
+</table>
+<h2>AssetUsageLog Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">providerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">providerName</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Provider name detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">taskId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">taskLabel</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Task label detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">crewCount</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Crew count detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">vehicleAssetId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Vehicle asset id detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">vehicleName</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Vehicle name detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">toolAssetIds</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Tool asset ids detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">toolNames</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Tool names detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">equipmentAssetIds</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Equipment asset ids detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">equipmentNames</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Equipment names detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">driverId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the assigned Driver.</td>
+</tr>
+<tr>
+<td style="text-align: left;">driverName</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Driver name detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">crewAssetIds</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Crew asset ids detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">crewNames</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Crew names detail associated with the AssetUsageLog.</td>
+</tr>
+<tr>
+<td style="text-align: left;">notes</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Additional context, instructions, or remarks.</td>
+</tr>
+<tr>
+<td style="text-align: left;">createdAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was initially created.</td>
+</tr>
+</tbody>
+</table>
+<h2>Booking Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">customerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Customer.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedProviderId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Assigned provider id detail associated with the Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedDriverId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Assigned driver id detail associated with the Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">serviceType</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Enum</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Category or type of service requested (e.g., Towing, Household).</td>
+</tr>
+<tr>
+<td style="text-align: left;">address</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Physical address text.</td>
+</tr>
+<tr>
+<td style="text-align: left;">latitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic latitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">longitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic longitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">scheduledDate</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Scheduled date detail associated with the Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">scheduledTime</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Scheduled time detail associated with the Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">notes</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Additional context, instructions, or remarks.</td>
+</tr>
+<tr>
+<td style="text-align: left;">status</td>
+<td style="text-align: left;">BookingStatus</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Current status lifecycle state of the Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">createdAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was initially created.</td>
+</tr>
+<tr>
+<td style="text-align: left;">acceptedAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Accepted at detail associated with the Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">providerNotes</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Provider notes detail associated with the Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">estimatedCost</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Estimated cost detail associated with the Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">estimatedDurationMinutes</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Estimated duration minutes detail associated with the Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">specificService</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Specific service detail associated with the Booking.</td>
+</tr>
+</tbody>
+</table>
+<h2>Driver Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">providerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">name</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Full name or title of the Driver.</td>
+</tr>
+<tr>
+<td style="text-align: left;">phone</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Numeric/String</td>
+<td style="text-align: left;">11-15</td>
+<td style="text-align: left;">Primary contact phone number.</td>
+</tr>
+<tr>
+<td style="text-align: left;">email</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Email format</td>
+<td style="text-align: left;">255</td>
+<td style="text-align: left;">Primary email address used for contact/authentication.</td>
+</tr>
+<tr>
+<td style="text-align: left;">status</td>
+<td style="text-align: left;">DriverStatus</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Current status lifecycle state of the Driver.</td>
+</tr>
+<tr>
+<td style="text-align: left;">latitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic latitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">longitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic longitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">createdAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was initially created.</td>
+</tr>
+</tbody>
+</table>
+<h2>IncidentModel Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">title</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Title detail associated with the IncidentModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">description</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Description detail associated with the IncidentModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">type</td>
+<td style="text-align: left;">IncidentType</td>
+<td style="text-align: left;">Enum/Custom</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Type detail associated with the IncidentModel.</td>
+</tr>
+<tr>
+<td style="text-align: left;">latitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic latitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">longitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic longitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">createdAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was initially created.</td>
+</tr>
+<tr>
+<td style="text-align: left;">reportedBy</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Reported by detail associated with the IncidentModel.</td>
+</tr>
+</tbody>
+</table>
+<h2>Message Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">bookingId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">senderId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Sender id detail associated with the Message.</td>
+</tr>
+<tr>
+<td style="text-align: left;">receiverId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Receiver id detail associated with the Message.</td>
+</tr>
+<tr>
+<td style="text-align: left;">text</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Text detail associated with the Message.</td>
+</tr>
+<tr>
+<td style="text-align: left;">timestamp</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp detail associated with the Message.</td>
+</tr>
+<tr>
+<td style="text-align: left;">isRead</td>
+<td style="text-align: left;">bool</td>
+<td style="text-align: left;">Boolean</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Boolean flag indicating if a message/notification has been viewed.</td>
+</tr>
+<tr>
+<td style="text-align: left;">imageUrl</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">URL</td>
+<td style="text-align: left;">255</td>
+<td style="text-align: left;">Image url detail associated with the Message.</td>
+</tr>
+<tr>
+<td style="text-align: left;">senderRole</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Enum</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Sender role detail associated with the Message.</td>
+</tr>
+</tbody>
+</table>
+<h2>Provider Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">name</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Full name or title of the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">email</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Email format</td>
+<td style="text-align: left;">255</td>
+<td style="text-align: left;">Primary email address used for contact/authentication.</td>
+</tr>
+<tr>
+<td style="text-align: left;">phone</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Numeric/String</td>
+<td style="text-align: left;">11-15</td>
+<td style="text-align: left;">Primary contact phone number.</td>
+</tr>
+<tr>
+<td style="text-align: left;">specialty</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Specialty detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">status</td>
+<td style="text-align: left;">ProviderStatus</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Current status lifecycle state of the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">rating</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Average or given score (e.g., out of 5).</td>
+</tr>
+<tr>
+<td style="text-align: left;">totalReviews</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Total reviews detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">jobsCompleted</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Jobs completed detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">serviceType</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Enum</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Category or type of service requested (e.g., Towing, Household).</td>
+</tr>
+<tr>
+<td style="text-align: left;">serviceTypes</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Service types detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">blockOutDates</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Block out dates detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">maxTasksPerDay</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Max tasks per day detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">createdAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was initially created.</td>
+</tr>
+<tr>
+<td style="text-align: left;">updatedAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was last modified.</td>
+</tr>
+<tr>
+<td style="text-align: left;">latitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic latitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">longitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic longitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">bio</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Bio detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">licenseNumber</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">License number detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">yearsOfExperience</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Years of experience detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">totalEarnings</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Total earnings detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">totalRides</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Total rides detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">lastLocation</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Last location detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">profileImageUrl</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">URL</td>
+<td style="text-align: left;">255</td>
+<td style="text-align: left;">Profile image url detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">documentsVerified</td>
+<td style="text-align: left;">bool</td>
+<td style="text-align: left;">Boolean</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Documents verified detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">backgroundCheckPassed</td>
+<td style="text-align: left;">bool</td>
+<td style="text-align: left;">Boolean</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Background check passed detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">businessPermitUrl</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">URL</td>
+<td style="text-align: left;">255</td>
+<td style="text-align: left;">Business permit url detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">governmentIdUrl</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">URL</td>
+<td style="text-align: left;">255</td>
+<td style="text-align: left;">Government id url detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">verificationStatus</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Verification status detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">rejectionReason</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Rejection reason detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">inviteCode</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Invite code detail associated with the Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">serviceArea</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Service area detail associated with the Provider.</td>
+</tr>
+</tbody>
+</table>
+<h2>ProviderPricing Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">providerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">cleaningMultiplier</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Cleaning multiplier detail associated with the ProviderPricing.</td>
+</tr>
+<tr>
+<td style="text-align: left;">towingMultiplier</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Towing multiplier detail associated with the ProviderPricing.</td>
+</tr>
+<tr>
+<td style="text-align: left;">useNightDifferential</td>
+<td style="text-align: left;">bool</td>
+<td style="text-align: left;">Boolean</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Use night differential detail associated with the ProviderPricing.</td>
+</tr>
+<tr>
+<td style="text-align: left;">notes</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Additional context, instructions, or remarks.</td>
+</tr>
+<tr>
+<td style="text-align: left;">createdAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was initially created.</td>
+</tr>
+<tr>
+<td style="text-align: left;">updatedAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was last modified.</td>
+</tr>
+<tr>
+<td style="text-align: left;">nightSurchargeStartHour</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Night surcharge start hour detail associated with the ProviderPricing.</td>
+</tr>
+<tr>
+<td style="text-align: left;">nightSurchargeEndHour</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Night surcharge end hour detail associated with the ProviderPricing.</td>
+</tr>
+<tr>
+<td style="text-align: left;">nightSurchargePercent</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Night surcharge percent detail associated with the ProviderPricing.</td>
+</tr>
+</tbody>
+</table>
+<h2>Review Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">bookingId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">customerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Customer.</td>
+</tr>
+<tr>
+<td style="text-align: left;">providerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">rating</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Average or given score (e.g., out of 5).</td>
+</tr>
+<tr>
+<td style="text-align: left;">comment</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Comment detail associated with the Review.</td>
+</tr>
+<tr>
+<td style="text-align: left;">createdAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was initially created.</td>
+</tr>
+</tbody>
+</table>
+<h2>ServiceDefinition Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">type</td>
+<td style="text-align: left;">ServicePricingType</td>
+<td style="text-align: left;">Enum/Custom</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Type detail associated with the ServiceDefinition.</td>
+</tr>
+<tr>
+<td style="text-align: left;">flatRatePrice</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Flat rate price detail associated with the ServiceDefinition.</td>
+</tr>
+<tr>
+<td style="text-align: left;">minPrice</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Min price detail associated with the ServiceDefinition.</td>
+</tr>
+<tr>
+<td style="text-align: left;">pricePerSqm</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Price per sqm detail associated with the ServiceDefinition.</td>
+</tr>
+<tr>
+<td style="text-align: left;">minSqm</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Min sqm detail associated with the ServiceDefinition.</td>
+</tr>
+<tr>
+<td style="text-align: left;">addons</td>
+<td style="text-align: left;">List<ServiceAddon></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Addons detail associated with the ServiceDefinition.</td>
+</tr>
+<tr>
+<td style="text-align: left;">subtypes</td>
+<td style="text-align: left;">List<ServiceSubtype></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Subtypes detail associated with the ServiceDefinition.</td>
+</tr>
+<tr>
+<td style="text-align: left;">category</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">High-level grouping classification.</td>
+</tr>
+</tbody>
+</table>
+<h2>ServiceAddon Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">name</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Full name or title of the ServiceAddon.</td>
+</tr>
+<tr>
+<td style="text-align: left;">price</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Price detail associated with the ServiceAddon.</td>
+</tr>
+<tr>
+<td style="text-align: left;">pricingType</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Enum</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Pricing type detail associated with the ServiceAddon.</td>
+</tr>
+</tbody>
+</table>
+<h2>ServiceSubtype Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">name</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Full name or title of the ServiceSubtype.</td>
+</tr>
+<tr>
+<td style="text-align: left;">price</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Price detail associated with the ServiceSubtype.</td>
+</tr>
+</tbody>
+</table>
+<h2>TaskMilestone Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">title</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Title detail associated with the TaskMilestone.</td>
+</tr>
+<tr>
+<td style="text-align: left;">isCompleted</td>
+<td style="text-align: left;">bool</td>
+<td style="text-align: left;">Boolean</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Boolean flag indicating successful completion.</td>
+</tr>
+<tr>
+<td style="text-align: left;">completedAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Completed at detail associated with the TaskMilestone.</td>
+</tr>
+</tbody>
+</table>
+<h2>Task Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">customerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Customer.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedProviderId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Assigned provider id detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedDriverId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Assigned driver id detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedDriverName</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Assigned driver name detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">serviceType</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Enum</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Category or type of service requested (e.g., Towing, Household).</td>
+</tr>
+<tr>
+<td style="text-align: left;">location</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Location detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">latitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic latitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">longitude</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Geographic longitude coordinate.</td>
+</tr>
+<tr>
+<td style="text-align: left;">scheduledDate</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Scheduled date detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">description</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Description detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">status</td>
+<td style="text-align: left;">TaskStatus</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Current status lifecycle state of the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">priority</td>
+<td style="text-align: left;">TaskPriority</td>
+<td style="text-align: left;">Enum/Custom</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Priority detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">createdAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was initially created.</td>
+</tr>
+<tr>
+<td style="text-align: left;">updatedAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was last modified.</td>
+</tr>
+<tr>
+<td style="text-align: left;">estimatedCost</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Estimated cost detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">finalCost</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Total computed final cost charged to the customer.</td>
+</tr>
+<tr>
+<td style="text-align: left;">estimatedDurationMinutes</td>
+<td style="text-align: left;">int</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Estimated duration minutes detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">bookingId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">completedImageUrl</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">URL</td>
+<td style="text-align: left;">255</td>
+<td style="text-align: left;">Completed image url detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">completedAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Completed at detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">barangay</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Barangay detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">zone</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Zone detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">landmarkDescription</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Landmark description detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">problemCategory</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Problem category detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">issueCategory</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Issue category detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">adminFee</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Admin fee detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedTruckId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Assigned truck id detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedTruckName</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Assigned truck name detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedPersonnelIds</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Assigned personnel ids detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">assignedPersonnelNames</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Assigned personnel names detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">preTowPhotoUrls</td>
+<td style="text-align: left;">List<String></td>
+<td style="text-align: left;">URL</td>
+<td style="text-align: left;">255</td>
+<td style="text-align: left;">Pre tow photo urls detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">customerSignatureUrl</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">URL</td>
+<td style="text-align: left;">255</td>
+<td style="text-align: left;">Customer signature url detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">milestones</td>
+<td style="text-align: left;">List<TaskMilestone></td>
+<td style="text-align: left;">JSON/Array</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Milestones detail associated with the Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">progress</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Completion percentage or fractional progress (0.0 to 1.0).</td>
+</tr>
+</tbody>
+</table>
+<h2>Transaction Data Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FIELD NAME</th>
+<th style="text-align: left;">DATA TYPE</th>
+<th style="text-align: left;">FORMAT</th>
+<th style="text-align: left;">LENGTH</th>
+<th style="text-align: left;">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">id</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Unique identifier for this document.</td>
+</tr>
+<tr>
+<td style="text-align: left;">taskId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Task.</td>
+</tr>
+<tr>
+<td style="text-align: left;">bookingId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Booking.</td>
+</tr>
+<tr>
+<td style="text-align: left;">customerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Customer.</td>
+</tr>
+<tr>
+<td style="text-align: left;">providerId</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Alphanumeric</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Reference ID to the associated Provider.</td>
+</tr>
+<tr>
+<td style="text-align: left;">serviceType</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Enum</td>
+<td style="text-align: left;">Varies</td>
+<td style="text-align: left;">Category or type of service requested (e.g., Towing, Household).</td>
+</tr>
+<tr>
+<td style="text-align: left;">specificService</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Specific service detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">basePrice</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Starting base cost before additions or multipliers.</td>
+</tr>
+<tr>
+<td style="text-align: left;">distanceTraveled</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Distance traveled detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">costPerKm</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Cost per km detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">distanceSurcharge</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Distance surcharge detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">finalCost</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Total computed final cost charged to the customer.</td>
+</tr>
+<tr>
+<td style="text-align: left;">adminFee</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Admin fee detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">additionalCost</td>
+<td style="text-align: left;">double</td>
+<td style="text-align: left;">Numeric</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Additional cost detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">status</td>
+<td style="text-align: left;">TransactionStatus</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Current status lifecycle state of the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">paymentStatus</td>
+<td style="text-align: left;">PaymentStatus</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Payment status detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">providerNotes</td>
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">100-255</td>
+<td style="text-align: left;">Provider notes detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">completedAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Completed at detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">recordedAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Recorded at detail associated with the Transaction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">createdAt</td>
+<td style="text-align: left;">Timestamp</td>
+<td style="text-align: left;">ISO 8601</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Timestamp of when the record was initially created.</td>
+</tr>
+</tbody>
+</table>
+    </body>
+    </html>
+    

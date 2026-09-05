@@ -80,8 +80,8 @@ service cloud.firestore {
           request.resource.data.isApproved == false || 
           request.resource.data.isApproved == resource.data.isApproved
         )) || 
-        // Allow customers to update rating and jobsCompleted when submitting a review
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'jobsCompleted'])) ||
+        // Allow customers to update rating and totalReviews when submitting a review
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'totalReviews'])) ||
         isAdmin()
       );
       

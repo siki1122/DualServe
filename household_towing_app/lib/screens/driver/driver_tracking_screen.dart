@@ -217,6 +217,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
       options: MapOptions(
         initialCenter: _driverLocation ?? _customerLocation!,
         initialZoom: 15.0,
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.all,
+        ),
       ),
       children: [
         TileLayer(
@@ -486,6 +489,34 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  if (_customerLocation != null) {
+                    final lat = _customerLocation!.latitude;
+                    final lng = _customerLocation!.longitude;
+                    final url = Uri.parse('google.navigation:q=$lat,$lng');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url);
+                    } else {
+                      final webUrl = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+                      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+                    }
+                  }
+                },
+                icon: const Icon(Icons.directions),
+                label: const Text('Get Directions'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.towingOrange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
             ),
           ],
         ),

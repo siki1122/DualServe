@@ -5,6 +5,16 @@ class ReviewService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> submitReview(Review review) async {
+    // Check for existing review
+    final existingReviews = await _firestore
+        .collection('reviews')
+        .where('bookingId', isEqualTo: review.bookingId)
+        .get();
+        
+    if (existingReviews.docs.isNotEmpty) {
+      throw Exception('This booking has already been reviewed.');
+    }
+
     final providerRef = _firestore.collection('providers').doc(review.providerId);
     
     await _firestore.runTransaction((transaction) async {
