@@ -7,6 +7,7 @@ import 'driver_equipment_screen.dart';
 import 'driver_history_screen.dart';
 import 'driver_available_tasks_screen.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
+import 'package:household_towing_app/services/google_auth_service.dart';
 
 
 class DriverMainLayout extends StatefulWidget {
@@ -37,14 +38,15 @@ class _DriverMainLayoutState extends State<DriverMainLayout> {
     return Scaffold(
       backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
       appBar: _currentIndex == 0 ? AppBar(
-        title: const Text('Staff App', style: TextStyle(color: AppTheme.textSlateDark, fontWeight: FontWeight.bold)),
+        title: const Text('Employee App', style: TextStyle(color: AppTheme.textSlateDark, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 1,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: AppTheme.textSlateDark),
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
+              await GoogleAuthService().signOut();
+              if (context.mounted) { Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst); }
             },
           )
         ],

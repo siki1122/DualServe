@@ -36,13 +36,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: isDark ? AppTheme.textDarkPrimary : AppTheme.textSlateDark,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
+
       ),
       body: Column(
         children: [
@@ -223,59 +217,6 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                               Text(
                                 'Cost: ₱${(data['finalCost'] as num? ?? data['estimatedCost'] as num? ?? 0.0).toStringAsFixed(2)}',
                                 style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.statusCompletedText),
-                              ),
-                              Row(
-                                children: [
-                                  if (data['assignedProviderId'] != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: OutlinedButton.icon(
-                                        onPressed: () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ChatScreen(
-                                              bookingId: booking.id,
-                                              receiverId: data['assignedProviderId'] as String,
-                                              receiverName: 'Provider',
-                                            ),
-                                          ),
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: AppTheme.primaryBlue,
-                                          side: const BorderSide(color: AppTheme.primaryBlue),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          minimumSize: Size.zero,
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        icon: const Icon(Icons.chat_bubble_outline, size: 14),
-                                        label: const Text('Chat', style: TextStyle(fontSize: 12)),
-                                      ),
-                                    ),
-                                  if (!(data['isReviewed'] ?? false) && data['assignedProviderId'] != null && data['status'] == 'completed')
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        // Simple navigation to details to rate, or implement a quick dialog if preferred.
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => CustomerBookingDetailsScreen(
-                                              booking: Booking.fromFirestore(booking),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.primaryBlue,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: const Text('Rate', style: TextStyle(fontSize: 12)),
-                                    )
-                                ],
                               ),
                             ],
                           ),

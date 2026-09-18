@@ -1,0 +1,24 @@
+graph TD
+    C[Customer]
+    FB[(Firebase Database)]
+    P[Provider]
+
+    21((2.1 Initialize Booking))
+    22((2.2 Estimate Route & Price))
+    23((2.3 Dispatch Request))
+    24((2.4 Handle Response))
+
+    C -- "Service Details" --> 21
+    21 -- "Draft Booking" --> FB
+    21 -- "Validated Request" --> 22
+    
+    FB -- "Provider Rates" --> 22
+    22 -- "Estimated Price" --> C
+    22 -- "Priced Booking" --> 23
+    
+    23 -- "Dispatch Notification" --> P
+    23 -- "Pending State" --> FB
+    
+    P -- "Accept/Reject" --> 24
+    24 -- "Final Status" --> FB
+    24 -- "Status Update" --> C

@@ -93,7 +93,7 @@ class _AssetListScreenState
       // Sync drivers to assets for backwards compatibility
       try {
         final driversSnap = await FirebaseFirestore.instance
-            .collection('drivers')
+            .collection('Employees')
             .where('providerId', isEqualTo: uid)
             .get();
             
@@ -102,8 +102,8 @@ class _AssetListScreenState
           final assetDoc = await FirebaseFirestore.instance.collection('assets').doc(driverId).get();
           if (!assetDoc.exists) {
             await FirebaseFirestore.instance.collection('assets').doc(driverId).set({
-              'name': doc.data()['name'] ?? 'Driver',
-              'category': 'Driver',
+              'name': doc.data()['name'] ?? 'Employee',
+              'category': 'Employee',
               'type': 'crew',
               'status': 'active',
               'ownerId': uid,
@@ -121,10 +121,10 @@ class _AssetListScreenState
           if (!personnel.any((p) => p.id == driverId)) {
             personnel.add(Provider(
               id: driverId,
-              name: doc.data()['name'] ?? 'Driver',
+              name: doc.data()['name'] ?? 'Employee',
               email: doc.data()['email'] ?? '',
               phone: doc.data()['phone'] ?? '',
-              specialty: 'Driver',
+              specialty: 'Employee',
               serviceType: 'Towing',
               createdAt: DateTime.now(),
             ));
@@ -239,8 +239,8 @@ class _AssetListScreenState
     final truckCount = myPool.where((a) => a.type == AssetType.vehicle).length;
     final equipmentCount = myPool.where((a) => a.type == AssetType.equipment).length;
     final toolsCount = myPool.where((a) => a.type == AssetType.tool).length;
-    final driverCount = myPool.where((a) => a.type == AssetType.crew && a.category == 'Driver').length;
-    final crewCount = myPool.where((a) => a.type == AssetType.crew && a.category != 'Driver').length;
+    final driverCount = myPool.where((a) => a.type == AssetType.crew && (a.category == 'Employee' || a.category == 'Driver')).length;
+    final crewCount = myPool.where((a) => a.type == AssetType.crew && (a.category != 'Employee' && a.category != 'Driver')).length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -304,7 +304,7 @@ class _AssetListScreenState
             children: [
               _buildMetricCard('Available', availableCount.toString(), Icons.inventory_2_outlined, AppTheme.statusCompletedText),
               _buildMetricCard('Vehicles', truckCount.toString(), Icons.local_shipping_outlined, AppTheme.towingOrange),
-              _buildMetricCard('Drivers', driverCount.toString(), Icons.airline_seat_recline_normal, Colors.teal),
+              _buildMetricCard('Employees', driverCount.toString(), Icons.airline_seat_recline_normal, Colors.teal),
               _buildMetricCard('Crew', crewCount.toString(), Icons.engineering_outlined, Colors.purple),
               _buildMetricCard('Equipment', equipmentCount.toString(), Icons.construction, Colors.indigo),
               _buildMetricCard('Tools', toolsCount.toString(), Icons.handyman_outlined, Colors.blueGrey),
@@ -736,7 +736,7 @@ class _AssetListScreenState
           ),
           const SizedBox(height: 14),
           if (log.driverName != null)
-            _buildUsageLine(Icons.person_outline, 'Driver', log.driverName!),
+            _buildUsageLine(Icons.person_outline, 'Employee', log.driverName!),
           _buildUsageLine(Icons.local_shipping_outlined, 'Truck',
               log.vehicleName ?? 'No truck recorded'),
           _buildUsageLine(
@@ -1336,7 +1336,7 @@ class _AssetListScreenState
                 dense: true,
                 value: selectedIds.contains(asset.id),
                 title: Text(asset.name),
-                subtitle: Text(asset.category),
+                subtitle: Text(asset.category == 'Driver' ? 'Employee' : asset.category),
                 secondary: Icon(_assetIcon(asset.type)),
                 onChanged: (selected) {
                   setDialogState(() {
@@ -1367,10 +1367,10 @@ class _AssetListScreenState
           return asset.type == AssetType.tool;
         case 'equipment':
           return asset.type == AssetType.equipment;
-        case 'drivers':
-          return asset.type == AssetType.crew && asset.category == 'Driver';
+        case 'Employees':
+          return asset.type == AssetType.crew && (asset.category == 'Employee' || asset.category == 'Driver');
         case 'crew':
-          return asset.type == AssetType.crew && asset.category != 'Driver';
+          return asset.type == AssetType.crew && (asset.category != 'Employee' && asset.category != 'Driver');
         default:
           return true;
       }

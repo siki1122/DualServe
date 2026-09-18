@@ -104,7 +104,7 @@ class _GlobalMessageOverlayState extends State<GlobalMessageOverlay> {
     String title = 'Status Update';
     String body = 'Your task status is now ${status.name}';
     if (status == TaskStatus.inProgress) {
-      title = 'Driver In Progress';
+      title = 'Employee In Progress';
       body = 'Your service provider is working on your request.';
     } else if (status == TaskStatus.completed) {
       title = 'Task Completed';

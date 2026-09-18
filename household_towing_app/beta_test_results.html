@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beta White-Box Testing Results</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .summary {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        .summary span {
+            font-weight: bold;
+        }
+        .summary .passed { color: #27ae60; }
+        .summary .failed { color: #e74c3c; }
+        
+        .section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h2 {
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        h2.fail-title { color: #e74c3c; }
+        h2.pass-title { color: #27ae60; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        tr:hover { background-color: #f5f5f5; }
+        .file-name {
+            font-family: monospace;
+            background: #f1f2f6;
+            padding: 3px 6px;
+            border-radius: 4px;
+            color: #2f3542;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            display: inline-block;
+            min-width: 60px;
+        }
+        .status-fail { background-color: #e74c3c; }
+        .status-pass { background-color: #27ae60; }
+    </style>
+</head>
+<body>
+
+    <h1>DUALSERVE - Beta White-Box Testing Results</h1>
+    
+    <div class="summary">
+        Total Tests Executed: <strong>104</strong> | 
+        <span class="passed">Passed: 103</span> | 
+        <span class="failed">Failed: 1</span>
+    </div>
+
+    <div class="section">
+        <h2 class="fail-title">❌ Failed Tests (Requires Fixing)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Test Description</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="file-name">login_screen_test.dart</span></td>
+                    <td>LoginScreen Widget Tests Should display login form fields</td>
+                    <td><span class="status-badge status-fail">FAILED</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2 class="pass-title">✅ Passed Tests (Beta Validated)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Category / File</th>
+                    <th>Test Description</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Screens -->
+                <tr>
+                    <td><span class="file-name">register_screen_test.dart</span></td>
+                    <td>RegisterScreen Widget Tests (White Box) Should display registration form fields</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                
+                <!-- Services -->
+                <tr>
+                    <td><span class="file-name">billing_service_test.dart</span></td>
+                    <td>recordTransaction creates new transaction</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">booking_service_test.dart</span></td>
+                    <td>createBooking adds new booking to collection</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">booking_service_test.dart</span></td>
+                    <td>rescheduleBooking updates date and time</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">google_auth_service_test.dart</span></td>
+                    <td>signOut calls both FirebaseAuth and GoogleSignIn signOut</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">google_auth_service_test.dart</span></td>
+                    <td>signInWithGoogle handles null user</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">location_service_test.dart</span></td>
+                    <td>calculateDistance returns distance in km</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">location_service_test.dart</span></td>
+                    <td>isWithinRadius returns true if within radius</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">location_service_test.dart</span></td>
+                    <td>isWithinRadius returns false if outside radius</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">location_service_test.dart</span></td>
+                    <td>calculateETA returns reasonable minutes</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">routing_service_test.dart</span></td>
+                    <td>decodePolyline decodes correctly</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">routing_service_test.dart</span></td>
+                    <td>getRoute handles successful OSRM response</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">routing_service_test.dart</span></td>
+                    <td>getRoute handles failed response</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">task_service_test.dart</span></td>
+                    <td>getTask returns data if exists</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">task_service_test.dart</span></td>
+                    <td>createTask adds new task</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">task_service_test.dart</span></td>
+                    <td>updateTaskStatus updates status</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">task_service_test.dart</span></td>
+                    <td>deleteTask removes unassigned task</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">task_service_test.dart</span></td>
+                    <td>deleteTask throws if assigned</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">user_service_test.dart</span></td>
+                    <td>getUserProfile returns data if exists</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">user_service_test.dart</span></td>
+                    <td>getUserProfile returns null if not exists</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">user_service_test.dart</span></td>
+                    <td>getProviderProfile returns data if exists</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">user_service_test.dart</span></td>
+                    <td>updateProviderAvailability updates data</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">user_service_test.dart</span></td>
+                    <td>updateProviderRating updates rating</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">user_service_test.dart</span></td>
+                    <td>updateProviderRating throws on invalid rating</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+
+                <!-- Models & Utils -->
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>isNightTime should return true after start hour for overnight span</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>isNightTime should return true before end hour for overnight span</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>isNightTime should return false during daytime for overnight span</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>isNightTime should handle daytime span correctly</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>isNightTime should return false outside daytime span</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>calculateNightDifferential should apply custom surcharge percent</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>calculateNightDifferential should return zero during daytime</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>copyWith should update specified fields</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>copyWith should preserve original fields when no changes are supplied</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>toFirestore should convert pricing to Firestore data</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>toFirestore should store null when updatedAt is null</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">provider_pricing_test.dart</span></td>
+                    <td>toString should return formatted string representation</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">widget_test.dart</span></td>
+                    <td>pricing supports canonical and legacy household service names</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+                <tr>
+                    <td><span class="file-name">widget_test.dart</span></td>
+                    <td>price formatting is stable ASCII text</td>
+                    <td><span class="status-badge status-pass">PASSED</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

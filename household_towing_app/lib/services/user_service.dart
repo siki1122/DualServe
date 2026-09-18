@@ -63,7 +63,7 @@ class UserService {
     throw lastError ?? Exception('Failed to fetch provider profile after $maxRetries retries');
   }
 
-  /// Fetch driver profile from 'drivers' collection with retry logic
+  /// Fetch driver profile from 'Employees' collection with retry logic
   Future<Map<String, dynamic>?> getDriverProfile(String uid) async {
     int retryCount = 0;
     const int maxRetries = 3;
@@ -71,7 +71,7 @@ class UserService {
 
     while (retryCount < maxRetries) {
       try {
-        final doc = await _firestore.collection('drivers').doc(uid).get();
+        final doc = await _firestore.collection('Employees').doc(uid).get();
         if (!doc.exists) return null;
         return doc.data();
       } catch (e) {

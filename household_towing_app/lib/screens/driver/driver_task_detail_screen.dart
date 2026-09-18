@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../models/task_model.dart';
@@ -8,8 +9,6 @@ import '../../utils/app_theme.dart';
 import 'package:intl/intl.dart';
 import '../chat/chat_screen.dart';
 import '../../services/driver_tracking_service.dart';
-import '../../services/storage_service.dart';
-import 'package:image_picker/image_picker.dart';
 import 'signature_capture_screen.dart';
 import 'package:flutter/services.dart';
 import '../../utils/map_utils.dart';
@@ -19,6 +18,7 @@ import '../../services/task_service.dart';
 import '../../widgets/asset_selection_dialog.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
+
 class DriverTaskDetailScreen extends StatefulWidget {
   final Task task;
 
@@ -32,10 +32,6 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late Task _task;
   bool _isLoading = false;
-  final StorageService _storageService = StorageService();
-  final ImagePicker _picker = ImagePicker();
-  List<String> _uploadedEvidenceUrls = [];
-  bool _isUploadingEvidence = false;
 
   final TaskService _taskService = TaskService();
 
@@ -43,7 +39,6 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
   void initState() {
     super.initState();
     _task = widget.task;
-    _uploadedEvidenceUrls = List.from(_task.preTowPhotoUrls);
   }
 
   void _showAssetAssignment() async {
@@ -80,19 +75,6 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
   }
 
   Future<void> _updateStatus(TaskStatus newStatus) async {
-    // Validate evidence
-    final bool isTowing = _task.serviceType.toLowerCase().contains('tow');
-    final int requiredPhotos = isTowing ? 4 : 2;
-
-    if (newStatus == TaskStatus.inProgress) {
-      if (_uploadedEvidenceUrls.length < requiredPhotos) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please upload all $requiredPhotos pre-service evidence photos before proceeding.'), backgroundColor: Colors.orange),
-        );
-        return;
-      }
-    }
-
     if (newStatus == TaskStatus.completed) {
       final success = await Navigator.push(
         context,
@@ -139,8 +121,9 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
       }
       
       // Handle live tracking based on status
+      final trackingId = FirebaseAuth.instance.currentUser?.uid ?? _task.assignedDriverId ?? '';
       if (newStatus == TaskStatus.inProgress) { // Assuming 'En Route' or 'In Progress' should track
-        DriverTrackingService().startTracking(_task.assignedDriverId ?? '', _task.id);
+        DriverTrackingService().startTracking(trackingId, _task.id);
       } else if (newStatus == TaskStatus.completed || newStatus == TaskStatus.cancelled) {
         DriverTrackingService().stopTracking();
       }
@@ -156,8 +139,9 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
           ),
         );
       }
+      final trackingId = FirebaseAuth.instance.currentUser?.uid ?? _task.assignedDriverId ?? '';
       if (newStatus == TaskStatus.inProgress) {
-        DriverTrackingService().startTracking(_task.assignedDriverId ?? '', _task.id);
+        DriverTrackingService().startTracking(trackingId, _task.id);
       } else if (newStatus == TaskStatus.completed || newStatus == TaskStatus.cancelled) {
         DriverTrackingService().stopTracking();
       }
@@ -213,8 +197,6 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildHeaderCard(isDark),
-                      const SizedBox(height: 20),
-                      _buildEvidenceCard(isDark),
                       const SizedBox(height: 20),
                       _buildCustomerCard(isDark),
                     ],
@@ -337,7 +319,7 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Scope Checklist',
+                  'Current Step',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -355,6 +337,14 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
               ],
             ),
             const SizedBox(height: 8),
+            Text(
+              _task.milestones.firstWhere((m) => !m.isCompleted, orElse: () => _task.milestones.last).title,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
@@ -364,37 +354,6 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
                 valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
               ),
             ),
-            const SizedBox(height: 16),
-            ..._task.milestones.map((milestone) {
-              return CheckboxListTile(
-                title: Text(
-                  milestone.title,
-                  style: TextStyle(
-                    decoration: milestone.isCompleted ? TextDecoration.lineThrough : null,
-                    color: milestone.isCompleted ? Colors.grey : AppTheme.textSlateDark,
-                  ),
-                ),
-                value: milestone.isCompleted,
-                onChanged: (_task.status == TaskStatus.completed)
-                    ? null 
-                    : (bool? value) async {
-                        if (value != null) {
-                          await _taskService.updateTaskMilestone(_task.id, milestone.id, value);
-                          HapticFeedback.mediumImpact();
-                          final doc = await _firestore.collection('tasks').doc(_task.id).get();
-                          if (doc.exists && mounted) {
-                            setState(() {
-                              _task = Task.fromFirestore(doc);
-                            });
-                          }
-                        }
-                      },
-                activeColor: Colors.green,
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                controlAffinity: ListTileControlAffinity.leading,
-              );
-            }),
           ],
         ],
       ),
@@ -475,114 +434,43 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
     );
   }
 
-  Widget _buildEvidenceCard(bool isDark) {
-    final bool isTowing = _task.serviceType.toLowerCase().contains('tow');
-    final int requiredPhotos = isTowing ? 4 : 2;
-    final List<String> labels = isTowing 
-        ? ['Front', 'Back', 'Left', 'Right'] 
-        : ['Before 1', 'Before 2'];
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isTowing ? 'Pre-Tow Evidence (Required)' : 'Pre-Service Evidence (Required)',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : AppTheme.textSlateDark,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isTowing 
-              ? 'Please upload 4 photos (Front, Back, Left, Right) to document existing damage before starting the route.'
-              : 'Please upload 2 "Before" photos of the area to document its condition before starting work.',
-            style: TextStyle(color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
-          ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isTowing ? 2 : 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.2,
-            ),
-            itemCount: requiredPhotos,
-            itemBuilder: (context, index) {
-              final hasImage = index < _uploadedEvidenceUrls.length;
-
-              return GestureDetector(
-                onTap: hasImage ? null : () => _pickAndUploadImage(index),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white10 : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: hasImage ? Colors.green : Colors.grey.shade300),
-                    image: hasImage ? DecorationImage(image: NetworkImage(_uploadedEvidenceUrls[index]), fit: BoxFit.cover) : null,
-                  ),
-                  child: hasImage
-                      ? const Align(alignment: Alignment.topRight, child: Padding(padding: EdgeInsets.all(4), child: Icon(Icons.check_circle, color: Colors.green)))
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (_isUploadingEvidence) const CircularProgressIndicator() else const Icon(Icons.add_a_photo, color: Colors.grey),
-                            const SizedBox(height: 8),
-                            Text(labels[index], style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _pickAndUploadImage(int index) async {
-    final image = await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
-    if (image == null) return;
-
-    setState(() => _isUploadingEvidence = true);
-    final url = await _storageService.uploadTaskEvidenceImage(_task.id, image, index);
+  Future<void> _progressToNextStep() async {
+    final nextMilestone = _task.milestones.firstWhere((m) => !m.isCompleted, orElse: () => _task.milestones.last);
     
-    if (url != null) {
-      final updatedUrls = List<String>.from(_uploadedEvidenceUrls);
-      updatedUrls.add(url);
+    setState(() => _isLoading = true);
+    try {
+      if (!nextMilestone.isCompleted) {
+        await _taskService.updateTaskMilestone(_task.id, nextMilestone.id, true);
+        HapticFeedback.mediumImpact();
+      }
       
-      setState(() {
-        _uploadedEvidenceUrls = updatedUrls;
-      });
-      
-      // Save to task
-      await _firestore.collection('tasks').doc(_task.id).update({
-        'preTowPhotoUrls': _uploadedEvidenceUrls,
-      });
-      
-      setState(() {
-        _task = _task.copyWith(preTowPhotoUrls: _uploadedEvidenceUrls);
-      });
-    } else {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to upload image')));
+      TaskStatus? newStatus;
+      if (_task.status == TaskStatus.assigned) {
+        newStatus = TaskStatus.inProgress;
+      } else if (nextMilestone.id == _task.milestones.last.id && _task.status == TaskStatus.inProgress) {
+        newStatus = TaskStatus.completed;
+      }
+
+      if (newStatus != null) {
+        await _updateStatus(newStatus);
+      } else {
+        // Just refresh local state
+        final doc = await _firestore.collection('tasks').doc(_task.id).get();
+        if (doc.exists && mounted) {
+          setState(() {
+            _task = Task.fromFirestore(doc);
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update step: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    
-    if (mounted) setState(() => _isUploadingEvidence = false);
   }
 
   Widget _buildBottomActionPanel(bool isDark) {
@@ -590,22 +478,16 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
       return const SizedBox.shrink(); // No actions for completed/cancelled
     }
 
-    String actionText = 'Start Route';
-    TaskStatus nextStatus = TaskStatus.inProgress;
+    final nextMilestone = _task.milestones.firstWhere((m) => !m.isCompleted, orElse: () => _task.milestones.last);
+    
+    String actionText = 'Complete Step: ${nextMilestone.title}';
     Color btnColor = AppTheme.primaryBlue;
-    bool isButtonDisabled = false;
 
     if (_task.status == TaskStatus.assigned) {
-      actionText = 'Arrived at Location';
-      nextStatus = TaskStatus.inProgress; // Simplified flow: Assigned -> InProgress
       btnColor = Colors.orange;
-    } else if (_task.status == TaskStatus.inProgress) {
+    } else if (nextMilestone.isCompleted || (nextMilestone.id == _task.milestones.last.id && _task.status == TaskStatus.inProgress)) {
       actionText = 'Complete Job';
-      nextStatus = TaskStatus.completed;
       btnColor = Colors.green;
-      if (_task.progress < 1.0) {
-        isButtonDisabled = true;
-      }
     }
 
     return Container(
@@ -655,17 +537,16 @@ class _DriverTaskDetailScreenState extends State<DriverTaskDetailScreen> {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: isButtonDisabled ? null : () => _updateStatus(nextStatus),
+              onPressed: _progressToNextStep,
               style: ElevatedButton.styleFrom(
                 backgroundColor: btnColor,
-                disabledBackgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
               ),
               child: Text(
                 actionText,
-                style: TextStyle(
-                  color: isButtonDisabled ? (isDark ? Colors.grey[500] : Colors.grey[500]) : Colors.white, 
+                style: const TextStyle(
+                  color: Colors.white, 
                   fontSize: 18, 
                   fontWeight: FontWeight.bold
                 ),

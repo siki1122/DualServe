@@ -59,7 +59,7 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
     final driverId = userProvider.uid;
-    final driverName = userProvider.driverProfile?['name'] ?? 'Driver';
+    final driverName = userProvider.driverProfile?['name'] ?? 'Employee';
     final providerId = userProvider.driverProfile?['providerId'];
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -208,7 +208,7 @@ class _DriverEquipmentScreenState extends State<DriverEquipmentScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        asset.category + (asset.plateNumber?.isNotEmpty == true ? ' • ${asset.plateNumber}' : ''),
+                        (asset.category == 'Driver' ? 'Employee' : asset.category) + (asset.plateNumber?.isNotEmpty == true ? ' • ${asset.plateNumber}' : ''),
                         style: TextStyle(
                           color: isDark ? Colors.grey[400] : Colors.grey[600],
                           fontSize: 13,

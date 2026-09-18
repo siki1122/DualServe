@@ -71,7 +71,7 @@ class _ProviderTeamScreenState extends State<ProviderTeamScreen> {
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _firestore
-                  .collection('drivers')
+                  .collection('Employees')
                   .where('providerId', isEqualTo: _providerId)
                   .snapshots(),
               builder: (context, snapshot) {
@@ -147,7 +147,7 @@ class _ProviderTeamScreenState extends State<ProviderTeamScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Share this code with your ${isHousehold ? 'personnel' : 'drivers'}. They can enter it when registering for the app to join your company.',
+            'Share this code with your ${isHousehold ? 'personnel' : 'Employees'}. They can enter it when registering for the app to join your company.',
             style: TextStyle(color: AppTheme.textSlateMedium),
           ),
           const SizedBox(height: 16),

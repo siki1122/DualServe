@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/message_model.dart';
 import '../../services/chat_service.dart';
 import '../../services/storage_service.dart';
@@ -8,8 +9,6 @@ import '../../utils/app_theme.dart';
 import '../../services/logging_service.dart';
 import '../../utils/global_state.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
-
-
 class ChatScreen extends StatefulWidget {
   final String bookingId;
   final String receiverId;
@@ -33,19 +32,40 @@ class _ChatScreenState extends State<ChatScreen> {
   late final String _currentUserId;
   bool _isInitialized = false;
   bool _isUploading = false;
+  late String _realReceiverName;
 
   @override
   void initState() {
     super.initState();
     GlobalState.activeChatBookingId.value = widget.bookingId;
+    _realReceiverName = widget.receiverName;
     _initializeUser();
   }
 
-  void _initializeUser() {
+  Future<void> _initializeUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _currentUserId = user.uid;
-      _isInitialized = true;
+      
+      // Attempt to fetch the real name from Firestore instead of relying on hardcoded generic names
+      try {
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.receiverId).get();
+        if (userDoc.exists && userDoc.data()!.containsKey('name')) {
+          if (mounted) {
+            setState(() {
+              _realReceiverName = userDoc.data()!['name'];
+            });
+          }
+        }
+      } catch (e) {
+        Logger.warn('Failed to fetch real receiver name: $e');
+      }
+      
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
     } else {
       Logger.warn('Current user not found in chat screen');
       if (mounted) {
@@ -115,7 +135,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     if (!_isInitialized) {
       return Scaffold(
-        appBar: AppBar(title: Text(widget.receiverName)),
+        appBar: AppBar(title: Text(_realReceiverName)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -130,7 +150,7 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.receiverName,
+              _realReceiverName,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Text(

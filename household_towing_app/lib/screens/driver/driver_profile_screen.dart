@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/app_theme.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
+import 'package:household_towing_app/services/google_auth_service.dart';
 
 
 class DriverProfileScreen extends StatefulWidget {
@@ -24,7 +25,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
 
     setState(() => _isUpdating = true);
     try {
-      await _firestore.collection('drivers').doc(uid).update({'status': newStatus});
+      await _firestore.collection('Employees').doc(uid).update({'status': newStatus});
       if (mounted) {
         // Refresh the profile
         await Provider.of<UserProvider>(context, listen: false).loadCurrentUserData();
@@ -53,7 +54,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final name = profile['name'] ?? 'Driver';
+    final name = profile['name'] ?? 'Employee';
     final email = profile['email'] ?? '';
     final phone = profile['phone'] ?? '';
     final status = profile['status'] ?? 'available';
@@ -319,7 +320,9 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
         height: 56,
         child: ElevatedButton.icon(
           onPressed: () async {
-            await FirebaseAuth.instance.signOut();
+            Provider.of<UserProvider>(context, listen: false).clear();
+            await GoogleAuthService().signOut();
+              if (context.mounted) { Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst); }
           },
           icon: const Icon(Icons.logout, color: Colors.white),
           label: const Text('Sign Out', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),

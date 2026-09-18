@@ -96,43 +96,24 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
   }
 
   void _listenToDriverLocation() {
-    if (widget.task.assignedDriverId == null) return;
-    
-    _locationSubscription = FirebaseFirestore.instance
-        .collection('driver_locations')
-        .doc(widget.task.assignedDriverId)
-        .snapshots()
-        .listen((DocumentSnapshot snapshot) {
-          if (snapshot.exists) {
-            final data = snapshot.data() as Map<String, dynamic>;
-            final newLat = (data['latitude'] as num).toDouble();
-            final newLng = (data['longitude'] as num).toDouble();
-            
-            setState(() {
-              _driverLocation = LatLng(newLat, newLng);
-            });
-          } else {
-             // SIMULATION FALLBACK: If driver location does not exist in DB, 
-             // generate a dummy location slightly offset from the customer.
-             if (_customerLocation != null && _driverLocation == null) {
-               setState(() {
-                 // Offset by approx 2-3 km
-                 _driverLocation = LatLng(
-                   _customerLocation!.latitude - 0.02, 
-                   _customerLocation!.longitude - 0.02
-                 );
-               });
-             }
-          }
-
-          if (_driverLocation != null && _customerLocation != null) {
-            _fetchRealRoute();
-            if (_isFirstLoad) {
-              _fitBounds();
-              _isFirstLoad = false;
-            }
-          }
+    _locationSubscription = LocationService().getLocationStream().listen((position) {
+      final newLat = position.latitude;
+      final newLng = position.longitude;
+      
+      if (mounted) {
+        setState(() {
+          _driverLocation = LatLng(newLat, newLng);
         });
+
+        if (_driverLocation != null && _customerLocation != null) {
+          _fetchRealRoute();
+          if (_isFirstLoad) {
+            _fitBounds();
+            _isFirstLoad = false;
+          }
+        }
+      }
+    });
   }
 
   Future<void> _fetchRealRoute() async {
@@ -340,22 +321,50 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
                 ),
               ),
             ),
-            Text(
-              'Arriving in $_eta min',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : AppTheme.textSlateDark,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Arriving in $_eta min',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppTheme.textSlateDark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_distance.toStringAsFixed(1)} km away • ${widget.task.serviceType}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textSlateMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                if (widget.task.progress > 0)
+                   Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(color: AppTheme.primaryBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
+                      child: Text('${(widget.task.progress * 100).toInt()}%', style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold)),
+                   ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${_distance.toStringAsFixed(1)} km away • ${widget.task.serviceType}',
-              style: TextStyle(
-                fontSize: 16,
-                color: isDark ? Colors.white70 : AppTheme.textSlateMedium,
+            if (widget.task.progress > 0) ...[
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: widget.task.progress,
+                  minHeight: 6,
+                  backgroundColor: isDark ? Colors.white10 : AppTheme.textSlateLight.withValues(alpha: 0.5),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+                ),
               ),
-            ),
+            ],
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Divider(),
@@ -388,33 +397,14 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.star, color: Colors.amber[400], size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Customer',
-                            style: TextStyle(
-                              color: isDark ? Colors.white70 : AppTheme.textSlateMedium,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Customer',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? Colors.white70 : Colors.grey[700],
+                        ),
                       ),
                     ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'En Route',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppTheme.textSlateDark,
-                    ),
                   ),
                 ),
               ],
@@ -490,38 +480,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> with Single
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  if (_customerLocation != null) {
-                    final lat = _customerLocation!.latitude;
-                    final lng = _customerLocation!.longitude;
-                    final url = Uri.parse('google.navigation:q=$lat,$lng');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url);
-                    } else {
-                      final webUrl = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
-                      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-                    }
-                  }
-                },
-                icon: const Icon(Icons.directions),
-                label: const Text('Get Directions'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.towingOrange,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
-
 }

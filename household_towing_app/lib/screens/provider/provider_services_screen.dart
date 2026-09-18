@@ -39,8 +39,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
 
   String? _selectedServiceName;
   
-  // Custom service name controller for "Other" option
-  final TextEditingController _customServiceController = TextEditingController();
+  final TextEditingController _customCategoryController = TextEditingController();
 
   final List<MapEntry<int, String>> _hourOptions = List.generate(24, (i) {
     final displayHour = i == 0 ? 12 : (i > 12 ? i - 12 : i);
@@ -142,18 +141,17 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
   }
 
   Future<void> _addService() async {
-    final service = _selectedServiceName == 'Other' 
-        ? _customServiceController.text.trim() 
-        : (_selectedServiceName ?? '');
+    // Use manual service name input
+    final serviceStr = _categoryController.text.trim();
+    final service = serviceStr.isEmpty ? 'Custom Service' : serviceStr;
     
+    // Use category dropdown or fallback
+    final categoryStr = _selectedServiceName ?? 'Other';
+    final category = categoryStr == 'Other' ? _customCategoryController.text.trim() : categoryStr;
+    final finalCategory = category.isEmpty ? 'Other' : category;
+
     final priceStr = _priceController.text.trim();
     final area = _areaController.text.trim();
-    
-    if (service.isEmpty || priceStr.isEmpty) return;
-    
-    // Use manual category input or fallback to Other
-    final categoryStr = _categoryController.text.trim();
-    final category = categoryStr.isEmpty ? 'Other' : categoryStr;
 
     final price = double.tryParse(priceStr);
     if (price == null) {
@@ -162,8 +160,8 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
     }
 
     setState(() {
-      if (ServiceTemplates.defaultTemplates.containsKey(service)) {
-        final template = ServiceTemplates.defaultTemplates[service]!;
+      if (ServiceTemplates.defaultTemplates.containsKey(finalCategory)) {
+        final template = ServiceTemplates.defaultTemplates[finalCategory]!;
         if (template.type == ServicePricingType.areaBased) {
           _services[service] = ServiceDefinition(
             type: template.type,
@@ -171,29 +169,29 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
             pricePerSqm: template.pricePerSqm,
             minSqm: template.minSqm,
             addons: template.addons,
-            category: category,
+            category: finalCategory,
           ).toMap();
         } else if (template.type == ServicePricingType.subtypeBased) {
           final mapped = template.toMap();
-          mapped['category'] = category;
+          mapped['category'] = finalCategory;
           _services[service] = mapped;
         } else {
           _services[service] = ServiceDefinition(
             type: ServicePricingType.flatRate,
             flatRatePrice: price,
-            category: category,
+            category: finalCategory,
           ).toMap();
         }
       } else {
         _services[service] = ServiceDefinition(
           type: ServicePricingType.flatRate,
           flatRatePrice: price,
-          category: category,
+          category: finalCategory,
         ).toMap();
       }
       _serviceAreas[service] = area.isNotEmpty ? area : 'All Areas';
       _selectedServiceName = null;
-      _customServiceController.clear();
+      _customCategoryController.clear();
       _priceController.clear();
       _areaController.clear();
       _categoryController.clear();
@@ -210,40 +208,88 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
     await _updateFirestore();
   }
 
-  Future<void> _editService(String serviceName, Map<String, dynamic>? currentDef, double? currentPrice) async {
+  Future<void> _editService(String originalServiceName, Map<String, dynamic>? currentDef, double? currentPrice) async {
+    final TextEditingController editNameController = TextEditingController(text: originalServiceName);
     final TextEditingController editPriceController = TextEditingController(text: currentPrice?.toStringAsFixed(2) ?? '');
-    final TextEditingController editAreaController = TextEditingController(text: _serviceAreas[serviceName] ?? '');
+    final TextEditingController editAreaController = TextEditingController(text: _serviceAreas[originalServiceName] ?? '');
     
     await showDialog(
       context: context,
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          title: Text('Edit $serviceName'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: editPriceController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Price', prefixText: '₱ '),
-              ),
-              TextField(
-                controller: editAreaController,
-                decoration: const InputDecoration(labelText: 'Service Area'),
-              ),
-            ],
+          backgroundColor: isDark ? AppTheme.surfaceDark : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            'Edit Service',
+            style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark),
           ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: editNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Service Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: isDark ? Colors.white10 : Colors.grey[50],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: editPriceController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Base Price',
+                    prefixText: '₱ ',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: isDark ? Colors.white10 : Colors.grey[50],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: editAreaController,
+                  decoration: InputDecoration(
+                    labelText: 'Service Area',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: isDark ? Colors.white10 : Colors.grey[50],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              style: TextButton.styleFrom(foregroundColor: AppTheme.textSlateMedium),
+              child: const Text('Cancel')
+            ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
               onPressed: () {
+                final newName = editNameController.text.trim();
                 final newPrice = double.tryParse(editPriceController.text.trim());
-                if (newPrice != null) {
+                
+                if (newName.isNotEmpty && newPrice != null) {
                   setState(() {
+                    dynamic serviceData;
                     if (currentDef != null) {
                        final def = ServiceDefinition.fromMap(currentDef);
                        if (def.type == ServicePricingType.areaBased) {
-                         _services[serviceName] = ServiceDefinition(
+                         serviceData = ServiceDefinition(
                            type: def.type,
                            minPrice: newPrice,
                            pricePerSqm: def.pricePerSqm,
@@ -253,7 +299,7 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                            category: def.category,
                          ).toMap();
                        } else {
-                         _services[serviceName] = ServiceDefinition(
+                         serviceData = ServiceDefinition(
                            type: def.type,
                            flatRatePrice: newPrice,
                            minPrice: def.minPrice,
@@ -265,15 +311,23 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                          ).toMap();
                        }
                     } else {
-                       _services[serviceName] = newPrice;
+                       serviceData = newPrice;
                     }
-                    _serviceAreas[serviceName] = editAreaController.text.trim();
+                    
+                    // If name changed, remove old and insert new
+                    if (newName != originalServiceName) {
+                      _services.remove(originalServiceName);
+                      _serviceAreas.remove(originalServiceName);
+                    }
+                    
+                    _services[newName] = serviceData;
+                    _serviceAreas[newName] = editAreaController.text.trim();
                   });
                   _updateFirestore();
                 }
                 Navigator.pop(context);
               },
-              child: const Text('Save'),
+              child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -339,44 +393,29 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                           children: [
                             Expanded(
                               flex: 2,
-                              child: TextField(
-                                controller: _categoryController,
-                                style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
-                                decoration: AppTheme.textFieldDecoration(
-                                  label: 'Category',
-                                  hint: 'e.g. Deep Cleaning, Aircon',
-                                  prefixIcon: Icons.category_outlined,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
                               child: DropdownButtonFormField<String>(
                                 value: _selectedServiceName,
                                 isExpanded: true,
                                 style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
                                 dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
                                 decoration: AppTheme.textFieldDecoration(
-                                  label: 'Service Name',
-                                  prefixIcon: Icons.handyman,
+                                  label: 'Category',
+                                  prefixIcon: Icons.category_outlined,
                                   isDark: isDark,
                                 ),
                                 items: [
-                                  ...ServiceTemplates.defaultTemplates.keys.map((String service) {
+                                  ...(_serviceType == 'Towing'
+                                          ? ServiceTemplates.towingTemplates.keys
+                                          : ServiceTemplates.defaultTemplates.keys)
+                                      .map((String cat) {
                                     return DropdownMenuItem<String>(
-                                      value: service,
-                                      child: Text(service),
+                                      value: cat,
+                                      child: Text(cat),
                                     );
                                   }),
                                   const DropdownMenuItem<String>(
                                     value: 'Other',
-                                    child: Text('Custom Service (Other)'),
+                                    child: Text('Custom Category (Other)'),
                                   ),
                                 ],
                                 onChanged: (newValue) {
@@ -387,6 +426,43 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: _categoryController,
+                                style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
+                                decoration: AppTheme.textFieldDecoration(
+                                  label: 'Service Name',
+                                  hint: 'e.g. Lawn Mowing',
+                                  prefixIcon: Icons.handyman,
+                                  isDark: isDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_selectedServiceName == 'Other') ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _customCategoryController,
+                                  style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
+                                  decoration: AppTheme.textFieldDecoration(
+                                    label: 'Custom Category Name',
+                                    hint: 'e.g. Gardening',
+                                    prefixIcon: Icons.edit_outlined,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
                             Expanded(
                               flex: 1,
                               child: TextField(
@@ -402,25 +478,6 @@ class _ProviderServicesScreenState extends State<ProviderServicesScreen> {
                             ),
                           ],
                         ),
-                        if (_selectedServiceName == 'Other') ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _customServiceController,
-                                  style: TextStyle(color: isDark ? Colors.white : AppTheme.textSlateDark),
-                                  decoration: AppTheme.textFieldDecoration(
-                                    label: 'Custom Service Name',
-                                    hint: 'e.g. Lawn Mowing',
-                                    prefixIcon: Icons.edit_outlined,
-                                    isDark: isDark,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
                         const SizedBox(height: 12),
                         Row(
                           children: [

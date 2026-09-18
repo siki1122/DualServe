@@ -300,6 +300,11 @@ class _BillingHistoryScreenState extends State<BillingHistoryScreen> {
                   transaction.distanceSurcharge,
                 ),
               ),
+              if (transaction.additionalCost > 0)
+                _buildDetailRow(
+                  transaction.surchargeReason ?? 'Additional Cost',
+                  PricingConfig.formatPrice(transaction.additionalCost),
+                ),
               const Divider(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

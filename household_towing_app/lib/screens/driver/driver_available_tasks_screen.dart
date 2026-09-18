@@ -30,7 +30,7 @@ class _DriverAvailableTasksScreenState extends State<DriverAvailableTasksScreen>
   Future<void> _claimTask(Task task) async {
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final driverName = userProvider.userProfile?['name'] ?? 'Driver';
+      final driverName = userProvider.userProfile?['name'] ?? 'Employee';
 
       final taskRef = _firestore.collection('tasks').doc(task.id);
       

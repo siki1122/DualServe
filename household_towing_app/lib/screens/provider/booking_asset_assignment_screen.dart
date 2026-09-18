@@ -77,7 +77,7 @@ class _BookingAssetAssignmentScreenState
 
       // Load drivers
       final driversSnapshot = await _firestore
-          .collection('drivers')
+          .collection('Employees')
           .where('providerId', isEqualTo: uid)
           .where('status', isEqualTo: 'available')
           .get();
@@ -218,7 +218,7 @@ class _BookingAssetAssignmentScreenState
             const SizedBox(height: 12),
             _buildTruckSelector(),
             const SizedBox(height: 24),
-            _buildSectionTitle('Assign App Driver (Optional)'),
+            _buildSectionTitle('Assign App Employee (Optional)'),
             const SizedBox(height: 12),
             _buildDriverSelector(),
             const SizedBox(height: 24),
@@ -676,7 +676,7 @@ class _BookingAssetAssignmentScreenState
                 : 'Not selected',
           ),
           _buildSummaryItem(
-            'App Driver',
+            'App Employee',
             _selectedDriverId != null
                 ? (_availableDrivers
                     .firstWhere((d) => d.id == _selectedDriverId)

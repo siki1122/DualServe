@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/app_theme.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
+import 'package:household_towing_app/services/google_auth_service.dart';
 
 
 class ProfileSetupScreen extends StatefulWidget {
@@ -41,7 +42,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       return;
     }
 
-    if (_selectedRole == 'driver' && _inviteCodeController.text.trim().isEmpty) {
+    if (_selectedRole == 'Employee' && _inviteCodeController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a company invite code')),
       );
@@ -62,7 +63,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
 
-        if (_selectedRole == 'driver') {
+        if (_selectedRole == 'Employee') {
           // Verify provider exists with this invite code
           final inviteCode = _inviteCodeController.text.trim();
           final providerSnapshot = await FirebaseFirestore.instance
@@ -77,7 +78,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
           final providerId = providerSnapshot.docs.first.id;
 
-          await FirebaseFirestore.instance.collection('drivers').doc(user.uid).set({
+          await FirebaseFirestore.instance.collection('Employees').doc(user.uid).set({
             'uid': user.uid,
             'providerId': providerId,
             'name': _nameController.text.trim(),
@@ -90,7 +91,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           // Also auto-add them to the company's asset inventory
           await FirebaseFirestore.instance.collection('assets').doc(user.uid).set({
             'name': _nameController.text.trim(),
-            'category': 'Driver',
+            'category': 'Employee',
             'type': 'crew',
             'status': 'active',
             'ownerId': providerId,
@@ -174,7 +175,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   const SizedBox(width: 8),
                   _buildRoleCard('provider', Icons.home_repair_service, 'Provider'),
                   const SizedBox(width: 8),
-                  _buildRoleCard('driver', Icons.drive_eta, 'Driver'),
+                  _buildRoleCard('Employee', Icons.drive_eta, 'Employee'),
                 ],
               ),
               const SizedBox(height: 32),
@@ -202,7 +203,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              if (_selectedRole == 'driver') ...[
+              if (_selectedRole == 'Employee') ...[
                 TextField(
                   controller: _inviteCodeController,
                   decoration: InputDecoration(
@@ -238,7 +239,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               const SizedBox(height: 20),
               Center(
                 child: TextButton(
-                  onPressed: () => FirebaseAuth.instance.signOut(),
+                  onPressed: () async { await GoogleAuthService().signOut(); if (context.mounted) { Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst); } },
                   child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
                 ),
               ),

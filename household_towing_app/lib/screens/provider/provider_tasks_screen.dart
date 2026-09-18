@@ -367,7 +367,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                   builder: (context) => ChatScreen(
                     bookingId: task.bookingId ?? task.id,
                     receiverId: task.assignedDriverId!,
-                    receiverName: task.assignedDriverName ?? 'Driver',
+                    receiverName: task.assignedDriverName ?? 'Employee',
                   ),
                 ),
               )
@@ -430,7 +430,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
     }
   }
 
-  void _showTaskDetail(Task task) {
+  void _showTaskDetail(Task initialTask) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -438,7 +438,14 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
       ),
       backgroundColor: AppTheme.background,
       builder: (context) {
-        return SingleChildScrollView(
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('tasks').doc(initialTask.id).snapshots(),
+          builder: (context, snapshot) {
+            final task = (snapshot.hasData && snapshot.data!.exists) 
+                ? Task.fromFirestore(snapshot.data!) 
+                : initialTask;
+                
+            return SingleChildScrollView(
           child: Container(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -486,7 +493,7 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Milestones',
+                        'Current Step',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -504,6 +511,14 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  Text(
+                    task.milestones.firstWhere((m) => !m.isCompleted, orElse: () => task.milestones.last).title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
@@ -513,32 +528,43 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
                       valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // Interactive Checklist for Milestones
-                  ...task.milestones.map((milestone) {
-                    return CheckboxListTile(
-                      title: Text(
-                        milestone.title,
-                        style: TextStyle(
-                          decoration: milestone.isCompleted ? TextDecoration.lineThrough : null,
-                          color: milestone.isCompleted ? AppTheme.textSlateMedium : AppTheme.textSlateDark,
-                        ),
-                      ),
-                      value: milestone.isCompleted,
-                      onChanged: (task.status == TaskStatus.completed || task.assignedDriverId != null)
-                          ? null 
-                          : (bool? value) async {
-                              if (value != null) {
-                                await _taskService.updateTaskMilestone(task.id, milestone.id, value);
-                                HapticFeedback.mediumImpact();
+                  
+                  if (task.status == TaskStatus.inProgress && task.assignedDriverId == null) ...[
+                    const SizedBox(height: 16),
+                    Builder(
+                      builder: (context) {
+                        final nextMilestone = task.milestones.firstWhere((m) => !m.isCompleted, orElse: () => task.milestones.last);
+                        if (nextMilestone.isCompleted) return const SizedBox.shrink();
+                        
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              await _taskService.updateTaskMilestone(task.id, nextMilestone.id, true);
+                              HapticFeedback.mediumImpact();
+                              
+                              if (nextMilestone.id == task.milestones.last.id) {
+                                _updateStatus(task, TaskStatus.completed);
+                                Navigator.pop(context);
                               }
                             },
-                      activeColor: AppTheme.statusCompletedText,
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      controlAffinity: ListTileControlAffinity.leading,
-                    );
-                  }),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryBlue,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Complete Step: ${nextMilestone.title}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ),
+                        );
+                      }
+                    ),
+                  ],
                 ],
 
                 if (task.completedImageUrl != null) ...[
@@ -583,7 +609,9 @@ class _ProviderTasksScreenState extends State<ProviderTasksScreen> {
         );
       },
     );
-  }
+  },
+);
+}
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(

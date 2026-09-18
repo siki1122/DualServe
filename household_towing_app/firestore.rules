@@ -11,19 +11,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Check if user is an admin
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.admin == true ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
-        request.auth.token.email.lower() == 'charleskalvinvalenzuela@gmail.com'
-      );
-    }
-
-    // (Unused validation functions removed to resolve warnings)
-
-
     // ============================================================================
     // USERS COLLECTION
     // ============================================================================
@@ -32,29 +19,28 @@ service cloud.firestore {
       
       // Users can only create their own document with customer, pending_provider, provider, or driver role
       allow create: if isSignedIn() && request.auth.uid == userId && 
-                    request.resource.data.role in ['customer', 'pending_provider', 'provider', 'driver'];
+                    request.resource.data.role in ['customer', 'pending_provider', 'provider', 'driver', 'Employee'];
       
       // Users can update their own data BUT CANNOT change their own role 
       // (Except transitioning to provider/pending_provider/driver for verification)
       allow update: if isSignedIn() && (
-        (request.auth.uid == userId && (
+        request.auth.uid == userId && (
           request.resource.data.role == resource.data.role || 
-          request.resource.data.role in ['pending_provider', 'provider', 'driver']
-        )) || 
-        isAdmin()
+          request.resource.data.role in ['pending_provider', 'provider', 'driver', 'Employee']
+        )
       );
       
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================================================
-    // DRIVERS COLLECTION
+    // EMPLOYEES COLLECTION (formerly DRIVERS)
     // ============================================================================
-    match /drivers/{driverId} {
+    match /Employees/{driverId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == driverId;
-      allow update: if isSignedIn() && (request.auth.uid == driverId || isAdmin());
-      allow delete: if isAdmin();
+      allow update: if isSignedIn() && request.auth.uid == driverId;
+      allow delete: if false;
     }
 
     // ============================================================================
@@ -74,18 +60,16 @@ service cloud.firestore {
       // Providers can create their own profile
       allow create: if isSignedIn() && request.auth.uid == providerId;
       
-      // Only admins can change isApproved from false to true (or the user during creation)
       allow update: if isSignedIn() && (
         (request.auth.uid == providerId && (
           request.resource.data.isApproved == false || 
           request.resource.data.isApproved == resource.data.isApproved
         )) || 
         // Allow customers to update rating and totalReviews when submitting a review
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'totalReviews'])) ||
-        isAdmin()
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'totalReviews']))
       );
       
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================================================
@@ -97,13 +81,12 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         resource.data.customerId == request.auth.uid ||
         resource.data.assignedProviderId == request.auth.uid ||
-        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == resource.data.assignedProviderId) ||
-        isAdmin() ||
+        (exists(/databases/$(database)/documents/Employees/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/Employees/$(request.auth.uid)).data.providerId == resource.data.assignedProviderId) ||
         // Allow providers to accept a pending booking
         (resource.data.status == 'pending' && request.resource.data.assignedProviderId == request.auth.uid)
       );
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================================================
@@ -111,14 +94,13 @@ service cloud.firestore {
     // ============================================================================
     match /provider_slots/{slotId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (request.resource.data.customerId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
       allow delete: if isSignedIn() && (
-        // Either the customer who booked it, the assigned provider, or an admin can delete the slot lock
+        // Either the customer who booked it, or the assigned provider can delete the slot lock
         resource.data.customerId == request.auth.uid ||
-        resource.data.providerId == request.auth.uid ||
-        isAdmin()
+        resource.data.providerId == request.auth.uid
       );
-      allow update: if isAdmin();
+      allow update: if false;
     }
 
     // ============================================================================
@@ -130,15 +112,11 @@ service cloud.firestore {
         resource.data.customerId == request.auth.uid ||
         resource.data.assignedProviderId == request.auth.uid ||
         resource.data.assignedDriverId == request.auth.uid ||
-        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == resource.data.assignedProviderId) ||
-        isAdmin()
+        (exists(/databases/$(database)/documents/Employees/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/Employees/$(request.auth.uid)).data.providerId == resource.data.assignedProviderId)
       );
-      allow create: if isSignedIn() && (
-        request.resource.data.assignedProviderId == request.auth.uid ||
-        isAdmin()
-      );
-      allow delete: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.assignedProviderId == request.auth.uid;
+      allow delete: if false;
     }
 
     // ============================================================================
@@ -146,16 +124,13 @@ service cloud.firestore {
     // ============================================================================
     match /assets/{assetId} {
       allow read: if isSignedIn();
-      allow create: if isAdmin() || (
-        isSignedIn() &&
+      allow create: if isSignedIn() &&
         (request.resource.data.assignedTo == request.auth.uid || 
          request.resource.data.ownerId == request.auth.uid || 
          assetId == request.auth.uid) &&
         request.resource.data.status in ['active', 'inUse'] &&
-        request.resource.data.type in ['vehicle', 'tool', 'equipment', 'crew']
-      );
-      allow update: if isAdmin() || (
-        isSignedIn() &&
+        request.resource.data.type in ['vehicle', 'tool', 'equipment', 'crew'];
+      allow update: if isSignedIn() &&
         request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'assignedTo',
           'providerName',
@@ -183,22 +158,17 @@ service cloud.firestore {
           (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity', 'status'])
           )
-        )
-      );
-      allow delete: if isAdmin() || (isSignedIn() && (resource.data.ownerId == request.auth.uid || resource.data.assignedTo == request.auth.uid));
+        );
+      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || resource.data.assignedTo == request.auth.uid);
     }
 
     // ============================================================================
     // ASSET USAGE COLLECTION
     // ============================================================================
     match /asset_usage/{usageId} {
-      allow read: if isSignedIn() && (
-        resource.data.providerId == request.auth.uid ||
-        isAdmin()
-      );
-      allow create: if isSignedIn() &&
-        request.resource.data.providerId == request.auth.uid;
-      allow update, delete: if isAdmin();
+      allow read: if isSignedIn() && resource.data.providerId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.providerId == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // ============================================================================
@@ -207,7 +177,7 @@ service cloud.firestore {
     match /reviews/{reviewId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================================================
@@ -217,24 +187,21 @@ service cloud.firestore {
       allow read: if isSignedIn() && (
         resource.data.customerId == request.auth.uid ||
         resource.data.providerId == request.auth.uid ||
-        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == resource.data.providerId) ||
-        isAdmin()
+        (exists(/databases/$(database)/documents/Employees/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/Employees/$(request.auth.uid)).data.providerId == resource.data.providerId)
       );
       allow create: if isSignedIn() && (
         request.resource.data.customerId == request.auth.uid ||
         request.resource.data.providerId == request.auth.uid ||
-        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == request.resource.data.providerId) ||
-        isAdmin()
+        (exists(/databases/$(database)/documents/Employees/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/Employees/$(request.auth.uid)).data.providerId == request.resource.data.providerId)
       );
       allow update: if isSignedIn() && (
         resource.data.providerId == request.auth.uid ||
-        (exists(/databases/$(database)/documents/drivers/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.providerId == resource.data.providerId) ||
-        isAdmin()
+        (exists(/databases/$(database)/documents/Employees/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/Employees/$(request.auth.uid)).data.providerId == resource.data.providerId)
       );
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================================================
@@ -243,7 +210,7 @@ service cloud.firestore {
     match /messages/{messageId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
-      allow update, delete: if isAdmin();
+      allow update, delete: if false;
     }
 
     // ============================================================================
@@ -253,7 +220,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     // ============================================================================
@@ -261,7 +228,7 @@ service cloud.firestore {
     // ============================================================================
     match /provider_pricing/{providerId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == providerId);
+      allow write: if isSignedIn() && request.auth.uid == providerId;
     }
   }
 }

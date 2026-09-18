@@ -47,10 +47,7 @@ class _CustomerServiceTrackingScreenState
                 // Status Card
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _getStatusBgColor(task.status),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  decoration: AppTheme.cardDecoration(context),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -99,39 +96,37 @@ class _CustomerServiceTrackingScreenState
                         ),
                       ),
                       
-                      // NEW: Progress Section for Customer (Only show In Progress/Completed)
-                      if (task.milestones.isNotEmpty && 
-                          task.status != TaskStatus.assigned && 
-                          task.status != TaskStatus.unassigned) ...[
+                      // NEW: Progress Section for Customer
+                      if (task.milestones.isNotEmpty) ...[
                         const SizedBox(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Progress',
+                              'Current Step: ${task.milestones.firstWhere((m) => !m.isCompleted, orElse: () => task.milestones.last).title}',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: _getStatusTextColor(task.status).withValues(alpha: 0.7),
+                                color: _getStatusTextColor(task.status),
                               ),
                             ),
                             Text(
                               '${(task.progress * 100).toInt()}%',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: _getStatusTextColor(task.status),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(6),
                           child: LinearProgressIndicator(
                             value: task.progress,
-                            minHeight: 8,
-                            backgroundColor: Colors.white.withValues(alpha: 0.5),
+                            minHeight: 10,
+                            backgroundColor: _getStatusColor(task.status).withValues(alpha: 0.15),
                             valueColor: AlwaysStoppedAnimation<Color>(_getStatusColor(task.status)),
                           ),
                         ),
@@ -140,48 +135,6 @@ class _CustomerServiceTrackingScreenState
                   ),
                 ),
                 const SizedBox(height: 24),
-                
-                // NEW: Granular Milestones Section (Only show In Progress/Completed)
-                if (task.milestones.isNotEmpty && 
-                    task.status != TaskStatus.assigned && 
-                    task.status != TaskStatus.unassigned) ...[
-                  const Text(
-                    'Step-by-Step Updates',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: AppTheme.cardDecoration(context),
-                    child: Column(
-                      children: task.milestones.map((milestone) {
-                        return ListTile(
-                          leading: Icon(
-                            milestone.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                            color: milestone.isCompleted ? AppTheme.statusCompletedText : AppTheme.textSlateLight,
-                            size: 24,
-                          ),
-                          title: Text(
-                            milestone.title,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: milestone.isCompleted ? FontWeight.bold : FontWeight.normal,
-                              color: milestone.isCompleted ? AppTheme.textSlateDark : Colors.grey[500],
-                            ),
-                          ),
-                          trailing: milestone.completedAt != null 
-                            ? Text(
-                                _formatTimeOnly(milestone.completedAt!),
-                                style: TextStyle(fontSize: 11, color: Colors.grey[400]),
-                              )
-                            : null,
-                          dense: true,
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
 
 
 
@@ -225,65 +178,98 @@ class _CustomerServiceTrackingScreenState
                 ],
                 const SizedBox(height: 24),
 
-                // Provider Info (if assigned)
-                if (task.assignedProviderId != null) ...[
-                  const Text(
-                    'Assigned Provider',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                // Billing Details
+                const Text(
+                  'Payment Details',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: AppTheme.cardDecoration(context),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.statusCompletedText.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.payments, color: AppTheme.statusCompletedText, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                task.status == TaskStatus.completed ? 'Final Cost' : 'Estimated Cost',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                task.status == TaskStatus.completed ? 'Paid' : 'To be paid upon completion',
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '₱${(task.status == TaskStatus.completed ? (task.finalCost ?? task.estimatedCost ?? 0.0) : (task.estimatedCost ?? 0.0)).toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppTheme.statusCompletedText),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  _buildProviderCard(task.assignedProviderId!),
-                ],
+                ),
 
-                // Assigned Truck
-                if (task.assignedTruckName != null) ...[
-                  const SizedBox(height: 24),
+                const SizedBox(height: 24),
+                // Assigned Assets & Team
+                if (task.assignedProviderId != null || task.assignedTruckName != null || task.assignedPersonnelNames.isNotEmpty || task.assignedAssets.isNotEmpty) ...[
                   const Text(
-                    'Assigned Truck',
+                    'Assigned Team & Assets',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 16),
-                  _buildDetailCard(
-                    icon: Icons.local_shipping,
-                    title: 'Vehicle',
-                    value: task.assignedTruckName!,
-                    color: Colors.blueAccent,
-                  ),
-                ],
+                  const SizedBox(height: 12),
+                  
+                  if (task.assignedProviderId != null) ...[
+                    // We must wrap _buildProviderCard in a card decoration since we removed it earlier
+                    Container(
+                      decoration: AppTheme.cardDecoration(context),
+                      child: _buildProviderCard(task.assignedProviderId!),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
-                // Assigned Personnel
-                if (task.assignedPersonnelNames.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Assigned Team',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  ...task.assignedPersonnelNames.map((name) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildDetailCard(
-                      icon: Icons.person_pin,
+                  if (task.assignedTruckName != null) ...[
+                    _buildDetailCard(
+                      icon: Icons.local_shipping,
+                      title: 'Service Vehicle',
+                      value: task.assignedTruckName!,
+                      color: AppTheme.primaryBlue,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  if (task.assignedPersonnelNames.isNotEmpty) ...[
+                    _buildDetailCard(
+                      icon: Icons.group,
                       title: 'Personnel',
-                      value: name,
+                      value: task.assignedPersonnelNames.join(', '),
                       color: Colors.teal,
                     ),
-                  )),
-                ],
+                    const SizedBox(height: 12),
+                  ],
 
-                // Equipment & Tools
-                if (task.assignedAssets.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Equipment & Tools',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDetailCard(
-                    icon: Icons.handyman,
-                    title: 'Resources',
-                    value: '${task.assignedAssets.length} items assigned',
-                    color: AppTheme.towingOrange,
-                  ),
+                  if (task.assignedAssets.isNotEmpty) ...[
+                    _buildDetailCard(
+                      icon: Icons.handyman,
+                      title: 'Equipment & Tools',
+                      value: '${task.assignedAssets.length} items requested',
+                      color: AppTheme.towingOrange,
+                    ),
+                  ],
                 ],
 
                 // Info Message
@@ -387,7 +373,7 @@ class _CustomerServiceTrackingScreenState
 
         return Container(
           padding: const EdgeInsets.all(16),
-          decoration: AppTheme.cardDecoration(context),
+          color: Colors.transparent,
           child: Row(
             children: [
               Container(

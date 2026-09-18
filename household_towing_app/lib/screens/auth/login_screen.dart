@@ -9,7 +9,8 @@ import 'package:household_towing_app/utils/app_theme.dart';
 
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final GoogleAuthService? googleAuthService;
+  const LoginScreen({super.key, this.googleAuthService});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -18,9 +19,15 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _googleAuthService = GoogleAuthService();
+  late final GoogleAuthService _googleAuthService;
   bool _isLoading = false;
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _googleAuthService = widget.googleAuthService ?? GoogleAuthService();
+  }
 
   @override
   Widget build(BuildContext context) {

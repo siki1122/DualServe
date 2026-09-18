@@ -214,7 +214,7 @@ class AppTaskCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Driver: ${task!.assignedDriverName}',
+                              'Employee: ${task!.assignedDriverName}',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -260,7 +260,7 @@ class AppTaskCard extends StatelessWidget {
                                 child: OutlinedButton.icon(
                                   onPressed: onMessageDriverPressed,
                                   icon: const Icon(Icons.local_shipping_outlined, size: 16),
-                                  label: const Text('Driver', style: TextStyle(fontSize: 13)),
+                                  label: const Text('Employee', style: TextStyle(fontSize: 13)),
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(vertical: 10),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

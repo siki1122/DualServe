@@ -1,0 +1,24 @@
+graph TD
+    IN[Distance & ETA]
+    FB[(Firebase DB)]
+    OUT[Calculated Base Cost]
+
+    2231((2.2.3.1 Retrieve Base Rate))
+    2232((2.2.3.2 Calculate Distance Cost))
+    2233((2.2.3.3 Apply Service Multiplier))
+    2234((2.2.3.4 Sum Total Base Pricing))
+
+    IN -- "Service Type" --> 2231
+    FB -- "Provider Pricing Table" --> 2231
+    
+    2231 -- "Base Rate + Per Km Rate" --> 2232
+    IN -- "Distance (Km)" --> 2232
+    
+    2232 -- "Distance Cost" --> 2233
+    IN -- "Service Category (e.g. Towing)" --> 2233
+    FB -- "Service Multiplier Config" --> 2233
+    
+    2233 -- "Adjusted Subtotal" --> 2234
+    2231 -- "Base Rate" --> 2234
+    
+    2234 -- "Final Base Cost" --> OUT

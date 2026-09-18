@@ -158,7 +158,7 @@ class Task {
   static List<TaskMilestone> defaultMilestones(String serviceType) {
     if (serviceType.toLowerCase().contains('towing')) {
       return [
-        TaskMilestone(id: 'assigned', title: 'Provider Assigned', isCompleted: true),
+        TaskMilestone(id: 'assigned', title: 'Provider Assigned', isCompleted: false),
         TaskMilestone(id: 'en_route', title: 'En Route'),
         TaskMilestone(id: 'arrived', title: 'Arrived at Scene'),
         TaskMilestone(id: 'loaded', title: 'Vehicle Loaded'),
@@ -166,7 +166,7 @@ class Task {
       ];
     } else {
       return [
-        TaskMilestone(id: 'dispatched', title: 'Team Dispatched'),
+        TaskMilestone(id: 'dispatched', title: 'Team Dispatched', isCompleted: false),
         TaskMilestone(id: 'setup', title: 'Arrival & Setup'),
         TaskMilestone(id: 'in_progress', title: 'Service Underway'),
         TaskMilestone(id: 'inspection', title: 'Final Inspection'),

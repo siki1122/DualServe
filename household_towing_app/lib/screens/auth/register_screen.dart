@@ -254,15 +254,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _selectedRole = 'driver'),
+                      onTap: () => setState(() => _selectedRole = 'Employee'),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: _selectedRole == 'driver'
+                          color: _selectedRole == 'Employee'
                               ? Colors.blue.withValues(alpha: 0.1)
                               : Colors.transparent,
                           border: Border.all(
-                            color: _selectedRole == 'driver'
+                            color: _selectedRole == 'Employee'
                                 ? AppTheme.primaryBlue
                                 : AppTheme.textSlateLight,
                           ),
@@ -272,12 +272,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           children: [
                             Icon(
                               Icons.local_shipping,
-                              color: _selectedRole == 'driver'
+                              color: _selectedRole == 'Employee'
                                   ? AppTheme.primaryBlue
                                   : AppTheme.textSlateMedium,
                             ),
                             const SizedBox(height: 4),
-                            const Text('Driver', style: TextStyle(fontSize: 13)),
+                            const Text('Employee', style: TextStyle(fontSize: 13)),
                           ],
                         ),
                       ),
@@ -285,7 +285,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ],
               ),
-              if (_selectedRole == 'driver') ...[
+              if (_selectedRole == 'Employee') ...[
                 const SizedBox(height: 16),
                 TextField(
                   controller: _inviteCodeController,
@@ -404,7 +404,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (emailError != null) errors.add(emailError);
     if (phoneError != null) errors.add(phoneError);
     if (passwordError != null) errors.add(passwordError);
-    if (_selectedRole == 'driver' && _inviteCodeController.text.trim().isEmpty) {
+    if (_selectedRole == 'Employee' && _inviteCodeController.text.trim().isEmpty) {
       errors.add('Company invite code is required for drivers');
     }
 
@@ -639,7 +639,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final user = credential.user!;
 
       String? providerId;
-      if (_selectedRole == 'driver') {
+      if (_selectedRole == 'Employee') {
         final inviteCode = _inviteCodeController.text.trim();
         final providerSnapshot = await FirebaseFirestore.instance
             .collection('providers')
@@ -683,8 +683,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'inviteCode': providerInviteCode,
           'createdAt': FieldValue.serverTimestamp(),
         });
-      } else if (_selectedRole == 'driver') {
-        await FirebaseFirestore.instance.collection('drivers').doc(user.uid).set({
+      } else if (_selectedRole == 'Employee') {
+        await FirebaseFirestore.instance.collection('Employees').doc(user.uid).set({
           'uid': user.uid,
           'providerId': providerId,
           'name': _nameController.text.trim(),
@@ -697,7 +697,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Also auto-add them to the company's asset inventory
         await FirebaseFirestore.instance.collection('assets').doc(user.uid).set({
           'name': _nameController.text.trim(),
-          'category': 'Driver',
+          'category': 'Employee',
           'type': 'crew',
           'status': 'active',
           'ownerId': providerId,

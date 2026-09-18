@@ -31,8 +31,8 @@ class UserProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   bool get isProvider => _role?.toLowerCase() == 'provider';
-  bool get isAdmin => _role?.toLowerCase() == 'admin';
-  bool get isDriver => _role?.toLowerCase() == 'driver';
+
+  bool get isDriver => _role?.toLowerCase() == 'Employee';
   String get uid => _firebaseAuth.currentUser?.uid ?? "";
 
   Future<void> _loadTheme() async {
@@ -81,7 +81,7 @@ class UserProvider with ChangeNotifier {
             await FirebaseFirestore.instance.collection('providers').doc(user.uid).update({'inviteCode': generatedCode});
             _providerProfile!['inviteCode'] = generatedCode;
           }
-        } else if (_role == 'driver') {
+        } else if (_role == 'Employee' || _role == 'driver') {
           _driverProfile = await _userService.getDriverProfile(user.uid);
         }
       } else {

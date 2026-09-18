@@ -143,6 +143,7 @@ class BillingService {
     required double nightDifferential,
     required double finalCost,
     double additionalCost = 0.0,
+    String? surchargeReason,
     required String? providerNotes,
   }) async {
     try {
@@ -165,6 +166,7 @@ class BillingService {
         finalCost: finalCost,
         adminFee: adminFee,
         additionalCost: additionalCost,
+        surchargeReason: surchargeReason,
         status: TransactionStatus.completed,
         paymentStatus: PaymentStatus.pending,
         providerNotes: providerNotes,

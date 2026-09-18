@@ -254,7 +254,7 @@ class _CustomerActiveBookingsScreenState
                           ),
                         ],
                         
-                        // NEW: Progress Bar directly on the card
+                        // Bottom Section: Progress Bar & Action Buttons
                         if (booking.status == BookingStatus.converted_to_task || booking.status == BookingStatus.accepted)
                           StreamBuilder<QuerySnapshot>(
                             stream: FirebaseFirestore.instance
@@ -262,116 +262,149 @@ class _CustomerActiveBookingsScreenState
                                 .where('bookingId', isEqualTo: booking.id)
                                 .snapshots(),
                             builder: (context, taskSnapshot) {
-                              if (!taskSnapshot.hasData || taskSnapshot.data!.docs.isEmpty) {
-                                return const SizedBox.shrink();
+                              bool isTaskInProgress = false;
+                              double progress = 0.0;
+                              
+                              if (taskSnapshot.hasData && taskSnapshot.data!.docs.isNotEmpty) {
+                                final taskData = taskSnapshot.data!.docs.first.data() as Map<String, dynamic>;
+                                progress = (taskData['progress'] as num?)?.toDouble() ?? 0.0;
+                                isTaskInProgress = taskData['status'] == 'inProgress';
                               }
-                              final taskData = taskSnapshot.data!.docs.first.data() as Map<String, dynamic>;
-                              final double progress = (taskData['progress'] as num?)?.toDouble() ?? 0.0;
                               
-                              if (progress <= 0) return const SizedBox.shrink();
-                              
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Service Progress', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSlateDark)),
-                                        Text('${(progress * 100).toInt()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: LinearProgressIndicator(
-                                        value: progress,
-                                        minHeight: 6,
-                                        backgroundColor: AppTheme.textSlateLight.withValues(alpha: 0.5),
-                                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Progress Bar
+                                  if (progress > 0)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 16),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text('Service Progress', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSlateDark)),
+                                              Text('${(progress * 100).toInt()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue)),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: LinearProgressIndicator(
+                                              value: progress,
+                                              minHeight: 6,
+                                              backgroundColor: AppTheme.textSlateLight.withValues(alpha: 0.5),
+                                              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
+                                    
+                                  const SizedBox(height: 16),
+                                  
+                                  // Action Buttons
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () => _navigateToDetailsOrTracking(context, booking),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: AppTheme.primaryBlue,
+                                            elevation: 0,
+                                            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          child: const Text('View Details'),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      if (isTaskInProgress)
+                                        Expanded(
+                                          child: ElevatedButton.icon(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => CustomerTrackingScreen(
+                                                    bookingId: booking.id,
+                                                    bookingData: booking.toFirestore(),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppTheme.primaryBlue,
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                            icon: const Icon(Icons.map, size: 18),
+                                            label: const Text('Track Map'),
+                                          ),
+                                        )
+                                      else if (booking.assignedProviderId != null)
+                                        Expanded(
+                                          child: ElevatedButton.icon(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => ChatScreen(
+                                                    bookingId: booking.id,
+                                                    receiverId: booking.assignedProviderId!,
+                                                    receiverName: booking.assignedPersonnelNames.isNotEmpty
+                                                        ? booking.assignedPersonnelNames.first
+                                                        : 'Provider',
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppTheme.primaryBlue,
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                            icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                                            label: const Text('Message'),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
                               );
                             },
-                          ),
-
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () => _navigateToDetailsOrTracking(context, booking),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: AppTheme.primaryBlue,
-                                  elevation: 0,
-                                  side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () => _navigateToDetailsOrTracking(context, booking),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: AppTheme.primaryBlue,
+                                      elevation: 0,
+                                      side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: const Text('View Details'),
                                   ),
                                 ),
-                                child: const Text('View Details'),
-                              ),
+                              ],
                             ),
-                            const SizedBox(width: 12),
-                            if (booking.status == BookingStatus.converted_to_task)
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => CustomerTrackingScreen(
-                                          bookingId: booking.id,
-                                          bookingData: booking.toFirestore(),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primaryBlue,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  icon: const Icon(Icons.map, size: 18),
-                                  label: const Text('Track Map'),
-                                ),
-                              )
-                            else if (isTrackable && booking.assignedProviderId != null)
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ChatScreen(
-                                          bookingId: booking.id,
-                                          receiverId: booking.assignedProviderId!,
-                                          receiverName: booking.assignedPersonnelNames.isNotEmpty
-                                              ? booking.assignedPersonnelNames.first
-                                              : 'Provider',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primaryBlue,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                                  label: const Text('Message'),
-                                ),
-                              ),
-                          ],
-                        ),
+                          ),
                       ],
                     ),
                   ),

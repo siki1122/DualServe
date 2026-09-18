@@ -106,6 +106,17 @@ class ServiceTemplates {
     // Add other complex services here...
   };
 
+  // Map of towing service templates
+  static final Map<String, ServiceDefinition> towingTemplates = {
+    'Flatbed Towing': flatRateTemplate(3500.0),
+    'Wheel Lift Towing': flatRateTemplate(2500.0),
+    'Battery JumpStart': flatRateTemplate(500.0),
+    'Flat Tire Assistance': flatRateTemplate(500.0),
+    'Lockout Service': flatRateTemplate(800.0),
+    'Fuel Delivery': flatRateTemplate(400.0),
+  };
+
+
   /// Helper to get the structured definition for a service.
   /// If the provider has customized the pricing (stored as a Map), it uses that.
   /// If the provider just has a double (old format), it creates a flatRate definition.
@@ -119,7 +130,7 @@ class ServiceTemplates {
       return flatRateTemplate(providerData.toDouble());
     } else {
       // Fallback to default template if exists, else flat rate of 0
-      return defaultTemplates[serviceName] ?? flatRateTemplate(0.0);
+      return defaultTemplates[serviceName] ?? towingTemplates[serviceName] ?? flatRateTemplate(0.0);
     }
   }
 

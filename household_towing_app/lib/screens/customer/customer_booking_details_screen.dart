@@ -80,16 +80,16 @@ class _CustomerBookingDetailsScreenState
                 // Large Gradient Header
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF7061FA), Color(0xFF4B3CFA)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(32),
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
-                      BoxShadow(color: const Color(0xFF4B3CFA).withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))
+                      BoxShadow(color: const Color(0xFF4B3CFA).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8))
                     ],
                   ),
                   child: Column(
@@ -106,10 +106,10 @@ class _CustomerBookingDetailsScreenState
                           style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       Text(
                         booking.serviceType,
-                        style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -125,11 +125,33 @@ class _CustomerBookingDetailsScreenState
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
                 // Primary Action Button matches "Start Task"
                 if (booking.assignedProviderId != null)
-                  Row(
+                  if (booking.status == BookingStatus.completed)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.statusCompletedBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.statusCompletedText.withValues(alpha: 0.3)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: AppTheme.statusCompletedText),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Service has been completed successfully. Messaging is now disabled.',
+                              style: TextStyle(color: AppTheme.statusCompletedText, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Row(
                     children: [
                       Expanded(
                         child: Column(
@@ -172,7 +194,7 @@ class _CustomerBookingDetailsScreenState
                                         receiverId: booking.assignedDriverId!,
                                         receiverName: booking.assignedPersonnelNames.isNotEmpty
                                             ? booking.assignedPersonnelNames.first
-                                            : 'Driver',
+                                            : 'Employee',
                                       ),
                                     ),
                                   );
@@ -691,8 +713,9 @@ class _CustomerBookingDetailsScreenState
           TextField(
             controller: _commentController,
             maxLines: 3,
+            onChanged: (val) => setState(() {}),
             decoration: InputDecoration(
-              hintText: 'Leave a comment (optional)',
+              hintText: 'Leave a comment (required)',
               filled: true,
               fillColor: AppTheme.background,
               border: OutlineInputBorder(
@@ -706,7 +729,7 @@ class _CustomerBookingDetailsScreenState
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _rating == 0 || _isSubmittingReview
+              onPressed: _rating == 0 || _commentController.text.trim().isEmpty || _isSubmittingReview
                   ? null
                   : () async {
                       setState(() => _isSubmittingReview = true);

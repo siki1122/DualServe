@@ -8,7 +8,9 @@ import 'package:provider/provider.dart';
 import '../../utils/app_theme.dart';
 import '../../providers/user_provider.dart';
 import '../auth/location_picker_screen.dart';
+import '../../utils/form_validators.dart';
 import 'provider_verification_screen.dart';
+import 'package:household_towing_app/services/google_auth_service.dart';
 
 class ProviderSettingsScreen extends StatefulWidget {
   const ProviderSettingsScreen({super.key});
@@ -326,7 +328,9 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                             );
 
                             if (confirm == true) {
-                              await FirebaseAuth.instance.signOut();
+                              Provider.of<UserProvider>(context, listen: false).clear();
+                              await GoogleAuthService().signOut();
+              if (context.mounted) { Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst); }
                               // Navigation is handled by AuthWrapper
                             }
                           },
@@ -443,7 +447,12 @@ class _ProviderSettingsScreenState extends State<ProviderSettingsScreen> {
                           onPressed: () => setDialogState(() => obscureNew = !obscureNew),
                         ),
                       ),
-                      validator: (v) => v!.length < 6 ? 'Min 6 characters' : null,
+                      validator: (v) {
+                        if (v == currentPasswordController.text) {
+                          return 'New password cannot be the same as current';
+                        }
+                        return FormValidators.validatePassword(v);
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

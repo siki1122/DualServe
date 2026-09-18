@@ -54,7 +54,7 @@ class PricingConfig {
     if (serviceType != null && normalizeServiceType(serviceType) != towingService) {
       return 0.0;
     }
-    if (distanceKm < 11.0) {
+    if (distanceKm <= 10.0) {
       return 0.0;
     }
     return (distanceKm - 10.0) * costPerKm;

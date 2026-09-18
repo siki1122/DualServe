@@ -145,13 +145,9 @@ class _TowingMapScreenState extends State<TowingMapScreen> {
       });
       
       try {
-        final bounds = LatLngBounds.fromPoints([customerLatLng, providerLatLng, ..._routePoints]);
-        _mapController.fitCamera(
-          CameraFit.bounds(
-            bounds: bounds,
-            padding: const EdgeInsets.all(80.0),
-          ),
-        );
+        // Disabled automatic fitCamera here to prevent the map from 
+        // snapping away from the provider the user just clicked.
+        // The blue route will still draw silently.
       } catch (e) {
         // Map controller might not be ready
       }

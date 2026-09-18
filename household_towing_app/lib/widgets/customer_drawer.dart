@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:household_towing_app/providers/user_provider.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
 import 'package:household_towing_app/screens/customer/customer_settings_screen.dart';
+import 'package:household_towing_app/services/google_auth_service.dart';
 
 class CustomerDrawer extends StatefulWidget {
   const CustomerDrawer({super.key});
@@ -101,7 +104,9 @@ class _CustomerDrawerState extends State<CustomerDrawer> {
             icon: Icons.logout,
             title: 'Logout',
             onTap: () async {
-              await FirebaseAuth.instance.signOut();
+              Provider.of<UserProvider>(context, listen: false).clear();
+              await GoogleAuthService().signOut();
+              if (context.mounted) { Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst); }
             },
           ),
           const SizedBox(height: 20),

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }
+        h1 { text-align: center; color: #1a56db; margin-bottom: 40px; }
+        h3 { color: #2563eb; margin-top: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 30px; font-size: 14px; }
+        th, td { border: 1px solid #d1d5db; padding: 12px; text-align: left; }
+        th { background-color: #f3f4f6; font-weight: bold; color: #1f2937; }
+        tr:nth-child(even) { background-color: #f9fafb; }
+    </style>
+</head>
+<body>
+    <h1>DualServe System Data Dictionary</h1>
+
+    <h3>1. Users Data Table (users)</h3>
+    <table>
+        <tr><th>FIELD NAME</th><th>DATA TYPE</th><th>FORMAT</th><th>LENGTH</th><th>DESCRIPTION</th></tr>
+        <tr><td>id</td><td>String (ID)</td><td>Alphanumeric</td><td>Varies</td><td>Document ID, matches Firebase Auth UID.</td></tr>
+        <tr><td>name</td><td>String</td><td>Text</td><td>100-255</td><td>Full name of the user.</td></tr>
+        <tr><td>email</td><td>String</td><td>Email format</td><td>255</td><td>Contact email address.</td></tr>
+        <tr><td>phone</td><td>String</td><td>Numeric/String</td><td>11-15</td><td>Contact phone number.</td></tr>
+        <tr><td>role</td><td>String</td><td>Enum</td><td>Varies</td><td>User role: customer, provider, Employee.</td></tr>
+        <tr><td>createdAt</td><td>Timestamp</td><td>ISO 8601</td><td>—</td><td>Date and time the account was created.</td></tr>
+        <tr><td>profileImageUrl</td><td>String</td><td>URL</td><td>255</td><td>URL to the user's avatar.</td></tr>
+    </table>
+
+    <h3>2. Providers Data Table (providers)</h3>
+    <table>
+        <tr><th>FIELD NAME</th><th>DATA TYPE</th><th>FORMAT</th><th>LENGTH</th><th>DESCRIPTION</th></tr>
+        <tr><td>id</td><td>String (ID)</td><td>Alphanumeric</td><td>Varies</td><td>Matches the users ID.</td></tr>
+        <tr><td>specialty</td><td>String</td><td>Text</td><td>50-100</td><td>Primary skill or service type offered.</td></tr>
+        <tr><td>rating</td><td>Double</td><td>Decimal</td><td>3</td><td>Average star rating (1.0 to 5.0).</td></tr>
+        <tr><td>totalReviews</td><td>Integer</td><td>Numeric</td><td>Varies</td><td>Total number of customer reviews received.</td></tr>
+        <tr><td>isAvailable</td><td>Boolean</td><td>True/False</td><td>1</td><td>Toggle for whether the provider is active.</td></tr>
+        <tr><td>companyName</td><td>String</td><td>Text</td><td>100-255</td><td>Official name of the towing/service company.</td></tr>
+        <tr><td>isApproved</td><td>Boolean</td><td>True/False</td><td>1</td><td>Administrator verification status.</td></tr>
+    </table>
+
+    <h3>3. Employees Data Table (Employees)</h3>
+    <table>
+        <tr><th>FIELD NAME</th><th>DATA TYPE</th><th>FORMAT</th><th>LENGTH</th><th>DESCRIPTION</th></tr>
+        <tr><td>id</td><td>String (ID)</td><td>Alphanumeric</td><td>Varies</td><td>Matches the users ID.</td></tr>
+        <tr><td>providerId</td><td>String (Ref)</td><td>Alphanumeric</td><td>Varies</td><td>The provider agency they work under.</td></tr>
+        <tr><td>vehicleType</td><td>String</td><td>Text</td><td>50</td><td>Type of vehicle assigned (if applicable).</td></tr>
+        <tr><td>licenseNumber</td><td>String</td><td>Alphanumeric</td><td>50</td><td>Driver's license or certification number.</td></tr>
+        <tr><td>isAvailable</td><td>Boolean</td><td>True/False</td><td>1</td><td>Current duty status of the employee.</td></tr>
+    </table>
+
+    <h3>4. Bookings Data Table (bookings)</h3>
+    <table>
+        <tr><th>FIELD NAME</th><th>DATA TYPE</th><th>FORMAT</th><th>LENGTH</th><th>DESCRIPTION</th></tr>
+        <tr><td>id</td><td>String (ID)</td><td>Alphanumeric</td><td>Varies</td><td>Unique identifier for the booking.</td></tr>
+        <tr><td>customerId</td><td>String (Ref)</td><td>Alphanumeric</td><td>Varies</td><td>UID of the customer who made the booking.</td></tr>
+        <tr><td>assignedProviderId</td><td>String (Ref)</td><td>Alphanumeric</td><td>Varies</td><td>UID of the provider handling the booking.</td></tr>
+        <tr><td>serviceType</td><td>String</td><td>Enum</td><td>50</td><td>Type of service (e.g., Towing, Household).</td></tr>
+        <tr><td>status</td><td>String</td><td>Enum</td><td>20</td><td>pending, accepted, rejected, completed, cancelled.</td></tr>
+        <tr><td>estimatedCost</td><td>Double</td><td>Decimal</td><td>Varies</td><td>The calculated price shown to the customer.</td></tr>
+        <tr><td>createdAt</td><td>Timestamp</td><td>ISO 8601</td><td>—</td><td>Date and time the booking was initiated.</td></tr>
+    </table>
+
+    <h3>5. Tasks Data Table (tasks)</h3>
+    <table>
+        <tr><th>FIELD NAME</th><th>DATA TYPE</th><th>FORMAT</th><th>LENGTH</th><th>DESCRIPTION</th></tr>
+        <tr><td>id</td><td>String (ID)</td><td>Alphanumeric</td><td>Varies</td><td>Unique identifier for the task.</td></tr>
+        <tr><td>bookingId</td><td>String (Ref)</td><td>Alphanumeric</td><td>Varies</td><td>Link to the original booking record.</td></tr>
+        <tr><td>assignedDriverId</td><td>String (Ref)</td><td>Alphanumeric</td><td>Varies</td><td>Employee/Driver dispatched to the task.</td></tr>
+        <tr><td>status</td><td>String</td><td>Enum</td><td>20</td><td>assigned, inProgress, completed, cancelled.</td></tr>
+        <tr><td>location</td><td>String</td><td>Text</td><td>255</td><td>Physical address of the service.</td></tr>
+        <tr><td>latitude</td><td>Double</td><td>Coordinate</td><td>Varies</td><td>GPS latitude for map routing.</td></tr>
+        <tr><td>longitude</td><td>Double</td><td>Coordinate</td><td>Varies</td><td>GPS longitude for map routing.</td></tr>
+    </table>
+
+    <h3>6. Assets Data Table (assets)</h3>
+    <table>
+        <tr><th>FIELD NAME</th><th>DATA TYPE</th><th>FORMAT</th><th>LENGTH</th><th>DESCRIPTION</th></tr>
+        <tr><td>id</td><td>String (ID)</td><td>Alphanumeric</td><td>Varies</td><td>Unique identifier for the asset.</td></tr>
+        <tr><td>ownerId</td><td>String (Ref)</td><td>Alphanumeric</td><td>Varies</td><td>Provider ID who owns the asset.</td></tr>
+        <tr><td>type</td><td>String</td><td>Enum</td><td>20</td><td>vehicle, tool, equipment.</td></tr>
+        <tr><td>category</td><td>String</td><td>Text</td><td>50</td><td>Specific classification (e.g., Tow Truck).</td></tr>
+        <tr><td>status</td><td>String</td><td>Enum</td><td>20</td><td>active, maintenance, inactive, inUse.</td></tr>
+        <tr><td>assignedTo</td><td>String (Ref)</td><td>Alphanumeric</td><td>Varies</td><td>Employee ID currently using the asset.</td></tr>
+    </table>
+</body>
+</html>

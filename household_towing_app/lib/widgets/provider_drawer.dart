@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:household_towing_app/providers/user_provider.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
 import 'package:household_towing_app/screens/provider/provider_schedule_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_tasks_screen.dart';
@@ -12,6 +14,7 @@ import 'package:household_towing_app/screens/provider/provider_history_screen.da
 import 'package:household_towing_app/screens/provider/analytics_dashboard_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_ratings_screen.dart';
 import 'package:household_towing_app/screens/provider/provider_team_screen.dart';
+import 'package:household_towing_app/services/google_auth_service.dart';
 
 class ProviderDrawer extends StatelessWidget {
   const ProviderDrawer({super.key});
@@ -133,7 +136,9 @@ class ProviderDrawer extends StatelessWidget {
             icon: Icons.logout,
             title: 'Logout',
             onTap: () async {
-              await FirebaseAuth.instance.signOut();
+              Provider.of<UserProvider>(context, listen: false).clear();
+              await GoogleAuthService().signOut();
+              if (context.mounted) { Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst); }
               // AuthWrapper will handle navigation
             },
           ),

@@ -29,7 +29,7 @@ class StatusBadge extends StatelessWidget {
         text: AppTheme.statusCompletedText,
         icon: Icons.check_circle_rounded,
       );
-    } else if (text.contains('progress') || text.contains('active') || text.contains('converted')) {
+    } else if (text.contains('progress') || text.contains('active')) {
       return _BadgeTheme(
         background: AppTheme.statusInProgressBg,
         text: AppTheme.statusInProgressText,
@@ -41,7 +41,7 @@ class StatusBadge extends StatelessWidget {
         text: AppTheme.statusCancelledText,
         icon: Icons.cancel_rounded,
       );
-    } else if (text.contains('pending') || text.contains('wait') || text.contains('assigned') || text.contains('accept')) {
+    } else if (text.contains('pending') || text.contains('wait') || text.contains('assigned') || text.contains('accept') || text.contains('converted')) {
       return _BadgeTheme(
         background: isDark ? Colors.orange.withValues(alpha: 0.2) : Colors.orange.shade100,
         text: isDark ? Colors.orange.shade300 : Colors.orange.shade800,
@@ -95,7 +95,7 @@ class StatusBadge extends StatelessWidget {
 
     // Map internal technical statuses to user-friendly terms consistent with the system
     if (status.toLowerCase() == 'converted_to_task') {
-      formattedText = 'In Progress';
+      formattedText = 'Assigned';
     }
 
     return Semantics(

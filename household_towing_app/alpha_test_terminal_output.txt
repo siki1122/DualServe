@@ -1,0 +1,197 @@
+00:00 +0: loading C:/code/DUALSERVE/household_towing_app/test/all_tests.dart
+00:01 +0: Authentication & Security LoginScreen Widget Tests Should display login form fields
+Duration: 15 ms
+00:02 +1: Authentication & Security LoginScreen Widget Tests Should display login form fields [E]
+Duration: 27 ms
+00:03 +2: Authentication & Security GoogleAuthService Tests signOut calls both FirebaseAuth and GoogleSignIn signOut
+Duration: 10 ms
+00:04 +3: Authentication & Security GoogleAuthService Tests signInWithGoogle handles null user
+Duration: 8 ms
+00:05 +4: Authentication & Security TaskService Tests deleteTask removes unassigned task
+Duration: 4 ms
+00:06 +5: Authentication & Security TaskService Tests deleteTask throws if assigned
+Duration: 17 ms
+00:07 +6: User Registration & Profiles UserProvider White-Box Tests (Mockito) - loadCurrentUserData fetches provider profile when role is provider
+Duration: 5 ms
+00:08 +7: User Registration & Profiles UserProvider White-Box Tests (Mockito) - loadCurrentUserData fetches driver profile when role is driver
+Duration: 16 ms
+00:09 +8: User Registration & Profiles RegisterScreen Widget Tests (White Box) Should display registration form fields
+Duration: 46 ms
+00:10 +9: User Registration & Profiles UserService Tests getUserProfile returns data if exists
+Duration: 13 ms
+00:11 +10: User Registration & Profiles UserService Tests getUserProfile returns null if not exists
+Duration: 10 ms
+00:12 +11: User Registration & Profiles UserService Tests getProviderProfile returns data if exists
+Duration: 11 ms
+00:13 +12: Form Data Validation FormValidators - validateRequired should reject null value
+Duration: 1 ms
+00:14 +13: Form Data Validation FormValidators - validateRequired should reject empty value
+Duration: 3 ms
+00:15 +14: Form Data Validation FormValidators - validateRequired should accept valid value
+Duration: 2 ms
+00:16 +15: Form Data Validation FormValidators - validateEmail should reject empty email
+Duration: 0 ms
+00:17 +16: Form Data Validation FormValidators - validateEmail should reject invalid email
+Duration: 0 ms
+00:18 +17: Form Data Validation FormValidators - validateEmail should accept valid email
+Duration: 1 ms
+00:19 +18: Form Data Validation FormValidators - validatePhone should reject empty phone number
+Duration: 1 ms
+00:20 +19: Form Data Validation FormValidators - validatePhone should reject invalid phone number
+Duration: 2 ms
+00:21 +20: Form Data Validation FormValidators - validatePhone should accept valid phone number
+Duration: 3 ms
+00:22 +21: Form Data Validation FormValidators - validateAddress should reject empty address
+Duration: 1 ms
+00:23 +22: Form Data Validation FormValidators - validateAddress should reject address shorter than 5 characters
+Duration: 2 ms
+00:24 +23: Form Data Validation FormValidators - validateAddress should accept valid address
+Duration: 1 ms
+00:25 +24: Form Data Validation FormValidators - validatePassword should reject password without numbers
+Duration: 2 ms
+00:26 +25: Form Data Validation FormValidators - validatePassword should accept valid password
+Duration: 2 ms
+00:27 +26: Form Data Validation FormValidators - validateName should reject empty name
+Duration: 0 ms
+00:28 +27: Form Data Validation FormValidators - validateName should reject name containing invalid characters
+Duration: 0 ms
+00:29 +28: Form Data Validation FormValidators - validateName should accept valid name
+Duration: 0 ms
+00:30 +29: Form Data Validation FormValidators - validateNumber should reject empty number
+Duration: 2 ms
+00:31 +30: Form Data Validation FormValidators - validateNumber should reject invalid number
+Duration: 2 ms
+00:32 +31: Form Data Validation FormValidators - validateNumber should accept valid number
+Duration: 0 ms
+00:33 +32: Form Data Validation FormValidators - validateMinValue should return required error for empty value
+Duration: 3 ms
+00:34 +33: Form Data Validation FormValidators - validateMinValue should return number error for invalid value
+Duration: 3 ms
+00:35 +34: Form Data Validation FormValidators - validateMinValue should reject value below minimum
+Duration: 0 ms
+00:36 +35: Form Data Validation FormValidators - validateMinValue should accept value equal to minimum
+Duration: 3 ms
+00:37 +36: Form Data Validation FormValidators - validateMinValue should accept value above minimum
+Duration: 3 ms
+00:38 +37: Form Data Validation FormValidators - validatePasswordMatch should reject empty confirmation
+Duration: 1 ms
+00:39 +38: Form Data Validation FormValidators - validatePasswordMatch should reject different passwords
+Duration: 0 ms
+00:40 +39: Form Data Validation FormValidators - validatePasswordMatch should accept matching passwords
+Duration: 2 ms
+00:41 +40: Geolocation & Routing should correctly calculate distance between SF and LA in km
+Duration: 13 ms
+00:42 +41: Geolocation & Routing should return true when locations are very close to each other
+Duration: 1 ms
+00:43 +42: Geolocation & Routing should return false when location is way outside the search radius
+Duration: 0 ms
+00:44 +43: Geolocation & Routing calculates correct ETA given distance and speed
+Duration: 2 ms
+00:45 +44: Geolocation & Routing RoutingService Tests getRoute handles successful OSRM response
+Duration: 9 ms
+00:46 +45: Geolocation & Routing RoutingService Tests getRoute handles failed response
+Duration: 4 ms
+00:47 +46: Booking & Task Management BookingModel Tests should parse from Firestore correctly
+Duration: 1 ms
+00:48 +47: Booking & Task Management BookingModel Tests toFirestore should convert to Map correctly
+Duration: 0 ms
+00:49 +48: Booking & Task Management BookingModel Tests copyWith should update fields correctly
+Duration: 3 ms
+00:50 +49: Booking & Task Management TaskModel Tests should parse from Firestore correctly
+Duration: 0 ms
+00:51 +50: Booking & Task Management TaskModel Tests toFirestore should convert to Map correctly
+Duration: 1 ms
+00:52 +51: Booking & Task Management TaskModel Tests _calculateProgress and defaultMilestones logic
+Duration: 3 ms
+00:53 +52: Booking & Task Management BookingService Tests createBooking adds new booking to collection
+Duration: 2 ms
+00:54 +53: Booking & Task Management BookingService Tests rescheduleBooking updates date and time
+Duration: 7 ms
+00:55 +54: Booking & Task Management TaskService Tests getTask returns data if exists
+Duration: 4 ms
+00:56 +55: Booking & Task Management TaskService Tests createTask adds new task
+Duration: 6 ms
+00:57 +56: Booking & Task Management TaskService Tests updateTaskStatus updates status
+Duration: 5 ms
+00:58 +57: Asset & Provider Management AssetModel Tests should parse from Firestore correctly
+Duration: 2 ms
+00:59 +58: Asset & Provider Management AssetModel Tests toFirestore should convert to Map correctly
+Duration: 2 ms
+01:00 +59: Asset & Provider Management AssetUsageLog Tests should parse from Firestore correctly
+Duration: 2 ms
+01:01 +60: Asset & Provider Management ProviderModel Tests should parse from Firestore correctly
+Duration: 3 ms
+01:02 +61: Asset & Provider Management ProviderModel Tests toFirestore should convert to Map correctly
+Duration: 2 ms
+01:03 +62: Asset & Provider Management ProviderModel Tests isBlockedOnDate logic works
+Duration: 1 ms
+01:04 +63: Asset & Provider Management UserProvider White-Box Tests (Mockito) - loadCurrentUserData clears data if user is null
+Duration: 15 ms
+01:05 +64: Asset & Provider Management UserProvider White-Box Tests (Mockito) - toggleAvailability updates optimistic UI and calls backend
+Duration: 18 ms
+01:06 +65: Asset & Provider Management UserProvider White-Box Tests (Mockito) - toggleTheme switches between dark and light mode
+Duration: 14 ms
+01:07 +66: Asset & Provider Management UserProvider White-Box Tests (Mockito) - clear resets all state variables
+Duration: 14 ms
+01:08 +67: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) should create ProviderPricing with default values
+Duration: 1 ms
+01:09 +68: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) getMultiplier should return cleaning multiplier for Household
+Duration: 1 ms
+01:10 +69: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) getMultiplier should return cleaning multiplier for Cleaning
+Duration: 3 ms
+01:11 +70: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) getMultiplier should return towing multiplier for Towing
+Duration: 3 ms
+01:12 +71: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) getMultiplier should return 1.0 for unknown service type
+Duration: 0 ms
+01:13 +72: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) copyWith should update specified fields
+Duration: 1 ms
+01:14 +73: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) copyWith should preserve original fields when no changes are supplied
+Duration: 0 ms
+01:15 +74: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) toFirestore should convert pricing to Firestore data
+Duration: 0 ms
+01:16 +75: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) toFirestore should store null when updatedAt is null
+Duration: 0 ms
+01:17 +76: Asset & Provider Management ProviderPricing Model Tests (White Box Testing) toString should return formatted string representation
+Duration: 3 ms
+01:18 +77: Asset & Provider Management UserService Tests updateProviderAvailability updates data
+Duration: 6 ms
+01:19 +78: Asset & Provider Management UserService Tests updateProviderRating updates rating
+Duration: 19 ms
+01:20 +79: Asset & Provider Management UserService Tests updateProviderRating throws on invalid rating
+Duration: 11 ms
+01:21 +80: Billing & Pricing Engine TransactionModel Tests should parse from Firestore correctly
+Duration: 0 ms
+01:22 +81: Billing & Pricing Engine TransactionModel Tests toFirestore should convert to Map correctly
+Duration: 2 ms
+01:23 +82: Billing & Pricing Engine ProviderPricing Model Tests (White Box Testing) isNightTime should return false when night differential is disabled
+Duration: 0 ms
+01:24 +83: Billing & Pricing Engine ProviderPricing Model Tests (White Box Testing) isNightTime should return true after start hour for overnight span
+Duration: 3 ms
+01:25 +84: Billing & Pricing Engine ProviderPricing Model Tests (White Box Testing) isNightTime should return true before end hour for overnight span
+Duration: 3 ms
+01:26 +85: Billing & Pricing Engine ProviderPricing Model Tests (White Box Testing) isNightTime should return false during daytime for overnight span
+Duration: 0 ms
+01:27 +86: Billing & Pricing Engine ProviderPricing Model Tests (White Box Testing) isNightTime should handle daytime span correctly
+Duration: 1 ms
+01:28 +87: Billing & Pricing Engine ProviderPricing Model Tests (White Box Testing) isNightTime should return false outside daytime span
+Duration: 2 ms
+01:29 +88: Billing & Pricing Engine ProviderPricing Model Tests (White Box Testing) calculateNightDifferential should apply custom surcharge percent
+Duration: 1 ms
+01:30 +89: Billing & Pricing Engine ProviderPricing Model Tests (White Box Testing) calculateNightDifferential should return zero during daytime
+Duration: 0 ms
+01:31 +90: Billing & Pricing Engine BillingService Tests recordTransaction creates new transaction
+Duration: 13 ms
+01:32 +91: Billing & Pricing Engine price formatting is stable ASCII text
+Duration: 2 ms
+01:33 +92: Core System Components DriverModel Tests should parse from Firestore correctly
+Duration: 0 ms
+01:34 +93: Core System Components DriverModel Tests toFirestore should convert to Map correctly
+Duration: 1 ms
+01:35 +94: Core System Components DriverModel Tests copyWith should update fields correctly
+Duration: 2 ms
+01:36 +95: Core System Components RoutingService Tests decodePolyline decodes correctly
+Duration: 17 ms
+01:37 +96: Core System Components pricing supports canonical and legacy household service names
+Duration: 3 ms
+
+01:37 +97 -0: All tests passed!

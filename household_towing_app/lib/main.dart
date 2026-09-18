@@ -145,7 +145,7 @@ class RoleBasedHome extends StatelessWidget {
           return const ProviderMainLayout();
         } else if (role == 'pending_provider') {
           return const PendingApprovalScreen();
-        } else if (role == 'driver') {
+        } else if (role == 'employee' || role == 'driver') {
           return const DriverMainLayout();
         }
         return const CustomerMainLayout();

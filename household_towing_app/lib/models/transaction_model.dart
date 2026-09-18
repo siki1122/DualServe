@@ -21,6 +21,7 @@ class Transaction {
   final double finalCost; // basePrice + distanceSurcharge + additionalCost
   final double adminFee; // portion of finalCost that goes to admin
   final double additionalCost;
+  final String? surchargeReason;
   final TransactionStatus status;
   final PaymentStatus paymentStatus;
   final String? providerNotes;
@@ -45,6 +46,7 @@ class Transaction {
     required this.finalCost,
     this.adminFee = 0.0,
     this.additionalCost = 0.0,
+    this.surchargeReason,
     this.status = TransactionStatus.pending,
     this.paymentStatus = PaymentStatus.pending,
     this.providerNotes,
@@ -77,6 +79,7 @@ class Transaction {
       finalCost: (data['finalCost'] as num?)?.toDouble() ?? 0.0,
       adminFee: (data['adminFee'] as num?)?.toDouble() ?? 0.0,
       additionalCost: (data['additionalCost'] as num?)?.toDouble() ?? 0.0,
+      surchargeReason: data['surchargeReason'],
       status:
           TransactionStatus.values.asNameMap()[data['status']] ??
           TransactionStatus.pending,
@@ -109,6 +112,7 @@ class Transaction {
       'finalCost': finalCost,
       'adminFee': adminFee,
       'additionalCost': additionalCost,
+      'surchargeReason': surchargeReason,
       'status': status.toString().split('.').last,
       'paymentStatus': paymentStatus.toString().split('.').last,
       'providerNotes': providerNotes,
@@ -136,6 +140,7 @@ class Transaction {
     double? finalCost,
     double? adminFee,
     double? additionalCost,
+    String? surchargeReason,
     TransactionStatus? status,
     PaymentStatus? paymentStatus,
     String? providerNotes,
@@ -160,6 +165,7 @@ class Transaction {
       finalCost: finalCost ?? this.finalCost,
       adminFee: adminFee ?? this.adminFee,
       additionalCost: additionalCost ?? this.additionalCost,
+      surchargeReason: surchargeReason ?? this.surchargeReason,
       status: status ?? this.status,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       providerNotes: providerNotes ?? this.providerNotes,

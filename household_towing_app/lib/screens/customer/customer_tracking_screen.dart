@@ -85,8 +85,11 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
             final taskData = snapshot.docs.first.data() as Map<String, dynamic>;
             final double progress = (taskData['progress'] as num?)?.toDouble() ?? 0.0;
             if (mounted) {
-              final driverId = taskData['assignedDriverId'] as String?;
-              final driverName = taskData['driverName'] as String?;
+              final personnelIds = List<String>.from(taskData['assignedPersonnelIds'] ?? []);
+              final personnelNames = List<String>.from(taskData['assignedPersonnelNames'] ?? []);
+              
+              final driverId = (taskData['assignedDriverId'] as String?) ?? (personnelIds.isNotEmpty ? personnelIds.first : taskData['assignedProviderId'] as String?);
+              final driverName = (taskData['assignedDriverName'] as String?) ?? (personnelNames.isNotEmpty ? personnelNames.first : 'Provider');
               
               setState(() {
                 _taskProgress = progress;
@@ -542,47 +545,69 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
             ),
           ],
           
-          const SizedBox(height: 20),
-          Divider(color: isDark ? Colors.white10 : AppTheme.textSlateLight.withValues(alpha: 0.5), height: 1),
-          const SizedBox(height: 20),
-          
-          // Driver Profile Row
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                child: const Icon(Icons.person, size: 30, color: AppTheme.primaryBlue),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(displayName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark)),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 16),
-                        const SizedBox(width: 4),
-                        Text('4.9', style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.grey[700])),
-                        const SizedBox(width: 8),
-                        Text('• Top Rated', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                      ],
-                    )
-                  ],
+          // Driver Profile Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.surfaceDark : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.textSlateDark.withValues(alpha: isDark ? 0.2 : 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white10 : AppTheme.surfaceLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isDark ? Colors.white24 : AppTheme.textSlateLight)
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.person, size: 28, color: AppTheme.primaryBlue),
+                  ),
                 ),
-                child: Text(vehiclePlate, style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, color: isDark ? Colors.white : AppTheme.textSlateDark)),
-              )
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName, 
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.textSlateDark),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.badge, color: AppTheme.primaryBlue, size: 14),
+                          const SizedBox(width: 4),
+                          Text('Employee', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : AppTheme.textSlateMedium)),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+                if (widget.bookingData['vehiclePlate'] != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.towingOrange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      widget.bookingData['vehiclePlate'], 
+                      style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 12, color: isDark ? AppTheme.towingOrange : AppTheme.towingOrange),
+                    ),
+                  )
+              ],
+            ),
           ),
           
           const SizedBox(height: 24),
@@ -620,7 +645,7 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
                     Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
                       bookingId: widget.bookingId,
                       receiverId: _assignedDriverId!,
-                      receiverName: _assignedDriverName ?? 'Driver',
+                      receiverName: _assignedDriverName ?? 'Employee',
                     )));
                   } : () {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -628,7 +653,7 @@ class _CustomerTrackingScreenState extends State<CustomerTrackingScreen> with Si
                     );
                   },
                   icon: const Icon(Icons.local_shipping_outlined),
-                  label: const Text('Driver'),
+                  label: const Text('Employee'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
                     foregroundColor: Colors.white,

@@ -91,7 +91,7 @@ class _ProviderAssetInventoryScreenState
       // Sync drivers to assets for backwards compatibility
       try {
         final driversSnap = await FirebaseFirestore.instance
-            .collection('drivers')
+            .collection('Employees')
             .where('providerId', isEqualTo: uid)
             .get();
             
@@ -100,8 +100,8 @@ class _ProviderAssetInventoryScreenState
           final assetDoc = await FirebaseFirestore.instance.collection('assets').doc(driverId).get();
           if (!assetDoc.exists) {
             await FirebaseFirestore.instance.collection('assets').doc(driverId).set({
-              'name': doc.data()['name'] ?? 'Driver',
-              'category': 'Driver',
+              'name': doc.data()['name'] ?? 'Employee',
+              'category': 'Employee',
               'type': 'crew',
               'status': 'active',
               'ownerId': uid,
@@ -119,10 +119,10 @@ class _ProviderAssetInventoryScreenState
           if (!personnel.any((p) => p.id == driverId)) {
             personnel.add(Provider(
               id: driverId,
-              name: doc.data()['name'] ?? 'Driver',
+              name: doc.data()['name'] ?? 'Employee',
               email: doc.data()['email'] ?? '',
               phone: doc.data()['phone'] ?? '',
-              specialty: 'Driver',
+              specialty: 'Employee',
               serviceType: 'Towing',
               createdAt: DateTime.now(),
             ));
@@ -209,7 +209,7 @@ class _ProviderAssetInventoryScreenState
           final visibleAssets = _filterAssets(myPool, providerId);
 
           return DefaultTabController(
-            length: 1, // Only Usage Logs now
+            length: 1,
             child: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
@@ -229,26 +229,7 @@ class _ProviderAssetInventoryScreenState
                       IconButton(
                         icon: const Icon(Icons.build_circle_outlined, color: AppTheme.primaryBlue),
                         tooltip: 'Fix Stuck Assets',
-                        onPressed: () async {
-                          final batch = FirebaseFirestore.instance.batch();
-                          final stuckAssets = await FirebaseFirestore.instance
-                              .collection('assets')
-                              .where('status', isEqualTo: 'inUse')
-                              .get();
-                          for (var doc in stuckAssets.docs) {
-                            batch.update(doc.reference, {
-                              'status': 'active',
-                              'currentTaskId': FieldValue.delete(),
-                              'currentTaskLabel': FieldValue.delete(),
-                            });
-                          }
-                          await batch.commit();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('All stuck assets have been reset to active!'), backgroundColor: AppTheme.statusCompletedText),
-                            );
-                          }
-                        },
+                        onPressed: () => _fixStuckAssets(providerId),
                       ),
                     ],
                   ),
@@ -302,8 +283,8 @@ class _ProviderAssetInventoryScreenState
     final truckCount = myPool.where((a) => a.type == AssetType.vehicle).length;
     final equipmentCount = myPool.where((a) => a.type == AssetType.equipment).length;
     final toolsCount = myPool.where((a) => a.type == AssetType.tool).length;
-    final driverCount = myPool.where((a) => a.type == AssetType.crew && a.category == 'Driver').length;
-    final crewCount = myPool.where((a) => a.type == AssetType.crew && a.category != 'Driver').length;
+    final driverCount = myPool.where((a) => a.type == AssetType.crew && (a.category == 'Employee' || a.category == 'Driver')).length;
+    final crewCount = myPool.where((a) => a.type == AssetType.crew && (a.category != 'Employee' && a.category != 'Driver')).length;
 
     return Center(
       child: ConstrainedBox(
@@ -352,7 +333,7 @@ class _ProviderAssetInventoryScreenState
                   children: [
                     _buildMetricCard('Available', availableCount.toString(), Icons.inventory_2_outlined, AppTheme.statusCompletedText, 'available', cardWidth),
                     _buildMetricCard('Vehicles', truckCount.toString(), Icons.local_shipping_outlined, AppTheme.towingOrange, 'vehicles', cardWidth),
-                    _buildMetricCard('Drivers', driverCount.toString(), Icons.airline_seat_recline_normal, Colors.teal, 'drivers', cardWidth),
+                    _buildMetricCard('Employees', driverCount.toString(), Icons.airline_seat_recline_normal, Colors.teal, 'Employees', cardWidth),
                     _buildMetricCard('Crew', crewCount.toString(), Icons.engineering_outlined, Colors.purple, 'crew', cardWidth),
                     _buildMetricCard('Equipment', equipmentCount.toString(), Icons.construction, Colors.indigo, 'equipment', cardWidth),
                     _buildMetricCard('Tools', toolsCount.toString(), Icons.handyman_outlined, Colors.blueGrey, 'tools', cardWidth),
@@ -482,8 +463,8 @@ class _ProviderAssetInventoryScreenState
       ('vehicles', 'Vehicles', myAssets.where((a) => a.type == AssetType.vehicle).length),
       ('tools', 'Tools', myAssets.where((a) => a.type == AssetType.tool).length),
       ('equipment', 'Equipment', myAssets.where((a) => a.type == AssetType.equipment).length),
-      ('drivers', 'Drivers', myAssets.where((a) => a.type == AssetType.crew && a.category == 'Driver').length),
-      ('crew', 'Crew', myAssets.where((a) => a.type == AssetType.crew && a.category != 'Driver').length),
+      ('Employees', 'Employees', myAssets.where((a) => a.type == AssetType.crew && (a.category == 'Employee' || a.category == 'Driver')).length),
+      ('crew', 'Crew', myAssets.where((a) => a.type == AssetType.crew && (a.category != 'Employee' && a.category != 'Driver')).length),
     ];
 
     return SingleChildScrollView(
@@ -838,7 +819,7 @@ class _ProviderAssetInventoryScreenState
           ),
           const SizedBox(height: 14),
           if (log.driverName != null)
-            _buildUsageLine(Icons.person_outline, 'Driver', log.driverName!),
+            _buildUsageLine(Icons.person_outline, 'Employee', log.driverName!),
           _buildUsageLine(Icons.local_shipping_outlined, 'Truck',
               log.vehicleName ?? 'No truck recorded'),
           _buildUsageLine(
@@ -932,10 +913,11 @@ class _ProviderAssetInventoryScreenState
 
   Widget _buildEmptyState(IconData icon, String title, String subtitle) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 60, color: _secondaryTextColor(context).withValues(alpha: 0.35)),
             const SizedBox(height: 16),
@@ -1452,7 +1434,7 @@ class _ProviderAssetInventoryScreenState
                 dense: true,
                 value: selectedIds.contains(asset.id),
                 title: Text(asset.name),
-                subtitle: Text(asset.category),
+                subtitle: Text(asset.category == 'Driver' ? 'Employee' : asset.category),
                 secondary: Icon(_assetIcon(asset.type)),
                 onChanged: (selected) {
                   setDialogState(() {
@@ -1483,10 +1465,10 @@ class _ProviderAssetInventoryScreenState
           return asset.type == AssetType.tool;
         case 'equipment':
           return asset.type == AssetType.equipment;
-        case 'drivers':
-          return asset.type == AssetType.crew && asset.category == 'Driver';
+        case 'Employees':
+          return asset.type == AssetType.crew && (asset.category == 'Employee' || asset.category == 'Driver');
         case 'crew':
-          return asset.type == AssetType.crew && asset.category != 'Driver';
+          return asset.type == AssetType.crew && (asset.category != 'Employee' && asset.category != 'Driver');
         default:
           return true;
       }
@@ -1608,11 +1590,52 @@ class _ProviderAssetInventoryScreenState
       case AssetType.vehicle:
         return ['Flatbed', 'Wheel-lift', 'Service Truck', 'Van', 'Motorcycle', 'Other'];
       case AssetType.crew:
-        return ['Driver', 'Helper', 'Mechanic', 'Cleaner', 'Technician', 'Other'];
+        return ['Employee', 'Helper', 'Mechanic', 'Cleaner', 'Technician', 'Other'];
       case AssetType.equipment:
         return ['Vacuum Cleaner', 'Pressure Washer', 'Ladder', 'Scaffolding', 'Generator', 'Diagnostic Kit', 'Other'];
       case AssetType.tool:
         return ['Hand Tools', 'Power Tools', 'Plumbing Snake', 'Multimeter', 'Safety Gear', 'Other'];
+    }
+  }
+
+  Future<void> _fixStuckAssets(String providerId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance.collection('assets')
+          .where('ownerId', isEqualTo: providerId)
+          .where('status', isEqualTo: 'inUse')
+          .get();
+          
+      final assignedSnapshot = await FirebaseFirestore.instance.collection('assets')
+          .where('assignedTo', isEqualTo: providerId)
+          .where('status', isEqualTo: 'inUse')
+          .get();
+
+      final batch = FirebaseFirestore.instance.batch();
+      final Set<String> processedDocs = {};
+      
+      for (var doc in snapshot.docs) {
+        processedDocs.add(doc.id);
+        batch.update(doc.reference, {
+          'status': AssetStatus.active.name,
+          'currentTaskId': FieldValue.delete(),
+          'currentTaskLabel': FieldValue.delete(),
+        });
+      }
+      
+      for (var doc in assignedSnapshot.docs) {
+        if (!processedDocs.contains(doc.id)) {
+          batch.update(doc.reference, {
+            'status': AssetStatus.active.name,
+            'currentTaskId': FieldValue.delete(),
+            'currentTaskLabel': FieldValue.delete(),
+          });
+        }
+      }
+      
+      await batch.commit();
+      _showSnackBar('Stuck assets have been successfully reset to available');
+    } catch (e) {
+      _showSnackBar('Unable to fix stuck assets: $e', isError: true);
     }
   }
 }

@@ -62,6 +62,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
   bool _isProcessing = false;
   bool _isLoadingPricing = true;
   String? _errorMessage;
+  late final TextEditingController _surchargeReasonController;
   late DateTime _completionTime;
   String? _specificService;
   Map<String, int>? _selectedSubServices;
@@ -77,6 +78,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
     super.initState();
     _notesController = TextEditingController();
     _additionalCostController = TextEditingController(text: '0');
+    _surchargeReasonController = TextEditingController();
     _completionTime = DateTime.now();
     _calculateCosts();
   }
@@ -92,7 +94,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
       try {
         final providerService = ProviderService();
         provider = await providerService.getProvider(widget.providerId);
-        if (provider != null && provider.latitude != null && provider.longitude != null) {
+        if (provider != null && provider.latitude != null && provider.longitude != null && provider.latitude != 0.0 && provider.longitude != 0.0) {
           startLat = provider.latitude!;
           startLng = provider.longitude!;
         }
@@ -100,12 +102,32 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
         debugPrint('Failed to fetch provider registered location, using current GPS coordinates: $e');
       }
 
+      // Fetch booking to get address and services
+      final bookingService = BookingService();
+      final booking = await bookingService.getBooking(widget.bookingId);
+      
+      double endLat = widget.endLatitude;
+      double endLng = widget.endLongitude;
+      
+      // If task location is 0.0, we need to geocode it from the address
+      if (endLat == 0.0 && endLng == 0.0 && booking != null && booking.address.isNotEmpty) {
+        try {
+          final locations = await LocationService.getCoordinatesFromAddress(booking.address);
+          if (locations.isNotEmpty) {
+            endLat = locations[0].latitude;
+            endLng = locations[0].longitude;
+          }
+        } catch (e) {
+          debugPrint('Failed to geocode customer address for billing: $e');
+        }
+      }
+
       // Calculate distance traveled (from provider's base/office to the task location)
       double actualDistance = LocationService.calculateDistance(
         startLat,
         startLng,
-        widget.endLatitude,
-        widget.endLongitude,
+        endLat,
+        endLng,
       );
 
       _distanceTraveled = actualDistance;
@@ -116,9 +138,6 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
           ? MAX_BILLABLE_DISTANCE 
           : actualDistance;
 
-      // Fetch booking to get specificService and selectedSubServices
-      final bookingService = BookingService();
-      final booking = await bookingService.getBooking(widget.bookingId);
       final specificService = booking?.specificService;
       final selectedSubServices = booking?.selectedSubServices;
       final serviceDetails = booking?.serviceDetails;
@@ -186,9 +205,8 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
         nightDifferential: _nightDifferential,
         finalCost: _finalCost,
         additionalCost: _additionalCost,
-        providerNotes: _notesController.text.isEmpty
-            ? null
-            : _notesController.text,
+        surchargeReason: _additionalCost > 0 ? _surchargeReasonController.text.trim() : null,
+        providerNotes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
 
       // Update task status to completed (also sets completedAt and syncs booking)
@@ -599,7 +617,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                               if (_nightDifferential > 0)
                                 _buildCostRow('Night Differential', _nightDifferential, isDark, icon: Icons.nights_stay),
                               if (widget.serviceType != 'Household')
-                                _buildCostRow('Distance Surcharge', _distanceSurcharge, isDark, subValue: '${(_distanceTraveled > PricingConfig.minDistanceKm ? _distanceTraveled - PricingConfig.minDistanceKm : 0).toStringAsFixed(2)} km'),
+                                _buildCostRow('Distance Surcharge (after first 10km)', _distanceSurcharge, isDark, subValue: '${(_distanceTraveled > PricingConfig.minDistanceKm ? _distanceTraveled - PricingConfig.minDistanceKm : 0).toStringAsFixed(2)} km (First 10km free)'),
                               _buildCostRow('Additional Cost', _additionalCost, isDark, isEditable: true),
                               const SizedBox(height: 12),
                               const Divider(),
@@ -645,9 +663,17 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                       ),
                       const SizedBox(height: 12),
                       _buildModernTextField(
+                        controller: _surchargeReasonController,
+                        label: 'Surcharge Reason',
+                        hint: 'e.g., Waiting Time, Toll Fee, etc.',
+                        icon: Icons.category,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildModernTextField(
                         controller: _additionalCostController,
-                        label: 'Service Surcharge (₱)',
-                        hint: 'Extra costs for tools, etc.',
+                        label: 'Service Surcharge Amount (₱)',
+                        hint: 'Extra costs amount',
                         icon: Icons.add_circle_outline,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         onChanged: (value) {
@@ -662,7 +688,7 @@ class _TransactionCompletionScreenState extends State<TransactionCompletionScree
                       _buildModernTextField(
                         controller: _notesController,
                         label: 'Service Notes',
-                        hint: 'Describe the completed task...',
+                        hint: 'Describe the completed task or surcharge details...',
                         icon: Icons.notes,
                         maxLines: 3,
                         isDark: isDark,

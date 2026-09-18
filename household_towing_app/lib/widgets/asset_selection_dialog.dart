@@ -93,10 +93,10 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
             .where((asset) => asset.type == AssetType.equipment)
             .toList();
         final drivers = relevantAssets
-            .where((asset) => asset.type == AssetType.crew && asset.category.toLowerCase() == 'driver')
+            .where((asset) => asset.type == AssetType.crew && (asset.category.toLowerCase() == 'employee' || asset.category.toLowerCase() == 'driver'))
             .toList();
         final helpers = relevantAssets
-            .where((asset) => asset.type == AssetType.crew && asset.category.toLowerCase() != 'driver')
+            .where((asset) => asset.type == AssetType.crew && (asset.category.toLowerCase() != 'employee' && asset.category.toLowerCase() != 'driver'))
             .toList();
 
         return AlertDialog(
@@ -168,7 +168,7 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
                       if (widget.isEmployeeContext && widget.preselectedTask != null)
                         _buildReadOnlyField(
                           context,
-                          label: 'Assigned Driver',
+                          label: 'Assigned Employee',
                           value: widget.preselectedTask!.assignedDriverName ?? 'No driver assigned',
                           icon: Icons.airline_seat_recline_normal,
                           isDark: isDark,
@@ -178,7 +178,7 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
                         isExpanded: true,
                         value: drivers.any((d) => d.id == selectedDriverId) ? selectedDriverId : null,
                         decoration: InputDecoration(
-                          labelText: 'Assigned Driver',
+                          labelText: 'Assigned Employee',
                           labelStyle: TextStyle(color: isDark ? AppTheme.textDarkSecondary : AppTheme.textSlateMedium),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
                           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
@@ -312,6 +312,20 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
                     .where((asset) => asset.type == AssetType.crew && (selectedCrewIds.contains(asset.id) || asset.id == selectedDriverId))
                     .toList();
 
+                if (selectedCrew.isEmpty && selectedDriverId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select at least one crew member.'), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+
+                if (selectedTools.isEmpty && selectedEquipment.isEmpty && selectedVehicleId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select at least one tool, equipment, or vehicle.'), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+
                 try {
                   String? taskId = widget.preselectedTask?.id;
                   
@@ -430,7 +444,7 @@ class _AssetSelectionDialogState extends State<AssetSelectionDialog> {
                 dense: true,
                 value: selectedIds.contains(asset.id),
                 title: Text(asset.name),
-                subtitle: Text(asset.category),
+                subtitle: Text(asset.category == 'Driver' ? 'Employee' : asset.category),
                 onChanged: (selected) {
                   setState(() {
                     if (selected == true) {

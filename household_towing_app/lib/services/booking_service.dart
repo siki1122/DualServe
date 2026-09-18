@@ -57,13 +57,11 @@ class BookingService {
         final bookingRef = _firestore.collection(_bookingsCollection).doc();
         newBookingId = bookingRef.id;
 
-        await _firestore.runTransaction((transaction) async {
+        final result = await _firestore.runTransaction((transaction) async {
           final slotSnap = await transaction.get(slotRef);
           if (slotSnap.exists) {
-            throw Exception('This time slot was just booked by someone else. Please choose a different time.');
+            return 'ALREADY_BOOKED';
           }
-
-
 
           // Write slot lock and booking
           transaction.set(slotRef, {
@@ -75,7 +73,12 @@ class BookingService {
           });
 
           transaction.set(bookingRef, bookingData);
+          return 'SUCCESS';
         });
+
+        if (result == 'ALREADY_BOOKED') {
+          throw Exception('This time slot was just booked by someone else. Please choose a different time.');
+        }
       } else {
         // No assigned provider (unassigned pool booking)
         final docRef = await _firestore

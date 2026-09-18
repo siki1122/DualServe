@@ -1,0 +1,23 @@
+graph TD
+    C[Customer]
+    P[Provider]
+    D[Driver]
+    PG[Payment Gateway]
+    OSRM[OSRM Routing API]
+    
+    SYS((DualServe System))
+    
+    C -- "Requests Service/Booking" --> SYS
+    SYS -- "Updates Status & Tracking" --> C
+    
+    P -- "Manages Assets & Availability" --> SYS
+    SYS -- "Assigns Tasks & Bookings" --> P
+    
+    D -- "Updates Location & Task Status" --> SYS
+    SYS -- "Provides Routes & Assignments" --> D
+    
+    SYS -- "Processes Payments" --> PG
+    PG -- "Payment Confirmation" --> SYS
+    
+    SYS -- "Requests Route Data" --> OSRM
+    OSRM -- "Returns Polyline & ETA" --> SYS

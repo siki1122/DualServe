@@ -1,0 +1,108 @@
+erDiagram
+    USER {
+        string id PK
+        string role "Customer, Provider, Driver"
+        string name
+        string email
+    }
+    
+    PROVIDER {
+        string providerId PK
+        string companyName
+        float rating
+        boolean isAvailable
+    }
+    
+    DRIVER {
+        string driverId PK
+        string vehicleType
+        string licenseNumber
+    }
+
+    CUSTOMER {
+        string customerId PK
+        string address
+    }
+
+    TASK {
+        string taskId PK
+        string status
+        string scheduledDate
+        float locationLat
+        float locationLng
+    }
+    
+    BOOKING {
+        string bookingId PK
+        string serviceType
+        float totalAmount
+        string status
+    }
+    
+    ASSET {
+        string assetId PK
+        string assetType
+        string status
+    }
+    
+    PROVIDER_PRICING {
+        string pricingId PK
+        float baseRate
+        float perKmRate
+    }
+    
+    TRANSACTION {
+        string transactionId PK
+        float amount
+        string paymentStatus
+    }
+    
+    REVIEW {
+        string reviewId PK
+        float rating
+        string comment
+    }
+
+    INCIDENT {
+        string incidentId PK
+        string description
+        string severity
+    }
+    
+    MESSAGE {
+        string messageId PK
+        string content
+        timestamp sentAt
+    }
+    
+    SERVICE_DEFINITION {
+        string serviceId PK
+        string name
+        string category
+    }
+
+    USER ||--o| PROVIDER : is_a
+    USER ||--o| DRIVER : is_a
+    USER ||--o| CUSTOMER : is_a
+    
+    PROVIDER ||--o{ TASK : handles
+    PROVIDER ||--o{ BOOKING : accepts
+    PROVIDER ||--|| PROVIDER_PRICING : has
+    PROVIDER ||--o{ ASSET : owns
+    PROVIDER ||--o{ REVIEW : receives
+    
+    CUSTOMER ||--o{ BOOKING : creates
+    CUSTOMER ||--o{ TASK : requests
+    CUSTOMER ||--o{ REVIEW : gives
+    
+    DRIVER ||--o{ TASK : assigned_to
+    
+    TASK ||--|| TRANSACTION : generates
+    BOOKING ||--|| TRANSACTION : generates
+    
+    TASK ||--o{ INCIDENT : reports
+    
+    BOOKING ||--o{ MESSAGE : contains
+    TASK ||--o{ MESSAGE : contains
+    
+    SERVICE_DEFINITION ||--o{ TASK : defines

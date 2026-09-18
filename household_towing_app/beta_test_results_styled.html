@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beta White-Box Testing - Execution Results</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            background-color: #fff;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 400;
+            margin: 0;
+            color: #555;
+        }
+        .stats {
+            text-align: right;
+            font-size: 14px;
+        }
+        .stats .percent { font-weight: bold; }
+        .stats .pass { color: #28a745; }
+        .stats .fail { color: #dc3545; }
+        
+        .red-bar {
+            height: 12px;
+            background-color: #dc3545;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            color: #d81b60;
+            font-size: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: right;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        th:first-child, td:first-child {
+            text-align: left;
+        }
+        th {
+            background-color: #d870ad; /* Pink color matching screenshot */
+            color: white;
+            font-weight: normal;
+        }
+        .dir-row {
+            background-color: #fce4ec; /* Light pink */
+            font-weight: 500;
+        }
+        .file-row {
+            padding-left: 30px !important;
+            color: #555;
+        }
+        .test-desc {
+            color: #777;
+            font-size: 13px;
+        }
+        .status-pass { color: #28a745; }
+        .status-fail { color: #dc3545; font-weight: bold; }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>All Tests</h1>
+        <div class="stats">
+            <div><span class="percent pass">99.0%</span> passed <span class="pass">103/104</span></div>
+            <div><span class="percent fail">1.0%</span> failed <span class="fail">1/104</span></div>
+        </div>
+    </div>
+    
+    <div class="red-bar"></div>
+    
+    <div class="controls">
+        Collapse All &nbsp;&nbsp; Expand All
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>File / Test Case</th>
+                <th>Status</th>
+                <th>Result</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="dir-row">
+                <td>- All Tests</td>
+                <td>99.0%</td>
+                <td><span class="status-pass">103</span> / <span class="status-fail">1</span></td>
+            </tr>
+            <tr class="dir-row">
+                <td style="padding-left: 20px;">- screens</td>
+                <td>50.0%</td>
+                <td><span class="status-pass">1</span> / <span class="status-fail">1</span></td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    login_screen_test.dart<br>
+                    <span class="test-desc">Should display login form fields</span>
+                </td>
+                <td class="status-fail">FAILED</td>
+                <td class="status-fail">❌</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    register_screen_test.dart<br>
+                    <span class="test-desc">Should display registration form fields</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+
+            <tr class="dir-row">
+                <td style="padding-left: 20px;">- services</td>
+                <td>100.0%</td>
+                <td><span class="status-pass">22</span> / 0</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    billing_service_test.dart<br>
+                    <span class="test-desc">recordTransaction creates new transaction</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    booking_service_test.dart<br>
+                    <span class="test-desc">createBooking adds new booking to collection</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    booking_service_test.dart<br>
+                    <span class="test-desc">rescheduleBooking updates date and time</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    google_auth_service_test.dart<br>
+                    <span class="test-desc">signOut calls both FirebaseAuth and GoogleSignIn signOut</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    google_auth_service_test.dart<br>
+                    <span class="test-desc">signInWithGoogle handles null user</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    location_service_test.dart<br>
+                    <span class="test-desc">calculateDistance returns distance in km</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    location_service_test.dart<br>
+                    <span class="test-desc">isWithinRadius returns true if within radius</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    routing_service_test.dart<br>
+                    <span class="test-desc">getRoute handles successful OSRM response</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    task_service_test.dart<br>
+                    <span class="test-desc">createTask adds new task</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    task_service_test.dart<br>
+                    <span class="test-desc">deleteTask throws if assigned</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    user_service_test.dart<br>
+                    <span class="test-desc">updateProviderRating throws on invalid rating</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr><td class="file-row"><span class="test-desc">... and 11 more service tests</span></td><td></td><td></td></tr>
+
+            <tr class="dir-row">
+                <td style="padding-left: 20px;">- models / provider_pricing</td>
+                <td>100.0%</td>
+                <td><span class="status-pass">12</span> / 0</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    provider_pricing_test.dart<br>
+                    <span class="test-desc">isNightTime should return true after start hour for overnight span</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    provider_pricing_test.dart<br>
+                    <span class="test-desc">calculateNightDifferential should apply custom surcharge percent</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr><td class="file-row"><span class="test-desc">... and 10 more pricing tests</span></td><td></td><td></td></tr>
+            
+            <tr class="dir-row">
+                <td style="padding-left: 20px;">- widgets / utils</td>
+                <td>100.0%</td>
+                <td><span class="status-pass">2</span> / 0</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    widget_test.dart<br>
+                    <span class="test-desc">pricing supports canonical and legacy household service names</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+            <tr>
+                <td class="file-row">
+                    widget_test.dart<br>
+                    <span class="test-desc">price formatting is stable ASCII text</span>
+                </td>
+                <td class="status-pass">PASSED</td>
+                <td class="status-pass">✅</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>

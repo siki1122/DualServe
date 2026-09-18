@@ -1,0 +1,23 @@
+graph TD
+    REQ[Validated Request]
+    FB[(Firebase DB)]
+    OSRM[OSRM API]
+    OUT[Priced Booking to Dispatch]
+
+    221((2.2.1 Validate Geospatial Bounds))
+    222((2.2.2 Fetch Route Data))
+    223((2.2.3 Apply Base Pricing Model))
+    224((2.2.4 Apply Time Differentials))
+
+    REQ -- "Coordinates" --> 221
+    FB -- "Supported Radius" --> 221
+    
+    221 -- "Valid Coordinates" --> 222
+    222 -- "Route Request" --> OSRM
+    OSRM -- "Polyline & Distance" --> 222
+    
+    222 -- "Distance/ETA" --> 223
+    FB -- "Provider Pricing Table" --> 223
+    
+    223 -- "Base Cost" --> 224
+    224 -- "Final Total Price" --> OUT

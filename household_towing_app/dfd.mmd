@@ -1,0 +1,37 @@
+graph TD
+    C[Customer]
+    P[Provider]
+    D[Driver]
+    FB[(Firebase Database)]
+    OSRM[OSRM API]
+    PG[Payment Gateway]
+
+    P1((1. User & Identity Management))
+    P2((2. Booking Management))
+    P3((3. Task Execution & Routing))
+    P4((4. Billing & Payments))
+
+    C -- "Login/Register" --> P1
+    P -- "Set Availability & Pricing" --> P1
+    D -- "Update License info" --> P1
+    P1 -- "User Profiles & Tokens" --> FB
+
+    C -- "Create Booking Request" --> P2
+    P2 -- "Booking Details" --> FB
+    P -- "Accept/Reject Booking" --> P2
+    FB -- "Booking Status Stream" --> P2
+    P2 -- "Notify Booking Status" --> C
+
+    P2 -- "Assigned Task Metadata" --> P3
+    D -- "Transmit GPS Location" --> P3
+    P3 -- "Live Location Data" --> FB
+    P3 -- "Route Request (Coordinates)" --> OSRM
+    OSRM -- "ETA & Polyline" --> P3
+    P3 -- "Live Tracking Updates" --> C
+
+    P3 -- "Task Completed Event" --> P4
+    P4 -- "Transaction Ledger" --> FB
+    P4 -- "Process Payment" --> PG
+    PG -- "Payment Receipt" --> P4
+    P4 -- "Digital Invoice" --> C
+    P4 -- "Earnings Ledger Update" --> P

@@ -25,7 +25,23 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
 
   XFile? _businessPermit;
   XFile? _governmentId;
+  String? _existingBusinessPermitUrl;
+  String? _existingGovernmentIdUrl;
   bool _isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      if (userProvider.providerProfile != null) {
+        setState(() {
+          _existingBusinessPermitUrl = userProvider.providerProfile!['businessPermitUrl'];
+          _existingGovernmentIdUrl = userProvider.providerProfile!['governmentIdUrl'];
+        });
+      }
+    });
+  }
 
   Future<void> _pickImage(bool isBusinessPermit) async {
     final XFile? image = await _storageService.pickImage(ImageSource.gallery);
@@ -41,9 +57,20 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
   }
 
   Future<void> _submitVerification() async {
-    if (_businessPermit == null || _governmentId == null) {
+    final hasPermit = _businessPermit != null || _existingBusinessPermitUrl != null;
+    final hasId = _governmentId != null || _existingGovernmentIdUrl != null;
+
+    if (!hasPermit || !hasId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please upload both documents')),
+      );
+      return;
+    }
+
+    // If both are existing and no new ones selected, just pop
+    if (_businessPermit == null && _governmentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No new documents selected.')),
       );
       return;
     }
@@ -51,19 +78,23 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
     setState(() => _isUploading = true);
 
     try {
-      // 1. Upload Business Permit
-      final permitUrl = await _storageService.uploadVerificationDocument(
-        widget.providerId,
-        _businessPermit!,
-        'business_permit',
-      );
+      // 1. Upload Business Permit if new
+      final permitUrl = _businessPermit != null 
+          ? await _storageService.uploadVerificationDocument(
+              widget.providerId,
+              _businessPermit!,
+              'business_permit',
+            )
+          : _existingBusinessPermitUrl;
 
-      // 2. Upload Government ID
-      final idUrl = await _storageService.uploadVerificationDocument(
-        widget.providerId,
-        _governmentId!,
-        'government_id',
-      );
+      // 2. Upload Government ID if new
+      final idUrl = _governmentId != null 
+          ? await _storageService.uploadVerificationDocument(
+              widget.providerId,
+              _governmentId!,
+              'government_id',
+            )
+          : _existingGovernmentIdUrl;
 
       if (permitUrl != null && idUrl != null) {
         // 3. Update Provider Document
@@ -159,6 +190,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
               title: 'Business Permit',
               subtitle: 'Upload a clear photo of your Mayor\'s Permit or DTI Registration',
               image: _businessPermit,
+              existingImageUrl: _existingBusinessPermitUrl,
               onTap: () => _pickImage(true),
             ),
             
@@ -169,6 +201,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
               title: 'Government Issued ID',
               subtitle: 'Upload your Driver\'s License, Passport, or National ID',
               image: _governmentId,
+              existingImageUrl: _existingGovernmentIdUrl,
               onTap: () => _pickImage(false),
             ),
             
@@ -215,6 +248,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
     required String title,
     required String subtitle,
     required XFile? image,
+    String? existingImageUrl,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -239,7 +273,7 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
         ),
         child: Column(
           children: [
-            if (image == null) ...[
+            if (image == null && existingImageUrl == null) ...[
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -268,19 +302,27 @@ class _ProviderVerificationScreenState extends State<ProviderVerificationScreen>
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   children: [
-                    kIsWeb
-                        ? Image.network(
-                          image.path,
-                          height: 180,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        )
-                        : Image.file(
-                          File(image.path),
-                          height: 180,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
+                    if (image != null)
+                      kIsWeb
+                          ? Image.network(
+                              image.path,
+                              height: 180,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(
+                              File(image.path),
+                              height: 180,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                    else if (existingImageUrl != null)
+                      Image.network(
+                        existingImageUrl,
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
                     Positioned(
                       right: 8,
                       top: 8,

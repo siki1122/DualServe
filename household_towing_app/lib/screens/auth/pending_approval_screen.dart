@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
+import 'package:household_towing_app/services/google_auth_service.dart';
 
 
 class PendingApprovalScreen extends StatelessWidget {
@@ -91,7 +92,8 @@ class PendingApprovalScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
+                    await GoogleAuthService().signOut();
+              if (context.mounted) { Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst); }
                     if (context.mounted) {
                       Provider.of<UserProvider>(context, listen: false).clear();
                     }

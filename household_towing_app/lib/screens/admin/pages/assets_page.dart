@@ -300,7 +300,7 @@ class _AssetsPageState extends State<AssetsPage>
                           ],
                         ),
                       ),
-                      DataCell(Text(asset.category)),
+                      DataCell(Text(asset.category == 'Driver' ? 'Employee' : asset.category)),
                       DataCell(_buildStatusBadge(asset.status)),
                       DataCell(
                         asset.assignedTo != null

@@ -6,6 +6,8 @@ import '../../utils/app_theme.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/customer_drawer.dart';
 import 'package:household_towing_app/utils/app_theme.dart';
+import '../../utils/form_validators.dart';
+import 'package:household_towing_app/services/google_auth_service.dart';
 
 
 class CustomerSettingsScreen extends StatefulWidget {
@@ -183,10 +185,11 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                             );
 
                             if (confirm == true) {
-                              await FirebaseAuth.instance.signOut();
-                              userProvider.clear();
+                              Provider.of<UserProvider>(context, listen: false).clear();
+                              await GoogleAuthService().signOut();
+              if (context.mounted) { Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst); }
                               if (mounted) {
-                                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                                Navigator.of(context).popUntil((route) => route.isFirst);
                               }
                             }
                           },
@@ -448,7 +451,12 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                           onPressed: () => setDialogState(() => obscureNew = !obscureNew),
                         ),
                       ),
-                      validator: (v) => v!.length < 6 ? 'Min 6 characters' : null,
+                      validator: (v) {
+                        if (v == currentPasswordController.text) {
+                          return 'New password cannot be the same as current';
+                        }
+                        return FormValidators.validatePassword(v);
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

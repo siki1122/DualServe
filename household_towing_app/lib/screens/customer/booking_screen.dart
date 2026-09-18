@@ -55,6 +55,7 @@ class _BookingScreenState extends State<BookingScreen> {
   double _baseCost = 0.0;
   double _nightDiffCost = 0.0;
   double _distanceSurchargeCost = 0.0;
+  double _currentDistance = 0.0;
   String? _selectedProviderId;
   String? _selectedSubService;
   Map<String, int> _selectedSubServicesMap = {};
@@ -275,6 +276,7 @@ class _BookingScreenState extends State<BookingScreen> {
     );
 
     setState(() {
+      _currentDistance = distance;
       _baseCost = baseRate;
       _nightDiffCost = PricingConfig.calculateNightDifferential(baseRate, scheduledDateTime);
       _distanceSurchargeCost = PricingConfig.calculateDistanceSurcharge(distance, _serviceType);
@@ -387,6 +389,21 @@ class _BookingScreenState extends State<BookingScreen> {
         const SnackBar(content: Text('Please wait for location to be verified on the map.')),
       );
       return;
+    }
+    
+    if (_selectedProviderId != null) {
+      try {
+        final prov = _availableProviders.firstWhere((p) => p.id == _selectedProviderId);
+        final dateIso = DateFormat('yyyy-MM-dd').format(_selectedDate);
+        if (prov.blockOutDates.contains(dateIso)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('The selected date is blocked by the provider. Please select another date.')),
+          );
+          return;
+        }
+      } catch (e) {
+        // Provider might not be in the list for some reason
+      }
     }
 
     if (_isLoading) return; // Spam protection
@@ -1153,6 +1170,19 @@ class _BookingScreenState extends State<BookingScreen> {
                   style: TextStyle(fontSize: 14),
                 ),
                 Text('+ ${PricingConfig.formatPrice(_nightDiffCost)}'),
+              ],
+            ),
+          ],
+          if (isTowing && _currentDistance > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Distance to Service',
+                  style: TextStyle(fontSize: 14),
+                ),
+                Text('${_currentDistance.toStringAsFixed(1)} km'),
               ],
             ),
           ],

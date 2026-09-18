@@ -12,6 +12,7 @@ import 'package:printing/printing.dart';
 
 import 'package:household_towing_app/models/review_model.dart';
 import 'package:household_towing_app/services/review_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ReceiptScreen extends StatefulWidget {
   final Booking booking;
@@ -265,9 +266,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                           _buildCostRow(transaction.specificService ?? 'Base Price', transaction.basePrice, isDark),
                         ],
                         if (transaction.distanceSurcharge > 0)
-                          _buildCostRow('Distance Surcharge (${(transaction.distanceTraveled > PricingConfig.minDistanceKm ? transaction.distanceTraveled - PricingConfig.minDistanceKm : 0).toStringAsFixed(1)}km)', transaction.distanceSurcharge, isDark),
+                          _buildCostRow('Distance Surcharge (after first 10km)', transaction.distanceSurcharge, isDark),
                         if (transaction.additionalCost > 0)
-                          _buildCostRow('Additional Cost', transaction.additionalCost, isDark),
+                          _buildCostRow(transaction.surchargeReason ?? 'Additional Cost', transaction.additionalCost, isDark),
                           
                         const SizedBox(height: 24),
                         _buildDashedDivider(isDark),
@@ -320,7 +321,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            if (!_isReviewed) ...[
+            if (!_isReviewed && FirebaseAuth.instance.currentUser?.uid == widget.booking.customerId) ...[
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -387,27 +388,93 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (pw.Context context) {
+          pw.Widget buildRow(String label, String value, {bool isAmount = false}) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 12),
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    flex: 2,
+                    child: pw.Text(label, style: const pw.TextStyle(color: PdfColors.grey700, fontSize: 14)),
+                  ),
+                  pw.Expanded(
+                    flex: 3,
+                    child: pw.Text(
+                      isAmount ? value.replaceAll('₱', 'PHP ') : value, 
+                      textAlign: isAmount ? pw.TextAlign.right : pw.TextAlign.left, 
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Header(level: 0, child: pw.Text('DualServe Official Receipt')),
-              pw.SizedBox(height: 20),
-              pw.Text('Receipt No: ${transaction.id.substring(0, 8).toUpperCase()}'),
-              pw.Text('Date: ${DateFormat('MMM dd, yyyy - hh:mm a').format(transaction.completedAt)}'),
-              pw.Text('Provider: $providerName'),
-              pw.Text('Service: ${booking.serviceType}'),
-              pw.SizedBox(height: 20),
-              pw.Text('Payment Breakdown', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16)),
+              // Header
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text('DualServe', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#4F46E5'))),
+                  pw.Text('Official e-Receipt', style: pw.TextStyle(fontSize: 16, color: PdfColors.grey600)),
+                ]
+              ),
               pw.SizedBox(height: 10),
-              pw.Text('Base Price: ${PricingConfig.formatPrice(transaction.basePrice)}'),
-              if (transaction.distanceSurcharge > 0)
-                pw.Text('Distance Surcharge: ${PricingConfig.formatPrice(transaction.distanceSurcharge)}'),
-              if (transaction.additionalCost > 0)
-                pw.Text('Additional Cost: ${PricingConfig.formatPrice(transaction.additionalCost)}'),
+              pw.Divider(color: PdfColors.grey300),
               pw.SizedBox(height: 20),
-              pw.Text('Total Paid: ${PricingConfig.formatPrice(transaction.finalCost)}', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 40),
-              pw.Text('Thank you for using DualServe!'),
+              
+              // Details
+              buildRow('Receipt No.', transaction.id.substring(0, 8).toUpperCase()),
+              buildRow('Date', DateFormat('MMM dd, yyyy - hh:mm a').format(transaction.completedAt)),
+              buildRow('Provider', providerName),
+              buildRow('Service', booking.serviceType),
+              
+              pw.SizedBox(height: 20),
+              pw.Divider(color: PdfColors.grey400, borderStyle: pw.BorderStyle.dashed),
+              pw.SizedBox(height: 20),
+              
+              // Breakdown
+              pw.Text('Payment Breakdown', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
+              pw.SizedBox(height: 20),
+              
+              buildRow('Base Price', PricingConfig.formatPrice(transaction.basePrice), isAmount: true),
+              if (transaction.distanceSurcharge > 0)
+                buildRow('Distance Surcharge', PricingConfig.formatPrice(transaction.distanceSurcharge), isAmount: true),
+              if (transaction.additionalCost > 0)
+                buildRow(transaction.surchargeReason ?? 'Additional Cost', PricingConfig.formatPrice(transaction.additionalCost), isAmount: true),
+                
+              pw.SizedBox(height: 20),
+              pw.Divider(color: PdfColors.grey400, borderStyle: pw.BorderStyle.dashed),
+              pw.SizedBox(height: 20),
+              
+              // Total
+              pw.Container(
+                padding: const pw.EdgeInsets.all(20),
+                decoration: pw.BoxDecoration(
+                  color: PdfColor.fromHex('#EEF2FF'),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Total Paid', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#3730A3'))),
+                    pw.Text(
+                      PricingConfig.formatPrice(transaction.finalCost).replaceAll('₱', 'PHP '), 
+                      style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#3730A3'))
+                    ),
+                  ]
+                )
+              ),
+              
+              pw.Spacer(),
+              pw.Center(
+                child: pw.Text('Thank you for choosing DualServe!', style: pw.TextStyle(color: PdfColors.grey600, fontSize: 14)),
+              ),
+              pw.SizedBox(height: 20),
             ],
           );
         },

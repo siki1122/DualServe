@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/app_theme.dart';
+import 'package:household_towing_app/services/google_auth_service.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
@@ -177,7 +178,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => FirebaseAuth.instance.signOut(),
+                onPressed: () async { await GoogleAuthService().signOut(); if (context.mounted) { Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst); } },
                 child: const Text(
                   'Cancel and Logout',
                   style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600),
